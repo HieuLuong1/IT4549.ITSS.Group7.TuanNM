@@ -92,6 +92,8 @@ FOREIGN KEY (family_id) REFERENCES families(id) ON DELETE SET NULL;
 CREATE TABLE categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,              -- Tên chủng loại: Rau củ, Thịt, Hải sản...
+    icon_key VARCHAR(100),                   -- Mã icon mặc định của chủng loại, dùng khi thực phẩm chưa chọn icon riêng
+    color_code VARCHAR(20),                  -- Mã màu hiển thị mặc định của chủng loại, ví dụ: #E8F5E9
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
