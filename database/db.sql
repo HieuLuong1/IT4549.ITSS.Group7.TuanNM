@@ -93,7 +93,7 @@ FOREIGN KEY (family_id) REFERENCES families(id) ON DELETE SET NULL;
 -- Bảng chủng loại thực phẩm
 CREATE TABLE categories (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,              -- Tên chủng loại: Rau củ, Thịt, Hải sản...
+    name VARCHAR(255) NOT NULL,              -- Tên chủng loại: Rau củ, Thịt, Hải sản, Trái Cây, Trứng & Sữa, Đồ khô, Khác
     icon_key VARCHAR(100),                   -- Mã icon mặc định của chủng loại, dùng khi thực phẩm chưa chọn icon riêng
     color_code VARCHAR(20),                  -- Mã màu hiển thị mặc định của chủng loại, ví dụ: #E8F5E9
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -294,3 +294,8 @@ CREATE TABLE meal_items (
 INSERT INTO roles (name, description) VALUES
 ('ADMIN', 'Quản trị viên hệ thống - toàn quyền truy cập'),
 ('CUSTOMER', 'Khách hàng / thành viên gia đình');
+
+-- Thêm logic cho bảng fridge
+ALTER TABLE fridge_items
+    ADD COLUMN custom_name VARCHAR(255),
+    ADD COLUMN note TEXT;
