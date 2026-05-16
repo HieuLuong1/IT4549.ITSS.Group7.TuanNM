@@ -12,7 +12,7 @@ import ProfileDetail from '@/pages/profile/ProfileDetail';
 // Customer Pages
 import FamilyGroup from '@/pages/customer/FamilyGroup';
 import ShoppingPlan from '@/pages/customer/ShoppingPlan';
-import MyFridge from '@/pages/customer/MyFridge';
+import MyFridge from '@/pages/customer/fridge/MyFridge';
 import MenuSuggestion from '@/pages/customer/MenuSuggestion';
 import Reports from '@/pages/customer/Reports';
 

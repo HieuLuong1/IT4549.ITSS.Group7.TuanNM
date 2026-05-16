@@ -16,6 +16,18 @@ public interface FridgeItemProjection {
 
     String getDisplayName();
 
+    String getUnit();
+
+    Long getCategoryId();
+
+    String getCategoryName();
+
+    String getCategoryIconKey();
+
+    String getCategoryColorCode();
+
+    String getPreservationMethodContents();
+
     BigDecimal getQuantity();
 
     String getStorageLocation();

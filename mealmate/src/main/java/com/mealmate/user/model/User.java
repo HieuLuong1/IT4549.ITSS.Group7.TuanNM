@@ -37,6 +37,15 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "phone")
     private String phone;
 
+    @Column(name = "family_id")
+    private Long familyId;
+
+    @Column(name = "gender")
+    private String gender;
+
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
     @Column(name = "email_verified")
     private Boolean emailVerified = false;
 

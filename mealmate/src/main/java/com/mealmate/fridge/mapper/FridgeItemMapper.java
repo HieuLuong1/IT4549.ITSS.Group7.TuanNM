@@ -7,6 +7,8 @@ import com.mealmate.fridge.repository.FridgeItemProjection;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
 
 @Component
 public class FridgeItemMapper {
@@ -14,7 +16,6 @@ public class FridgeItemMapper {
     public FridgeItem toEntity(CreateFridgeItemRequest request) {
         FridgeItem item = new FridgeItem();
 
-        item.setFamilyId(request.getFamilyId());
         item.setFoodId(request.getFoodId());
         item.setCustomName(normalizeBlank(request.getCustomName()));
         item.setQuantity(request.getQuantity());
@@ -35,6 +36,7 @@ public class FridgeItemMapper {
         response.setFamilyId(item.getFamilyId());
         response.setFoodId(item.getFoodId());
         response.setDisplayName(item.getCustomName());
+        response.setPreservationMethods(List.of());
         response.setQuantity(item.getQuantity());
         response.setStorageLocation(item.getStorageLocation());
         response.setSpecificLocation(item.getSpecificLocation());
@@ -61,6 +63,12 @@ public class FridgeItemMapper {
         response.setFoodId(projection.getFoodId());
         response.setStandardFoodName(projection.getStandardFoodName());
         response.setDisplayName(projection.getDisplayName());
+        response.setUnit(projection.getUnit());
+        response.setCategoryId(projection.getCategoryId());
+        response.setCategoryName(projection.getCategoryName());
+        response.setCategoryIconKey(projection.getCategoryIconKey());
+        response.setCategoryColorCode(projection.getCategoryColorCode());
+        response.setPreservationMethods(toPreservationMethods(projection.getPreservationMethodContents()));
         response.setQuantity(projection.getQuantity());
         response.setStorageLocation(projection.getStorageLocation());
         response.setSpecificLocation(projection.getSpecificLocation());
@@ -77,6 +85,17 @@ public class FridgeItemMapper {
         response.setUpdatedAt(projection.getUpdatedAt());
 
         return response;
+    }
+
+    private List<String> toPreservationMethods(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return List.of();
+        }
+
+        return Arrays.stream(value.split("\\|\\|"))
+                .map(String::trim)
+                .filter(method -> !method.isEmpty())
+                .toList();
     }
 
     private String normalizeBlank(String value) {

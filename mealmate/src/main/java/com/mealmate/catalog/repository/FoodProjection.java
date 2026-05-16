@@ -16,7 +16,5 @@ public interface FoodProjection {
 
     String getImageUrl();
 
-    String getIconKey();
-
     Boolean getIsSystem();
 }
