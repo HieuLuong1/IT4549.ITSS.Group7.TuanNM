@@ -94,7 +94,7 @@ FOREIGN KEY (family_id) REFERENCES families(id) ON DELETE SET NULL;
 CREATE TABLE categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,              -- Tên chủng loại: Rau củ, Thịt, Hải sản, Trái Cây, Trứng & Sữa, Đồ khô, Khác
-    icon_key VARCHAR(100),                   -- Mã icon mặc định của chủng loại, dùng khi thực phẩm chưa chọn icon riêng
+    icon_key VARCHAR(100),                   -- Mã icon mặc định của chủng loại; thực phẩm dùng icon của chủng loại
     color_code VARCHAR(20),                  -- Mã màu hiển thị mặc định của chủng loại, ví dụ: #E8F5E9
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -108,7 +108,6 @@ CREATE TABLE foods (
     unit VARCHAR(50),                        -- Đơn vị đo: kg, g, lít, quả...
     synonyms VARCHAR(500),                   -- Từ đồng nghĩa (phân cách bằng dấu phẩy, dùng để tối ưu tìm kiếm)
     image_url VARCHAR(500),                  -- Đường dẫn ảnh minh họa
-    icon_key VARCHAR(100),                   -- Mã icon thực phẩm được chọn từ thư viện icon, ví dụ: tomato, vegetable, milk
     is_system BOOLEAN DEFAULT TRUE,          -- TRUE nếu là thực phẩm mặc định của hệ thống, FALSE nếu là thực phẩm người dùng tự tạo
     created_by INT,                          -- Người dùng tạo thực phẩm này, dùng cho thực phẩm tự tạo
     family_id INT,                           -- Gia đình sở hữu thực phẩm tự tạo; NULL nếu là thực phẩm hệ thống

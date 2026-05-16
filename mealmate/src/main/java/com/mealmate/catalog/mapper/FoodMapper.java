@@ -17,7 +17,6 @@ public class FoodMapper {
         food.setUnit(normalizeBlank(request.getUnit()));
         food.setSynonyms(normalizeBlank(request.getSynonyms()));
         food.setImageUrl(normalizeBlank(request.getImageUrl()));
-        food.setIconKey(normalizeBlank(request.getIconKey()));
         food.setIsSystem(true);
 
         return food;
@@ -32,7 +31,6 @@ public class FoodMapper {
         response.setUnit(food.getUnit());
         response.setSynonyms(food.getSynonyms());
         response.setImageUrl(food.getImageUrl());
-        response.setIconKey(food.getIconKey());
         response.setIsSystem(food.getIsSystem());
 
         return response;
@@ -48,7 +46,6 @@ public class FoodMapper {
         response.setUnit(projection.getUnit());
         response.setSynonyms(projection.getSynonyms());
         response.setImageUrl(projection.getImageUrl());
-        response.setIconKey(projection.getIconKey());
         response.setIsSystem(projection.getIsSystem());
 
         return response;
@@ -60,7 +57,6 @@ public class FoodMapper {
         food.setUnit(normalizeBlank(request.getUnit()));
         food.setSynonyms(normalizeBlank(request.getSynonyms()));
         food.setImageUrl(normalizeBlank(request.getImageUrl()));
-        food.setIconKey(normalizeBlank(request.getIconKey()));
     }
 
     private String normalizeBlank(String value) {

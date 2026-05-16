@@ -10,8 +10,13 @@ import com.mealmate.fridge.model.dto.RemoveFridgeItemRequest;
 import com.mealmate.fridge.model.dto.UpdateFridgeItemRequest;
 import com.mealmate.fridge.repository.FridgeItemProjection;
 import com.mealmate.fridge.repository.FridgeItemRepository;
+import com.mealmate.user.model.User;
 import jakarta.transaction.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,7 +35,9 @@ public class FridgeItemService {
         this.fridgeItemMapper = fridgeItemMapper;
     }
 
-    public List<FridgeItemResponse> getStoredItems(Long familyId) {
+    public List<FridgeItemResponse> getStoredItems() {
+        Long familyId = getCurrentFamilyIdOrThrow();
+
         return fridgeItemRepository
                 .findByFamilyIdAndStatusWithFoodName(familyId, FridgeItemStatus.STORED)
                 .stream()
@@ -38,15 +45,19 @@ public class FridgeItemService {
                 .toList();
     }
 
-    public List<FridgeItemResponse> searchStoredItems(Long familyId, String keyword) {
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return getStoredItems(familyId);
+    public List<FridgeItemResponse> searchStoredItems(String keyword, Long categoryId) {
+        if ((keyword == null || keyword.trim().isEmpty()) && categoryId == null) {
+            return getStoredItems();
         }
+
+        Long familyId = getCurrentFamilyIdOrThrow();
+        String normalizedKeyword = keyword == null || keyword.trim().isEmpty() ? null : keyword.trim();
 
         List<FridgeItemProjection> items = fridgeItemRepository.searchStoredItems(
                 familyId,
                 FridgeItemStatus.STORED,
-                keyword.trim()
+                normalizedKeyword,
+                categoryId
         );
 
         return items.stream()
@@ -59,16 +70,18 @@ public class FridgeItemService {
         validateCreateRequest(request);
 
         FridgeItem item = fridgeItemMapper.toEntity(request);
+        item.setFamilyId(getCurrentFamilyIdOrThrow());
         item.setStatus(FridgeItemStatus.STORED);
 
         FridgeItem saved = fridgeItemRepository.save(item);
-        return fridgeItemMapper.toResponse(saved);
+        return toDetailedResponse(saved);
     }
 
     @Transactional
     public FridgeItemResponse update(Long id, UpdateFridgeItemRequest request) {
         FridgeItem item = fridgeItemRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Fridge item not found"));
+        assertCurrentFamilyOwns(item);
 
         if (FridgeItemStatus.REMOVED.equals(item.getStatus())) {
             throw new IllegalStateException("Removed fridge item cannot be updated");
@@ -103,39 +116,37 @@ public class FridgeItemService {
         }
 
         FridgeItem saved = fridgeItemRepository.save(item);
-        return fridgeItemMapper.toResponse(saved);
+        return toDetailedResponse(saved);
     }
 
     @Transactional
     public FridgeItemResponse remove(Long id, RemoveFridgeItemRequest request) {
         validateRemoveRequest(request);
 
+        User currentUser = getCurrentUserOrThrow();
         FridgeItem item = fridgeItemRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Fridge item not found"));
+        assertCurrentFamilyOwns(item);
 
         if (FridgeItemStatus.REMOVED.equals(item.getStatus())) {
-            return fridgeItemMapper.toResponse(item);
+            return toDetailedResponse(item);
         }
 
         item.setStatus(FridgeItemStatus.REMOVED);
         item.setRemovedReason(request.getRemovedReason());
         item.setRemovedReasonNote(normalizeBlank(request.getRemovedReasonNote()));
-        item.setRemovedBy(request.getRemovedBy());
+        item.setRemovedBy(currentUser.getId());
         item.setRemovedAt(LocalDateTime.now());
 
         FridgeItem saved = fridgeItemRepository.save(item);
-        return fridgeItemMapper.toResponse(saved);
+        return toDetailedResponse(saved);
     }
 
-    public long countStoredItems(Long familyId) {
-        return fridgeItemRepository.countStoredByFamilyId(familyId);
+    public long countStoredItems() {
+        return fridgeItemRepository.countStoredByFamilyId(getCurrentFamilyIdOrThrow());
     }
 
     private void validateCreateRequest(CreateFridgeItemRequest request) {
-        if (request.getFamilyId() == null) {
-            throw new IllegalArgumentException("familyId is required");
-        }
-
         if (request.getFoodId() == null) {
             throw new IllegalArgumentException("foodId is required");
         }
@@ -150,14 +161,34 @@ public class FridgeItemService {
             throw new IllegalArgumentException("removedReason is required");
         }
 
-        if (RemoveReason.OTHER.equals(request.getRemovedReason())
+        String removedReason = request.getRemovedReason().trim();
+
+        if (!List.of(
+                RemoveReason.USED_UP,
+                RemoveReason.EXPIRED_DISCARDED,
+                RemoveReason.SPOILED,
+                RemoveReason.WRONG_INFO,
+                RemoveReason.OTHER
+        ).contains(removedReason)) {
+            throw new IllegalArgumentException("removedReason is invalid");
+        }
+
+        request.setRemovedReason(removedReason);
+
+        if (RemoveReason.OTHER.equals(removedReason)
                 && (request.getRemovedReasonNote() == null || request.getRemovedReasonNote().trim().isEmpty())) {
             throw new IllegalArgumentException("removedReasonNote is required when removedReason is OTHER");
         }
+    }
 
-        if (request.getRemovedBy() == null) {
-            throw new IllegalArgumentException("removedBy is required");
+    private FridgeItemResponse toDetailedResponse(FridgeItem item) {
+        if (item.getId() == null) {
+            return fridgeItemMapper.toResponse(item);
         }
+
+        return fridgeItemRepository.findDetailedById(item.getId())
+                .map(fridgeItemMapper::toResponse)
+                .orElseGet(() -> fridgeItemMapper.toResponse(item));
     }
 
     private String normalizeBlank(String value) {
@@ -165,5 +196,34 @@ public class FridgeItemService {
             return null;
         }
         return value.trim();
+    }
+
+    private User getCurrentUserOrThrow() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authenticated");
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof User user) {
+            return user;
+        }
+
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user is invalid");
+    }
+
+    private Long getCurrentFamilyIdOrThrow() {
+        Long familyId = getCurrentUserOrThrow().getFamilyId();
+        if (familyId == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Current user does not belong to a family");
+        }
+        return familyId;
+    }
+
+    private void assertCurrentFamilyOwns(FridgeItem item) {
+        Long familyId = getCurrentFamilyIdOrThrow();
+        if (!familyId.equals(item.getFamilyId())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Fridge item not found");
+        }
     }
 }

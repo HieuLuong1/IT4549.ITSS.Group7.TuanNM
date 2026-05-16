@@ -1,7 +1,6 @@
 package com.mealmate.fridge.model.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -13,7 +12,4 @@ public class RemoveFridgeItemRequest {
     private String removedReason;
 
     private String removedReasonNote;
-
-    @NotNull(message = "removedBy is required")
-    private Long removedBy;
 }

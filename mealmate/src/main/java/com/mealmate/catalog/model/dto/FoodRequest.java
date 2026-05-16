@@ -20,6 +20,4 @@ public class FoodRequest {
     private String synonyms;
 
     private String imageUrl;
-
-    private String iconKey;
 }

@@ -21,7 +21,5 @@ public class FoodResponse {
 
     private String imageUrl;
 
-    private String iconKey;
-
     private Boolean isSystem;
 }

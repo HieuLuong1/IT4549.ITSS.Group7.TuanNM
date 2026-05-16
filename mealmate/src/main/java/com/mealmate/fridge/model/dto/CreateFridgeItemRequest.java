@@ -12,9 +12,6 @@ import java.time.LocalDate;
 @Setter
 public class CreateFridgeItemRequest {
 
-    @NotNull(message = "familyId is required")
-    private Long familyId;
-
     @NotNull(message = "foodId is required")
     private Long foodId;
 

@@ -25,7 +25,6 @@ public interface FoodRepository extends JpaRepository<Food, Long> {
             f.unit AS unit,
             f.synonyms AS synonyms,
             f.image_url AS imageUrl,
-            f.icon_key AS iconKey,
             f.is_system AS isSystem
         FROM foods f
         LEFT JOIN categories c ON f.category_id = c.id
@@ -42,7 +41,6 @@ public interface FoodRepository extends JpaRepository<Food, Long> {
             f.unit AS unit,
             f.synonyms AS synonyms,
             f.image_url AS imageUrl,
-            f.icon_key AS iconKey,
             f.is_system AS isSystem
         FROM foods f
         LEFT JOIN categories c ON f.category_id = c.id
