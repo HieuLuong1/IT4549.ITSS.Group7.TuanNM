@@ -1,31 +1,34 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 
 // Auth Pages
-import Login from '@/pages/auth/Login';
-import Register from '@/pages/auth/Register';
+const Login = () => <div className="p-10">Login Page</div>;
+const Register = () => <div className="p-10">Register Page</div>;
 
 // Profile
-import ProfileDetail from '@/pages/profile/ProfileDetail';
+const ProfileDetail = () => <div className="p-10">Profile Detail</div>;
 
 // Customer Pages
-import FamilyGroup from '@/pages/customer/FamilyGroup';
-import ShoppingPlan from '@/pages/customer/ShoppingPlan';
-import MyFridge from '@/pages/customer/MyFridge';
-import MenuSuggestion from '@/pages/customer/MenuSuggestion';
-import Reports from '@/pages/customer/Reports';
+const FamilyGroup = () => <div className="p-10">Family Group</div>;
+const ShoppingPlan = () => <div className="p-10">Shopping Plan</div>;
+const MyFridge = () => <div className="p-10">My Fridge</div>;
+const MenuSuggestion = () => <div className="p-10">Menu Suggestion</div>;
+const Reports = () => <div className="p-10">Reports</div>;
 
 // Admin Pages
-import UserManagement from '@/pages/admin/UserManagement';
-import FoodManagement from '@/pages/admin/FoodManagement';
-import RecipeManagement from '@/pages/admin/RecipeManagement';
-import Performance from '@/pages/admin/Performance';
+import UserManagement from '@/src/pages/admin/UserManagement';
+import FoodManagement from '@/src/pages/admin/FoodManagement';
+import RecipeManagement from '@/src/pages/admin/RecipeManagement';
+import PerformanceManagement from '@/src/pages/admin/PerformanceManagement';
 
 const App: React.FC = () => {
   return (
     <Routes>
-      {/* TODO: Implement route guards based on AuthContext role (ADMIN / CUSTOMER) */}
-
       {/* Auth Routes - Public */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -44,12 +47,13 @@ const App: React.FC = () => {
       <Route path="/admin/users" element={<UserManagement />} />
       <Route path="/admin/foods" element={<FoodManagement />} />
       <Route path="/admin/recipes" element={<RecipeManagement />} />
-      <Route path="/admin/performance" element={<Performance />} />
+      <Route path="/admin/performance" element={<PerformanceManagement />} />
 
       {/* Default redirect */}
-      <Route path="/" element={<Login />} />
+      <Route path="/" element={<Navigate to="/admin/users" replace />} />
     </Routes>
   );
 };
 
 export default App;
+
