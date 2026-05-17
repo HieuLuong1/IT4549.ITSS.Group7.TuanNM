@@ -1,11 +1,13 @@
 import { useAuth } from "@/context/AuthContext"; // Import useAuth để lấy thông tin user thực
 import React from "react";
-import { NavLink } from "react-router-dom"; // Import NavLink
+import { useLocation, Link } from "react-router-dom";
 import "./Sidebar.css";
 
 import avatar from "@/assets/avatar/26.svg";
-import iconFridge from "@/assets/icon/Icon-fridge.svg";
+
 import iconGroup from "@/assets/icon/Icon-group.svg";
+import iconShopping from "@/assets/icon/Icon-shopping.svg";
+import fridgeMenuIcon from "@/assets/icon/Icon-fridge.svg";
 import iconLogo from "@/assets/icon/Icon-logo.svg";
 import iconRecipe from "@/assets/icon/Icon-recipe.svg";
 import iconSchedule from "@/assets/icon/Icon-schedule.svg";
@@ -13,17 +15,7 @@ import iconShopping from "@/assets/icon/Icon-shopping.svg";
 import iconStatistic from "@/assets/icon/Icon-statistic.svg";
 
 const Sidebar: React.FC = () => {
-  const { user } = useAuth(); // Lấy thông tin user từ Context
-
-  // Định nghĩa danh sách menu để map ra cho gọn
-  const menuItems = [
-    { path: "/group", icon: iconGroup, label: "Nhóm gia đình" },
-    { path: "/fridge", icon: iconFridge, label: "Tủ lạnh nhà tôi" },
-    { path: "/shopping", icon: iconShopping, label: "Kế hoạch đi chợ" },
-    { path: "/schedule", icon: iconSchedule, label: "Kế hoạch bữa ăn" },
-    { path: "/recipe", icon: iconRecipe, label: "Thư viện công thức" },
-    { path: "/statistic", icon: iconStatistic, label: "Báo cáo & Thống kê" },
-  ];
+  const location = useLocation();
 
   return (
     <aside className="sidebar">
@@ -37,21 +29,65 @@ const Sidebar: React.FC = () => {
       </div>
 
       <nav className="sidebar-nav">
-        {menuItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            // NavLink sẽ tự động thêm class 'active' nếu đường dẫn khớp
-            className={({ isActive }) =>
-              `sidebar-menu-item ${isActive ? "active" : ""}`
-            }
-          >
-            <span className="sidebar-icon-wrap">
-              <img src={item.icon} alt={item.label} className="sidebar-menu-icon" />
-            </span>
-            <span className="sidebar-menu-text">{item.label}</span>
-          </NavLink>
-        ))}
+        <Link 
+          className={`sidebar-menu-item ${location.pathname === "/family" ? "active" : ""}`} 
+          to="/family"
+        >
+          <span className="sidebar-icon-wrap">
+            <img src={iconGroup} alt="" className="sidebar-menu-icon" />
+          </span>
+          <span className="sidebar-menu-text">Nhóm gia đình</span>
+        </Link>
+
+        <Link 
+          className={`sidebar-menu-item ${location.pathname === "/fridge" || location.pathname === "/" ? "active" : ""}`} 
+          to="/fridge"
+        >
+          <span className="sidebar-icon-wrap">
+            <img src={fridgeMenuIcon} alt="" className="sidebar-menu-icon" />
+          </span>
+          <span className="sidebar-menu-text">Tủ lạnh nhà tôi</span>
+        </Link>
+
+        <Link 
+          className={`sidebar-menu-item ${location.pathname === "/shopping" ? "active" : ""}`} 
+          to="/shopping"
+        >
+          <span className="sidebar-icon-wrap">
+            <img src={iconShopping} alt="" className="sidebar-menu-icon" />
+          </span>
+          <span className="sidebar-menu-text">Kế hoạch đi chợ</span>
+        </Link>
+
+        <Link 
+          className={`sidebar-menu-item ${location.pathname === "/suggestions" ? "active" : ""}`} 
+          to="/suggestions"
+        >
+          <span className="sidebar-icon-wrap">
+            <img src={iconSchedule} alt="" className="sidebar-menu-icon" />
+          </span>
+          <span className="sidebar-menu-text">Kế hoạch bữa ăn</span>
+        </Link>
+
+        <Link 
+          className={`sidebar-menu-item ${location.pathname === "/recipes" ? "active" : ""}`} 
+          to="#"
+        >
+          <span className="sidebar-icon-wrap">
+            <img src={iconRecipe} alt="" className="sidebar-menu-icon" />
+          </span>
+          <span className="sidebar-menu-text">Thư viện công thức</span>
+        </Link>
+
+        <Link 
+          className={`sidebar-menu-item ${location.pathname === "/reports" ? "active" : ""}`} 
+          to="/reports"
+        >
+          <span className="sidebar-icon-wrap">
+            <img src={iconStatistic} alt="" className="sidebar-menu-icon" />
+          </span>
+          <span className="sidebar-menu-text">Báo cáo &amp; Thống kê</span>
+        </Link>
       </nav>
 
       {/* <div className="sidebar-profile-section">

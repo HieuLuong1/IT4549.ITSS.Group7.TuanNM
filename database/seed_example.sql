@@ -445,3 +445,9 @@ DO $$
 BEGIN
     RAISE NOTICE 'Seed data reset and completed successfully. Login: user@mealmate.local / password';
 END $$;
+
+
+--Cập nhật thêm role
+INSERT INTO roles (name, description, is_active)
+VALUES
+    ('BOSS', 'Người nội trợ', TRUE);

@@ -1,0 +1,317 @@
+/* Khung bọc khớp hoàn toàn lề lối của MyFridge */
+.family-group-main-wrapper {
+  padding-top: 32px;
+  padding-left: 32px;
+  padding-right: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 23.98px;
+  background: var(--fiza-background);
+  min-height: calc(100vh - 80px);
+  box-sizing: border-box;
+}
+
+/* Thanh toolbar chứa ô search thành viên */
+.family-table-toolbar {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 1134px;
+}
+
+/* Khối thông tin nhóm đồng bộ độ bo góc và chiều cao */
+.info-bar {
+  width: 100%;
+  max-width: 1134px;
+  padding: 20px;
+  background: var(--fiza-white, white);
+  box-shadow: 0px 8px 32px rgba(109, 212, 180, 0.05);
+  border-radius: 20px; /* Đồng bộ độ bo với MyFridge thay vì 32px thô kệch */
+  justify-content: space-between;
+  align-items: center;
+  display: flex;
+  box-sizing: border-box;
+}
+
+.info-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.info-item-flex {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.info-label-box-wide {
+  padding-right: 8px;
+}
+
+.info-label {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.50px;
+}
+
+.info-value-name-box {
+  height: 40px;
+  padding: 0 16px;
+  background: #E4E7ED;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.info-value-name-text {
+  color: #006B55;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.info-value-code-box {
+  height: 40px;
+  padding: 0 16px;
+  background: #E4E7ED;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.info-value-code-text {
+  color: #006B55;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+/* Nút thêm thành viên đồng bộ size font và độ cao với các nút của hệ thống */
+.btn-add-member {
+  height: 40px;
+  padding: 0 24px;
+  position: relative;
+  background: #006B55;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-shadow {
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+  position: absolute;
+  box-shadow: 0px 4px 6px -4px rgba(0, 107, 85, 0.20);
+  border-radius: 12px;
+}
+
+.btn-text {
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 2;
+}
+
+/* Cấu trúc Bảng thành viên */
+.table-wrapper {
+  width: 100%;
+  max-width: 1134px;
+}
+
+.table-card {
+  width: 100%;
+  padding: 24px;
+  background: var(--fiza-white, white);
+  box-shadow: 0px 8px 32px rgba(109, 212, 180, 0.05);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.table-content {
+  width: 100%;
+}
+
+.table-header-row {
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  padding-bottom: 16px;
+  color: #4D9A80;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.th-id { width: 15%; }
+.th-member { width: 45%; }
+.th-role { width: 25%; }
+.th-action { width: 15%; text-align: right; }
+
+.th-text, .th-text-right {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* Các hàng dòng thành viên */
+.table-body {
+  display: flex;
+  flex-direction: column;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.table-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.table-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.table-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.table-row, .table-row-bordered {
+  display: flex;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.table-row-bordered {
+  border-top: none;
+}
+
+.table-row-bordered:last-child {
+  border-bottom: none;
+}
+
+.td-id { width: 15%; }
+.td-id-text {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.td-member-info {
+  width: 45%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar-wrapper {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.avatar-orange { background: #FFDBCB; }
+.avatar-peach { background: #FFDBCA; }
+.avatar-teal { background: #8FF6D4; }
+
+.avatar-text-placeholder {
+  font-weight: 700;
+  font-size: 13px;
+  color: #171D1A;
+}
+
+.member-name {
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.td-role { width: 25%; }
+
+.role-badge-admin {
+  padding: 4px 12px;
+  background: rgba(0, 107, 85, 0.10);
+  color: #006B55;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block; /* Ép ô không chiếm hết hàng */
+  width: fit-content;    /* Thu nhỏ kích thước vừa khít chữ */
+}
+
+.role-badge-member {
+  padding: 4px 12px;
+  background: #EAEFEB;
+  color: #475569;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block; /* Ép ô không chiếm hết hàng */
+  width: fit-content;    /* Thu nhỏ kích thước vừa khít chữ */
+}
+
+.td-actions {
+  width: 15%;
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.action-btn-circle {
+  width: 32px;
+  height: 32px;
+  background: white;
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.action-btn-circle:hover {
+  background: #F1F5F9;
+}
+
+.btn-delete {
+  color: #BA1A1A;
+}
+
+/* Chân bảng gợi ý */
+.table-footer-hint {
+  width: 100%;
+  padding-top: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.footer-hint-box {
+  opacity: 0.6;
+}
+
+.footer-hint-text {
+  color: #94a3b8;
+  font-size: 13px;
+  font-style: italic;
+}
