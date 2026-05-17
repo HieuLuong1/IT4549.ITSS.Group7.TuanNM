@@ -20,7 +20,6 @@ import Reports from '@/pages/customer/Reports';
 import UserManagement from '@/pages/admin/UserManagement';
 import FoodManagement from '@/pages/admin/FoodManagement';
 import RecipeManagement from '@/pages/admin/RecipeManagement';
-import Performance from '@/pages/admin/Performance';
 
 const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -69,7 +68,6 @@ const App: React.FC = () => {
       <Route path="/admin/users" element={<RequireAuth><UserManagement /></RequireAuth>} />
       <Route path="/admin/foods" element={<RequireAuth><FoodManagement /></RequireAuth>} />
       <Route path="/admin/recipes" element={<RequireAuth><RecipeManagement /></RequireAuth>} />
-      <Route path="/admin/performance" element={<RequireAuth><Performance /></RequireAuth>} />
 
       {/* Default redirect */}
       <Route path="/" element={<HomeRedirect />} />

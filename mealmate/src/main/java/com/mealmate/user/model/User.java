@@ -2,6 +2,7 @@ package com.mealmate.user.model;
 
 import com.mealmate.auth.model.Role;
 import com.mealmate.common.base.BaseEntity;
+import com.mealmate.user.model.Family;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -37,6 +38,7 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "phone")
     private String phone;
 
+    @Builder.Default
     @Column(name = "email_verified")
     private Boolean emailVerified = false;
 
@@ -49,6 +51,10 @@ public class User extends BaseEntity implements UserDetails {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")
     private Role role;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "family_id")
+    private Family family;
 
     // ===== UserDetails implementation =====
 

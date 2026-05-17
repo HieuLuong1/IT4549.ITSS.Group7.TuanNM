@@ -1,4 +1,5 @@
 import React from "react";
+import { NavLink } from "react-router-dom";
 import "./Sidebar.css";
 
 import avatar from "@/assets/avatar/26.svg";
@@ -10,6 +11,14 @@ import iconLogo from "@/assets/icon/Icon-logo.svg";
 import iconSchedule from "@/assets/icon/Icon-schedule.svg";
 import iconStatistic from "@/assets/icon/Icon-statistic.svg";
 import iconRecipe from "@/assets/icon/Icon-recipe.svg";
+
+const navItems = [
+  { label: "Nhóm gia đình", to: "/family", icon: iconGroup },
+  { label: "Tủ lạnh nhà tôi", to: "/fridge", icon: iconFridge },
+  { label: "Kế hoạch đi chợ", to: "/shopping", icon: iconShopping },
+  { label: "Kế hoạch bữa ăn", to: "/suggestions", icon: iconSchedule },
+  { label: "Báo cáo & Thống kê", to: "/reports", icon: iconStatistic }
+];
 
 const Sidebar: React.FC = () => {
   return (
@@ -24,47 +33,19 @@ const Sidebar: React.FC = () => {
       </div>
 
       <nav className="sidebar-nav">
-        <a className="sidebar-menu-item" href="#">
-          <span className="sidebar-icon-wrap">
-            <img src={iconGroup} alt="" className="sidebar-menu-icon" />
-          </span>
-          <span className="sidebar-menu-text">Nhóm gia đình</span>
-        </a>
-
-        <a className="sidebar-menu-item active" href="#">
-          <span className="sidebar-icon-wrap">
-            <img src={iconFridge} alt="" className="sidebar-menu-icon" />
-          </span>
-          <span className="sidebar-menu-text">Tủ lạnh nhà tôi</span>
-        </a>
-
-        <a className="sidebar-menu-item" href="#">
-          <span className="sidebar-icon-wrap">
-            <img src={iconShopping} alt="" className="sidebar-menu-icon" />
-          </span>
-          <span className="sidebar-menu-text">Kế hoạch đi chợ</span>
-        </a>
-
-        <a className="sidebar-menu-item" href="#">
-          <span className="sidebar-icon-wrap">
-            <img src={iconSchedule} alt="" className="sidebar-menu-icon" />
-          </span>
-          <span className="sidebar-menu-text">Kế hoạch bữa ăn</span>
-        </a>
-
-        <a className="sidebar-menu-item" href="#">
-          <span className="sidebar-icon-wrap">
-            <img src={iconRecipe} alt="" className="sidebar-menu-icon" />
-          </span>
-          <span className="sidebar-menu-text">Thư viện công thức</span>
-        </a>
-
-        <a className="sidebar-menu-item" href="#">
-          <span className="sidebar-icon-wrap">
-            <img src={iconStatistic} alt="" className="sidebar-menu-icon" />
-          </span>
-          <span className="sidebar-menu-text">Báo cáo &amp; Thống kê</span>
-        </a>
+        {navItems.map((item) => (
+          <NavLink
+            key={item.label}
+            to={item.to}
+            end
+            className={({ isActive }) => `sidebar-menu-item${isActive ? " active" : ""}`}
+          >
+            <span className="sidebar-icon-wrap">
+              <img src={item.icon} alt="" className="sidebar-menu-icon" />
+            </span>
+            <span className="sidebar-menu-text">{item.label}</span>
+          </NavLink>
+        ))}
       </nav>
 
       <div className="sidebar-profile-section">
