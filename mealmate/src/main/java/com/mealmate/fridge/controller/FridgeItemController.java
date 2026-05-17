@@ -22,14 +22,14 @@ public class FridgeItemController {
 
     @GetMapping
     public List<FridgeItemResponse> getStoredItems(
-            @RequestParam Long familyId,
-            @RequestParam(required = false) String keyword
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId
     ) {
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return fridgeItemService.getStoredItems(familyId);
+        if ((keyword == null || keyword.trim().isEmpty()) && categoryId == null) {
+            return fridgeItemService.getStoredItems();
         }
 
-        return fridgeItemService.searchStoredItems(familyId, keyword);
+        return fridgeItemService.searchStoredItems(keyword, categoryId);
     }
 
     @PostMapping
@@ -56,7 +56,7 @@ public class FridgeItemController {
     }
 
     @GetMapping("/count")
-    public long countStoredItems(@RequestParam Long familyId) {
-        return fridgeItemService.countStoredItems(familyId);
+    public long countStoredItems() {
+        return fridgeItemService.countStoredItems();
     }
 }

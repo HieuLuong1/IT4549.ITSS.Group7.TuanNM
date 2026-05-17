@@ -6,6 +6,7 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -20,6 +21,18 @@ public class FridgeItemResponse {
     private String standardFoodName;
 
     private String displayName;
+
+    private String unit;
+
+    private Long categoryId;
+
+    private String categoryName;
+
+    private String categoryIconKey;
+
+    private String categoryColorCode;
+
+    private List<String> preservationMethods;
 
     private BigDecimal quantity;
 

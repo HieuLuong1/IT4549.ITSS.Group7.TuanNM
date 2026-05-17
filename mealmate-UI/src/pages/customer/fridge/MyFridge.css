@@ -25,7 +25,7 @@
 
 .my-fridge-content {
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: minmax(0, 1fr) 360px;
   min-height: calc(100vh - 80px);
   background: var(--fiza-background);
 }
@@ -38,6 +38,14 @@
   flex-direction: column;
   gap: 23.98px;
   overflow: hidden;
+  min-width: 0;
+}
+
+.my-fridge-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .my-fridge-view-tabs {
@@ -74,9 +82,30 @@
   color: var(--fiza-white);
 }
 
+.my-fridge-search {
+  width: min(320px, 100%);
+  height: 43.44px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: var(--fiza-white);
+  color: #1e293b;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 19.5px;
+  outline: none;
+  padding: 0 14px;
+}
+
+.my-fridge-search:focus {
+  border-color: var(--fiza-primary-light);
+  box-shadow: 0 0 0 3px rgba(110, 212, 180, 0.18);
+}
+
 .my-fridge-filter-tabs {
-  height: 39.48px;
+  min-height: 39.48px;
   display: flex;
+  flex-wrap: wrap;
   gap: 7.99px;
 }
 
@@ -91,11 +120,43 @@
   line-height: 19.5px;
   padding: 0 20px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .my-fridge-filter-tabs button.active {
   background: var(--fiza-primary);
   color: var(--fiza-white);
+}
+
+.my-fridge-category-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.my-fridge-state {
+  min-height: 48px;
+  border-radius: 12px;
+  background: var(--fiza-white);
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.my-fridge-state.error {
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 .my-fridge-grid {
@@ -215,133 +276,131 @@
 
 .my-fridge-sidebar {
   width: 360px;
-  padding-top: 164px;
-  padding-bottom: 32px;
-  padding-left: 23.98px;
+  box-sizing: border-box;
+  height: calc(100vh - 80px);
+  position: sticky;
+  top: 80px;
+  padding-top: 32px;
+  padding-bottom: 24px;
+  padding-left: 18.98px;
   padding-right: 32px;
   display: flex;
   flex-direction: column;
-  gap: 44px;
+  gap: 24px;
   overflow: hidden;
 }
 
-.my-fridge-summary {
-  width: 304.01px;
-  display: grid;
-  grid-template-columns: 146px 146.02px;
-  gap: 11.98px;
-}
-
-.summary-card {
-  height: 91.97px;
-  padding: 16px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  gap: 11.98px;
-}
-
-.summary-card.total {
-  background: #fff4e5;
-}
-
-.summary-card.expiring {
-  background: #ffe5e5;
-}
-
-.summary-card h2 {
-  margin: 0;
-  color: #1e293b;
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 27px;
-}
-
-.summary-card p {
-  margin: 0;
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 400;
-  line-height: 16.5px;
-}
-
-.summary-icon {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
-.status-card {
-  width: 146px;
-  height: 146px;
-  border-radius: 16px;
-  padding: 29.02px 16px;
+.fridge-status-card {
+  width: 309.01px;
+  height: 240px;
+  position: relative;
+  padding: 25px 0;
+  box-sizing: border-box;
+  border-radius: 14px;
+  border: 1.27px solid #cbfbf1;
+  background: linear-gradient(135deg, #f0fdfa 0%, #ecfdf5 100%);
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 7.99px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 10px;
+  overflow: hidden;
 }
 
-.status-card.temperature {
-  background: #e5f9ff;
-}
-
-.status-card.normal {
-  background: #e8f5e9;
-  padding-top: 33.51px;
-  padding-bottom: 33.53px;
-}
-
-.status-card h2 {
-  margin: 0;
-  font-weight: 700;
-}
-
-.status-card.temperature h2 {
-  color: #0e7490;
-  font-size: 22px;
-  line-height: 33px;
-}
-
-.status-card.normal h2 {
-  color: #2e7d32;
+.fridge-status-card h2 {
+  width: 220.25px;
+  height: 20px;
+  margin: 0 auto;
+  color: #4d9a80;
+  font-family: "Plus Jakarta Sans", "Inter", "Segoe UI", sans-serif;
   font-size: 16px;
-  line-height: 24px;
+  font-weight: 700;
+  line-height: 20px;
 }
 
-.status-card p {
+.fridge-status-body {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.fridge-status-visual {
+  width: 136px;
+  height: 152px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.fridge-status-visual img {
+  width: 136px;
+  height: 152px;
+  object-fit: contain;
+  display: block;
+}
+
+.fridge-status-copy {
+  width: 166px;
+  height: 114px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 13px;
+}
+
+.fridge-status-copy h3 {
+  width: 158px;
+  min-height: 28px;
   margin: 0;
-  color: #64748b;
-  font-size: 10px;
-  font-weight: 400;
+  color: #4d9a80;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
   line-height: 15px;
 }
 
-.status-icon {
-  width: 23.98px;
-  height: 23.98px;
-  object-fit: contain;
+.fridge-status-copy p {
+  width: 156px;
+  min-height: 19px;
+  margin: 0;
+  color: #4a5565;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  font-size: 10px;
+  font-weight: 300;
+  line-height: 12px;
 }
 
-.normal-dot {
-  width: 23.98px;
-  height: 23.98px;
-  padding-left: 7.99px;
-  padding-right: 7.99px;
-  background: #4caf50;
+.fridge-status-total-pill {
+  position: absolute;
+  left: 135.02px;
+  top: 158px;
+  width: 143px;
+  height: 40px;
   border-radius: 42600300px;
+  border: 1.27px solid #cbfbf1;
+  background: #cbfbf1;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
 }
 
-.normal-dot span {
-  width: 7.99px;
-  height: 7.99px;
-  background: var(--fiza-white);
-  border-radius: 42600300px;
+.fridge-status-total-pill strong {
+  color: #00786f;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.fridge-status-total-pill span {
+  color: #269187;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
 }
 
 .my-fridge-alerts {
@@ -404,18 +463,48 @@
 .round-action {
   width: 55.98px;
   height: 55.98px;
+  padding: 0;
   border: none;
   border-radius: 9999px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0;
+  overflow: hidden;
+  transition: width 180ms ease, padding 180ms ease, gap 180ms ease;
 }
 
 .round-action img {
   width: 20px;
   height: 20px;
   object-fit: contain;
+  flex-shrink: 0;
+}
+
+.round-action span {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--fiza-white);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 19.5px;
+  transition: max-width 180ms ease, opacity 140ms ease;
+}
+
+.round-action:hover,
+.round-action:focus-visible {
+  width: 168px;
+  padding: 0 18px;
+  gap: 8px;
+}
+
+.round-action:hover span,
+.round-action:focus-visible span {
+  max-width: 112px;
+  opacity: 1;
 }
 
 .round-action.add {

@@ -308,6 +308,9 @@
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .food-detail-unit:hover {
@@ -318,6 +321,14 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+.food-detail-action-error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
 }
 
 .food-detail-cancel-button,
@@ -348,6 +359,14 @@
 
 .food-detail-save-button:hover {
   background: #4d9a80;
+}
+
+.food-detail-cancel-button:disabled,
+.food-detail-save-button:disabled,
+.food-detail-remove-button:disabled,
+.food-detail-quantity-row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .food-detail-remove-section {

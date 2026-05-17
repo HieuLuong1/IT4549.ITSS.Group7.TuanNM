@@ -7,16 +7,40 @@ import NoteSection from '@/components/shopping-plan/NoteSection';
 import ProgressSection from '@/components/shopping-plan/ProgressSection';
 // import { useAuth } from '@/context/AuthContext';
 
+import MOCK_DETAIL_DATA from '@/components/shopping-plan/mock';
+import ShoppingModal from '@/components/shopping-plan/popup-modal/ShoppingModal';
 import type { DailyPlanCardData } from '@/features/shopping-plan/shopping';
+import { Plus } from 'lucide-react';
 import React, { useState } from 'react';
 import './ShoppingPlanPage.css';
 
 const ShoppingPlanPage: React.FC = () => {
     // const { user } = useAuth();
     const [selectedDate, setSelectedDate] = useState('2026-05-09');
-
-    // Logic phân quyền:để hiển thị đúng
+    const [isModalOpen, setIsModalOpen] = useState(false); // State để điều khiển mở/đóng modal
+    const [modalMode, setModalMode] = useState<'CREATE' | 'DETAIL'>('CREATE'); // State để xác định mode của modal
+    const [selectedListData, setSelectedListData] = useState<any>(null); // State để lưu data khi mở modal ở mode DETAIL
     // const canCreatePlan = user?.role === 'CUSTOMER'; // Thay đổi sau để pbiet với ng nội trợ
+
+    const handleOpenCreateModal = () => {
+        setModalMode('CREATE');
+        setSelectedListData(null); // Tạo mới nên không có data cũ
+        setIsModalOpen(true);
+    };
+
+    const handleOpenDetailModal = (date: string) => {
+        const plan = plans.find(p => p.planned_date === date);
+        setModalMode('DETAIL');
+        // 3. Truyền data (sau này sẽ gọi API lấy detail theo listId)
+        // Tạm thời truyền mock hoặc object rỗng để test giao diện
+        setSelectedListData({
+            planned_date: date,
+            items: MOCK_DETAIL_DATA.items // Dùng mock data để hiện list món ăn
+        });
+
+        setIsModalOpen(true);
+    };
+
 
     // Mock data cho 7 ngày (sau này sẽ gọi từ shoppingApi.ts)
     const [plans, setPlans] = useState<DailyPlanCardData[]>([
@@ -30,49 +54,64 @@ const ShoppingPlanPage: React.FC = () => {
     ]);
 
     return (
-        <div className="shopping-layout">
-            <Sidebar />
-            <div className="shopping-main-content">
-                {/* 2. Topbar chung của dự án, cần thay đổi tham số vào */}
-                <Topbar />
-                {/* title="Kế hoạch đi chợ" */}
-                <div className="shopping-page-body">
-                    {/* 3. Toolbar: DatePicker và Nút lập kế hoạch */}
-                    <div className="plan-toolbar">
-                        <DatePicker
-                            value={selectedDate}
-                            onChange={(date) => setSelectedDate(date)}
-                        />
-                        {/* canCreatePlan &&  */}
-                        {(
-                            <button className="btn-create-plan">
-                                <span className="plus-icon-placeholder"></span>
-                                Lập kế hoạch mới
-                            </button>
-                        )}
-                    </div>
+        <>
+            <div className="shopping-layout">
+                <Sidebar />
+                <div className="shopping-main-content">
+                    {/* 2. Topbar chung của dự án, cần thay đổi tham số vào */}
+                    <Topbar />
+                    {/* title="Kế hoạch đi chợ" */}
+                    <div className="shopping-page-body">
+                        {/* 3. Toolbar: DatePicker và Nút lập kế hoạch */}
+                        <div className="plan-toolbar">
+                            <DatePicker
+                                value={selectedDate}
+                                onChange={(date) => setSelectedDate(date)}
+                            />
+                            {/* canCreatePlan &&  */}
+                            {(
+                                <button className="btn-create-plan"
+                                    onClick={handleOpenCreateModal}>
+                                    <Plus size={18} />
+                                    <span></span>
+                                    Lập kế hoạch mới
+                                </button>
+                            )}
+                        </div>
 
-                    {/* 4. Grid hiển thị 7 ngày */}
-                    <div className="grid-section">
-                        <DailyPlanGrid
-                            plans={plans}
-                            activeDate={selectedDate}
-                            onCardClick={(date) => setSelectedDate(date)}
-                        />
-                    </div>
+                        {/* 4. Grid hiển thị 7 ngày */}
+                        <div className="grid-section">
+                            <DailyPlanGrid
+                                plans={plans}
+                                activeDate={selectedDate}
+                                onCardClick={(date) => {
+                                    setSelectedDate(date);
+                                    handleOpenDetailModal(date);
+                                }}
 
-                    {/* 5. Widgets phía dưới (Progress, Frequent, Notes) */}
-                    <div className="dashboard-widgets">
-                        <ProgressSection
-                            percentage={45}
-                            message="Còn 6 danh mục cần hoàn thành cho hôm nay"
-                        />
-                        <FrequentItems />
-                        <NoteSection />
+                            />
+                        </div>
+
+                        {/* 5. Widgets phía dưới (Progress, Frequent, Notes) */}
+                        <div className="dashboard-widgets">
+                            <ProgressSection
+                                percentage={45}
+                                message="Còn 6 danh mục cần hoàn thành cho hôm nay"
+                            />
+                            <FrequentItems />
+                            <NoteSection />
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+            <ShoppingModal
+                isOpen={isModalOpen}
+                mode={modalMode}
+                data={selectedListData}
+                onModeChange={(newMode) => setModalMode(newMode)}
+                onClose={() => setIsModalOpen(false)}
+            />
+        </>
     );
 };
 

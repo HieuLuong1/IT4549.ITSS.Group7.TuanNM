@@ -25,9 +25,6 @@ public class Food extends BaseEntity {
     @Column(name = "image_url")
     private String imageUrl;
 
-    @Column(name = "icon_key")
-    private String iconKey;
-
     @Column(name = "is_system")
     private Boolean isSystem = true;
 

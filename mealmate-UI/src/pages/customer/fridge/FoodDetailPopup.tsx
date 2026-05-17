@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import "./FoodDetailPopup.css";
 
-import type { FridgeItemFromDb } from "./MyFridge";
+import type { FridgeItemFromApi, RemoveReasonCode } from "./MyFridge";
 
 import iconAlert from "@/assets/icon/Icon-alert.svg";
 import iconClose from "@/assets/icon/Icon-close.svg";
@@ -10,26 +10,22 @@ import iconMinus from "@/assets/icon/Icon-minus.svg";
 import iconPlus from "@/assets/icon/Icon-plus.svg";
 
 type FoodDetailPopupProps = {
-  food: FridgeItemFromDb;
+  food: FridgeItemFromApi;
   onClose: () => void;
-  onSaveQuantity: (
+  onSaveQuantity: (fridgeItemId: number, newQuantityValue: number) => Promise<void>;
+  onRemoveFood: (
     fridgeItemId: number,
-    newQuantityValue: number,
-    newUnit: string
-  ) => void;
-  onRemoveFood: (fridgeItemId: number) => void;
+    removedReason: RemoveReasonCode,
+    removedReasonNote?: string
+  ) => Promise<void>;
 };
 
-const CURRENT_DATE = "2026-04-28";
-
-const STANDARD_UNITS = ["g", "kg", "lít", "quả"];
-
-const REMOVE_REASONS = [
-  "Đã dùng hết",
-  "Đã bỏ đi do hết hạn",
-  "Thực phẩm bị hỏng",
-  "Nhập sai thông tin",
-  "Khác",
+const REMOVE_REASONS: Array<{ label: string; value: RemoveReasonCode }> = [
+  { label: "Đã dùng hết", value: "USED_UP" },
+  { label: "Đã bỏ đi do hết hạn", value: "EXPIRED_DISCARDED" },
+  { label: "Thực phẩm bị hỏng", value: "SPOILED" },
+  { label: "Nhập sai thông tin", value: "WRONG_INFO" },
+  { label: "Khác", value: "OTHER" },
 ];
 
 const foodIconMap: Record<string, string> = {
@@ -47,6 +43,7 @@ const foodIconMap: Record<string, string> = {
   meat: "🥩",
   seafood: "🐟",
   dairy: "🥛",
+  "dry-food": "🌾",
   dry_food: "🌾",
   spice: "🧂",
   drink: "🥤",
@@ -68,37 +65,42 @@ const specificLocationLabelMap: Record<string, string> = {
   BOTTOM_SHELF: "Kệ dưới",
 };
 
-const getFoodIcon = (food: FridgeItemFromDb) => {
-  const iconKey =
-    food.food.icon_key || food.food.category.icon_key || "default_food";
+const getFoodName = (food: FridgeItemFromApi) => {
+  return food.displayName || food.standardFoodName || "Thực phẩm";
+};
 
+const getFoodIcon = (food: FridgeItemFromApi) => {
+  const iconKey = food.categoryIconKey || "default_food";
   return foodIconMap[iconKey] || foodIconMap.default_food;
 };
 
-const getFoodIconBg = (food: FridgeItemFromDb) => {
-  return food.food.category.color_code || "#F1F5F9";
+const getFoodIconBg = (food: FridgeItemFromApi) => {
+  return food.categoryColorCode || "#F1F5F9";
 };
 
-const getStorageLocationText = (storageLocation: string) => {
+const getStorageLocationText = (storageLocation?: string) => {
+  if (!storageLocation) return "Chưa phân loại";
   return storageLocationLabelMap[storageLocation] || storageLocation;
 };
 
 const getSpecificLocationText = (specificLocation?: string) => {
   if (!specificLocation) return "Chưa phân loại";
-
   return specificLocationLabelMap[specificLocation] || specificLocation;
 };
 
-const getQuantityText = (food: FridgeItemFromDb) => {
-  return `${food.quantity}${food.food.unit}`;
+const getQuantityText = (food: FridgeItemFromApi) => {
+  return `${food.quantity}${food.unit ? ` ${food.unit}` : ""}`;
 };
 
-const formatDateToDisplay = (dateString: string) => {
-  const date = new Date(dateString);
+const toLocalDate = (dateString?: string) => {
+  if (!dateString) return null;
+  const date = new Date(`${dateString}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
 
-  if (Number.isNaN(date.getTime())) {
-    return dateString;
-  }
+const formatDateToDisplay = (dateString?: string) => {
+  const date = toLocalDate(dateString);
+  if (!date) return "Chưa có";
 
   const day = String(date.getDate()).padStart(2, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -107,65 +109,64 @@ const formatDateToDisplay = (dateString: string) => {
   return `${day}/${month}/${year}`;
 };
 
-const getDateDiffInDays = (fromDate: string, toDate: string) => {
-  const from = new Date(fromDate);
-  const to = new Date(toDate);
-  const diffTime = to.getTime() - from.getTime();
-
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+const getDateDiffInDays = (fromDate: Date, toDate: Date) => {
+  const from = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+  const to = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
+  return Math.ceil((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
 };
 
-const getDaysLeft = (expiryDate: string) => {
-  return getDateDiffInDays(CURRENT_DATE, expiryDate);
+const getDaysLeft = (expiryDate?: string) => {
+  const expiry = toLocalDate(expiryDate);
+  if (!expiry) return null;
+  return getDateDiffInDays(new Date(), expiry);
 };
 
-const getDaysLeftLabel = (daysLeft: number) => {
+const getDaysLeftLabel = (daysLeft: number | null) => {
+  if (daysLeft === null) return "Chưa có hạn sử dụng";
   if (daysLeft < 0) return `Quá hạn ${Math.abs(daysLeft)} ngày`;
   if (daysLeft === 0) return "Hết hạn hôm nay";
-
   return `Còn ${daysLeft} ngày`;
 };
 
-const getExpiryStatusClass = (daysLeft: number) => {
+const getExpiryStatusClass = (daysLeft: number | null) => {
+  if (daysLeft === null) return "safe";
   if (daysLeft <= 2) return "danger";
   if (daysLeft <= 6) return "warning";
-
   return "safe";
 };
 
-const getProgressColor = (daysLeft: number) => {
+const getProgressColor = (daysLeft: number | null) => {
+  if (daysLeft === null) return "#94A3B8";
   if (daysLeft <= 3) return "#EF4444";
   if (daysLeft <= 7) return "#F59E0B";
-
   return "#6ED4B4";
 };
 
-const getProgressTrackColor = (daysLeft: number) => {
+const getProgressTrackColor = (daysLeft: number | null) => {
+  if (daysLeft === null) return "#E2E8F0";
   if (daysLeft <= 3) return "#FEE2E2";
   if (daysLeft <= 7) return "#FFEDD5";
-
   return "#CFE7DF";
 };
 
-const getProgressWidth = (addedDate: string, expiryDate: string) => {
-  const totalShelfLifeDays = Math.max(
-    getDateDiffInDays(addedDate, expiryDate),
-    1
-  );
+const getProgressWidth = (addedDate?: string, expiryDate?: string) => {
+  const added = toLocalDate(addedDate);
+  const expiry = toLocalDate(expiryDate);
+  if (!added || !expiry) return "100%";
 
-  const daysLeft = getDateDiffInDays(CURRENT_DATE, expiryDate);
-  const safeDaysLeft = Math.max(daysLeft, 0);
-
-  const percent = Math.min((safeDaysLeft / totalShelfLifeDays) * 100, 100);
-
+  const totalShelfLifeDays = Math.max(getDateDiffInDays(added, expiry), 1);
+  const daysLeft = Math.max(getDateDiffInDays(new Date(), expiry), 0);
+  const percent = Math.min((daysLeft / totalShelfLifeDays) * 100, 100);
   return `${Number(percent.toFixed(2))}%`;
 };
 
-const getExpiryMessage = (daysLeft: number) => {
+const getExpiryMessage = (daysLeft: number | null) => {
+  if (daysLeft === null) {
+    return "Thực phẩm chưa có hạn sử dụng, nên bổ sung để hệ thống nhắc hạn chính xác.";
+  }
+
   if (daysLeft < 0) {
-    return `Sản phẩm đã quá hạn ${Math.abs(
-      daysLeft
-    )} ngày, nên kiểm tra trước khi sử dụng.`;
+    return `Sản phẩm đã quá hạn ${Math.abs(daysLeft)} ngày, nên kiểm tra trước khi sử dụng.`;
   }
 
   if (daysLeft === 0) {
@@ -190,65 +191,64 @@ const FoodDetailPopup: React.FC<FoodDetailPopupProps> = ({
   onRemoveFood,
 }) => {
   const [quantityValue, setQuantityValue] = useState(food.quantity);
-  const [selectedUnit, setSelectedUnit] = useState(food.food.unit);
   const [isRemoveConfirmOpen, setIsRemoveConfirmOpen] = useState(false);
-  const [removeReason, setRemoveReason] = useState("");
+  const [removeReason, setRemoveReason] = useState<RemoveReasonCode | "">("");
   const [customRemoveReason, setCustomRemoveReason] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [actionError, setActionError] = useState("");
 
-  useEffect(() => {
-    setQuantityValue(food.quantity);
-    setSelectedUnit(food.food.unit);
-    setIsRemoveConfirmOpen(false);
-    setRemoveReason("");
-    setCustomRemoveReason("");
-  }, [food]);
-
-  const daysLeft = getDaysLeft(food.expiry_date);
+  const daysLeft = getDaysLeft(food.expiryDate);
   const expiryStatusClass = getExpiryStatusClass(daysLeft);
-  const step = selectedUnit === "g" ? 50 : 1;
-
-  const unitOptions = STANDARD_UNITS.includes(food.food.unit)
-    ? STANDARD_UNITS
-    : [food.food.unit, ...STANDARD_UNITS];
-
-  const isConfirmDisabled =
-    !removeReason || (removeReason === "Khác" && !customRemoveReason.trim());
+  const step = food.unit === "g" ? 50 : 1;
+  const isConfirmDisabled = !removeReason || (removeReason === "OTHER" && !customRemoveReason.trim());
 
   const handleDecrease = () => {
-    setQuantityValue((prev) => Math.max(0, prev - step));
+    setQuantityValue((prev) => Math.max(step === 50 ? 0 : 1, prev - step));
   };
 
   const handleIncrease = () => {
     setQuantityValue((prev) => prev + step);
   };
 
-  const handleSave = () => {
-    onSaveQuantity(food.id, quantityValue, selectedUnit);
+  const handleSave = async () => {
+    setIsSaving(true);
+    setActionError("");
+
+    try {
+      await onSaveQuantity(food.id, quantityValue);
+    } catch {
+      setActionError("Không lưu được số lượng.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleConfirmRemove = () => {
-    if (isConfirmDisabled) return;
+  const handleConfirmRemove = async () => {
+    if (isConfirmDisabled || !removeReason) return;
 
-    onRemoveFood(food.id);
+    setIsSaving(true);
+    setActionError("");
+
+    try {
+      await onRemoveFood(food.id, removeReason, customRemoveReason.trim() || undefined);
+    } catch {
+      setActionError("Không loại được thực phẩm khỏi tủ lạnh.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <div className="food-detail-overlay" onClick={onClose}>
-      <aside
-        className="food-detail-popup"
-        onClick={(event) => event.stopPropagation()}
-      >
+      <aside className="food-detail-popup" onClick={(event) => event.stopPropagation()}>
         <header className="food-detail-header">
           <div className="food-detail-title-group">
-            <div
-              className="food-detail-icon"
-              style={{ backgroundColor: getFoodIconBg(food) }}
-            >
+            <div className="food-detail-icon" style={{ backgroundColor: getFoodIconBg(food) }}>
               {getFoodIcon(food)}
             </div>
 
             <div>
-              <h2>{food.food.name}</h2>
+              <h2>{getFoodName(food)}</h2>
             </div>
           </div>
 
@@ -264,7 +264,7 @@ const FoodDetailPopup: React.FC<FoodDetailPopupProps> = ({
             <div className="food-detail-info-grid">
               <div className="food-detail-info-card">
                 <span>Danh mục</span>
-                <strong>{food.food.category.name}</strong>
+                <strong>{food.categoryName || "Chưa phân loại"}</strong>
               </div>
 
               <div className="food-detail-info-card">
@@ -274,22 +274,22 @@ const FoodDetailPopup: React.FC<FoodDetailPopupProps> = ({
 
               <div className="food-detail-info-card">
                 <span>Vị trí chính</span>
-                <strong>{getStorageLocationText(food.storage_location)}</strong>
+                <strong>{getStorageLocationText(food.storageLocation)}</strong>
               </div>
 
               <div className="food-detail-info-card">
                 <span>Vị trí cụ thể</span>
-                <strong>{getSpecificLocationText(food.specific_location)}</strong>
+                <strong>{getSpecificLocationText(food.specificLocation)}</strong>
               </div>
 
               <div className="food-detail-info-card">
                 <span>Ngày nhập</span>
-                <strong>{formatDateToDisplay(food.added_date)}</strong>
+                <strong>{formatDateToDisplay(food.addedDate)}</strong>
               </div>
 
               <div className="food-detail-info-card">
                 <span>Hạn sử dụng</span>
-                <strong>{formatDateToDisplay(food.expiry_date)}</strong>
+                <strong>{formatDateToDisplay(food.expiryDate)}</strong>
               </div>
             </div>
           </section>
@@ -300,14 +300,11 @@ const FoodDetailPopup: React.FC<FoodDetailPopupProps> = ({
               <strong>{getDaysLeftLabel(daysLeft)}</strong>
             </div>
 
-            <div
-              className="food-detail-expiry-track"
-              style={{ backgroundColor: getProgressTrackColor(daysLeft) }}
-            >
+            <div className="food-detail-expiry-track" style={{ backgroundColor: getProgressTrackColor(daysLeft) }}>
               <div
                 className="food-detail-expiry-progress"
                 style={{
-                  width: getProgressWidth(food.added_date, food.expiry_date),
+                  width: getProgressWidth(food.addedDate, food.expiryDate),
                   backgroundColor: getProgressColor(daysLeft),
                 }}
               />
@@ -320,12 +317,14 @@ const FoodDetailPopup: React.FC<FoodDetailPopupProps> = ({
             <h3>Hướng dẫn bảo quản</h3>
 
             <div className="food-detail-storage-box">
-              {food.food.preservation_methods.map((method) => (
-                <div className="food-detail-tip" key={method.id}>
-                  <img src={iconInfo} alt="" />
-                  <span>{method.content}</span>
-                </div>
-              ))}
+              {(food.preservationMethods?.length ? food.preservationMethods : ["Chưa có hướng dẫn bảo quản cho thực phẩm này."]).map(
+                (method) => (
+                  <div className="food-detail-tip" key={method}>
+                    <img src={iconInfo} alt="" />
+                    <span>{method}</span>
+                  </div>
+                )
+              )}
             </div>
           </section>
 
@@ -333,54 +332,36 @@ const FoodDetailPopup: React.FC<FoodDetailPopupProps> = ({
             <h3>Cập nhật số lượng</h3>
 
             <div className="food-detail-quantity-row">
-              <button onClick={handleDecrease} aria-label="Giảm số lượng">
-                <img
-                  src={iconMinus}
-                  alt=""
-                  className="food-detail-quantity-icon"
-                />
+              <button onClick={handleDecrease} aria-label="Giảm số lượng" disabled={isSaving}>
+                <img src={iconMinus} alt="" className="food-detail-quantity-icon" />
               </button>
 
               <div className="food-detail-quantity-value">{quantityValue}</div>
 
-              <select
-                className="food-detail-unit"
-                value={selectedUnit}
-                onChange={(event) => setSelectedUnit(event.target.value)}
-                aria-label="Chọn đơn vị"
-              >
-                {unitOptions.map((unit) => (
-                  <option value={unit} key={unit}>
-                    {unit}
-                  </option>
-                ))}
-              </select>
+              <div className="food-detail-unit" aria-label="Đơn vị">
+                {food.unit || "Đơn vị"}
+              </div>
 
-              <button onClick={handleIncrease} aria-label="Tăng số lượng">
-                <img
-                  src={iconPlus}
-                  alt=""
-                  className="food-detail-quantity-icon"
-                />
+              <button onClick={handleIncrease} aria-label="Tăng số lượng" disabled={isSaving}>
+                <img src={iconPlus} alt="" className="food-detail-quantity-icon" />
               </button>
             </div>
 
+            {actionError && <p className="food-detail-action-error">{actionError}</p>}
+
             <div className="food-detail-action-row">
-              <button className="food-detail-cancel-button" onClick={onClose}>
+              <button className="food-detail-cancel-button" onClick={onClose} disabled={isSaving}>
                 Hủy
               </button>
 
-              <button className="food-detail-save-button" onClick={handleSave}>
-                Lưu thay đổi
+              <button className="food-detail-save-button" onClick={handleSave} disabled={isSaving || quantityValue <= 0}>
+                {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
               </button>
             </div>
           </section>
 
           <section className="food-detail-remove-section">
-            <button
-              className="food-detail-remove-button"
-              onClick={() => setIsRemoveConfirmOpen(true)}
-            >
+            <button className="food-detail-remove-button" onClick={() => setIsRemoveConfirmOpen(true)} disabled={isSaving}>
               <img src={iconAlert} alt="" />
               Loại khỏi tủ lạnh
             </button>
@@ -391,51 +372,42 @@ const FoodDetailPopup: React.FC<FoodDetailPopupProps> = ({
       </aside>
 
       {isRemoveConfirmOpen && (
-        <div
-          className="food-remove-confirm-layer"
-          onClick={(event) => event.stopPropagation()}
-        >
+        <div className="food-remove-confirm-layer" onClick={(event) => event.stopPropagation()}>
           <div className="food-remove-confirm-dialog">
             <h2>Loại bỏ thực phẩm khỏi tủ lạnh?</h2>
-            <p className="food-remove-confirm-subtitle">
-              Vui lòng chọn lý do loại bỏ thực phẩm này.
-            </p>
+            <p className="food-remove-confirm-subtitle">Vui lòng chọn lý do loại bỏ thực phẩm này.</p>
 
             <div className="food-remove-confirm-food">
               <div className="food-remove-confirm-icon">{getFoodIcon(food)}</div>
-              <div className="food-remove-confirm-name">{food.food.name}</div>
+              <div className="food-remove-confirm-name">{getFoodName(food)}</div>
             </div>
 
             <div className="food-remove-confirm-reasons">
               {REMOVE_REASONS.map((reason) => (
-                <label className="food-remove-confirm-reason" key={reason}>
+                <label className="food-remove-confirm-reason" key={reason.value}>
                   <input
                     type="radio"
                     name="remove-reason"
-                    value={reason}
-                    checked={removeReason === reason}
+                    value={reason.value}
+                    checked={removeReason === reason.value}
                     onChange={(event) => {
-                      setRemoveReason(event.target.value);
+                      setRemoveReason(event.target.value as RemoveReasonCode);
 
-                      if (event.target.value !== "Khác") {
+                      if (event.target.value !== "OTHER") {
                         setCustomRemoveReason("");
                       }
                     }}
                   />
                   <span className="food-remove-confirm-radio" />
-                  <span className="food-remove-confirm-reason-text">
-                    {reason}
-                  </span>
+                  <span className="food-remove-confirm-reason-text">{reason.label}</span>
                 </label>
               ))}
 
-              {removeReason === "Khác" && (
+              {removeReason === "OTHER" && (
                 <textarea
                   className="food-remove-confirm-other-input"
                   value={customRemoveReason}
-                  onChange={(event) =>
-                    setCustomRemoveReason(event.target.value)
-                  }
+                  onChange={(event) => setCustomRemoveReason(event.target.value)}
                   placeholder="Nhập lý do khác"
                 />
               )}
@@ -444,6 +416,7 @@ const FoodDetailPopup: React.FC<FoodDetailPopupProps> = ({
             <div className="food-remove-confirm-actions">
               <button
                 className="food-remove-confirm-cancel"
+                disabled={isSaving}
                 onClick={() => {
                   setIsRemoveConfirmOpen(false);
                   setRemoveReason("");
@@ -455,10 +428,10 @@ const FoodDetailPopup: React.FC<FoodDetailPopupProps> = ({
 
               <button
                 className="food-remove-confirm-submit"
-                disabled={isConfirmDisabled}
+                disabled={isConfirmDisabled || isSaving}
                 onClick={handleConfirmRemove}
               >
-                Xác nhận
+                {isSaving ? "Đang xử lý..." : "Xác nhận"}
               </button>
             </div>
           </div>

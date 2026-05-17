@@ -4,13 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e4a05e52-2fa2-4cee-8573-5e4afb0caba2" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/mealmate-UI/.env" beforeDir="false" afterPath="$PROJECT_DIR$/mealmate-UI/.env" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mealmate-UI/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/mealmate-UI/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mealmate-UI/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/mealmate-UI/src/App.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mealmate-UI/vite.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/mealmate-UI/vite.config.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mealmate/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/mealmate/src/main/resources/application.yaml" afterDir="false" />
-    </list>
+    <list default="true" id="e4a05e52-2fa2-4cee-8573-5e4afb0caba2" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

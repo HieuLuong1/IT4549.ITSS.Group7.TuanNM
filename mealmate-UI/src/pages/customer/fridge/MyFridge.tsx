@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./MyFridge.css";
 
 import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/layout/Topbar";
+import api from "@/services/api";
 
+import AddFoodToFridgeScreen from "./AddFoodToFridgeScreen";
 import FoodDetailPopup from "./FoodDetailPopup";
 
 import iconAlert from "@/assets/icon/Icon-alert.svg";
@@ -12,58 +14,51 @@ import iconBox from "@/assets/icon/Icon-box.svg";
 import iconClock from "@/assets/icon/Icon-clock.svg";
 import iconPlus from "@/assets/icon/Icon-plus.svg";
 import iconRecipe from "@/assets/icon/Icon-recipe.svg";
-import iconSnowflake from "@/assets/icon/Icon-snowflake.svg";
+import angryFridgeIcon from "@/assets/icon/angry-fridge.svg";
+import happyFridgeIcon from "@/assets/icon/happy-fridge.svg";
+import neutralFridgeIcon from "@/assets/icon/neutral-fridge.svg";
 
 type StorageLocation = "COOL" | "FREEZER" | "DRY";
-type FridgeItemStatus = "STORED" | "EXPIRED" | "USED";
+type FridgeItemStatus = "STORED" | "EXPIRED" | "USED" | "REMOVED";
+type FilterMode = "LOCATION" | "CATEGORY";
 
-type CategoryFromDb = {
-  id: number;
-  name: string;
-  icon_key?: string;
-  color_code?: string;
-};
+export type RemoveReasonCode =
+  | "USED_UP"
+  | "EXPIRED_DISCARDED"
+  | "SPOILED"
+  | "WRONG_INFO"
+  | "OTHER";
 
-type PreservationMethodFromDb = {
+export type FridgeItemFromApi = {
   id: number;
-  food_id: number;
-  content: string;
-  reference_source?: string;
-};
-
-type FoodFromDb = {
-  id: number;
-  category_id: number;
-  name: string;
-  unit: string;
-  synonyms?: string;
-  image_url?: string;
-  icon_key?: string;
-  is_system: boolean;
-  created_by?: number;
-  family_id?: number;
-  category: CategoryFromDb;
-  preservation_methods: PreservationMethodFromDb[];
-};
-
-export type FridgeItemFromDb = {
-  id: number;
-  family_id: number;
-  food_id: number;
+  familyId: number;
+  foodId: number;
+  standardFoodName?: string;
+  displayName?: string;
+  unit?: string;
+  categoryId?: number;
+  categoryName?: string;
+  categoryIconKey?: string;
+  categoryColorCode?: string;
+  preservationMethods?: string[];
   quantity: number;
-  storage_location: StorageLocation;
-  specific_location?: string;
-  added_date: string;
-  expiry_date: string;
+  storageLocation?: StorageLocation;
+  specificLocation?: string;
+  addedDate?: string;
+  expiryDate?: string;
   status: FridgeItemStatus;
-  image_url?: string;
-  food: FoodFromDb;
+  imageUrl?: string;
+  note?: string;
 };
 
-const CURRENT_DATE = "2026-04-28";
+type CategoryFromApi = {
+  id: number;
+  name: string;
+  iconKey?: string;
+  colorCode?: string;
+};
 
-const EXPIRING_SOON_THRESHOLD = 6;
-const ALMOST_OUT_COUNT = 2;
+const EXPIRING_SOON_THRESHOLD = 3;
 
 const foodIconMap: Record<string, string> = {
   tomato: "🍅",
@@ -80,6 +75,7 @@ const foodIconMap: Record<string, string> = {
   meat: "🥩",
   seafood: "🐟",
   dairy: "🥛",
+  "dry-food": "🌾",
   dry_food: "🌾",
   spice: "🧂",
   drink: "🥤",
@@ -101,39 +97,42 @@ const specificLocationLabelMap: Record<string, string> = {
   BOTTOM_SHELF: "Kệ dưới",
 };
 
-const getFoodIcon = (item: FridgeItemFromDb) => {
-  const iconKey =
-    item.food.icon_key ||
-    item.food.category.icon_key ||
-    "default_food";
+const getFoodName = (item: FridgeItemFromApi) => {
+  return item.displayName || item.standardFoodName || "Thực phẩm";
+};
 
+const getFoodIcon = (item: FridgeItemFromApi) => {
+  const iconKey = item.categoryIconKey || "default_food";
   return foodIconMap[iconKey] || foodIconMap.default_food;
 };
 
-const getFoodIconBg = (item: FridgeItemFromDb) => {
-  return item.food.category.color_code || "#F1F5F9";
+const getFoodIconBg = (item: FridgeItemFromApi) => {
+  return item.categoryColorCode || "#F1F5F9";
 };
 
-const getStorageLocationText = (storageLocation: StorageLocation) => {
-  return storageLocationLabelMap[storageLocation];
+const getStorageLocationText = (storageLocation?: StorageLocation) => {
+  if (!storageLocation) return "Chưa phân loại";
+  return storageLocationLabelMap[storageLocation] || storageLocation;
 };
 
 const getSpecificLocationText = (specificLocation?: string) => {
   if (!specificLocation) return "";
-
   return specificLocationLabelMap[specificLocation] || specificLocation;
 };
 
-const getQuantityText = (item: FridgeItemFromDb) => {
-  return `${item.quantity}${item.food.unit}`;
+const getQuantityText = (item: FridgeItemFromApi) => {
+  return `${item.quantity}${item.unit ? ` ${item.unit}` : ""}`;
 };
 
-const formatDateToDisplay = (dateString: string) => {
-  const date = new Date(dateString);
+const toLocalDate = (dateString?: string) => {
+  if (!dateString) return null;
+  const date = new Date(`${dateString}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
 
-  if (Number.isNaN(date.getTime())) {
-    return dateString;
-  }
+const formatDateToDisplay = (dateString?: string) => {
+  const date = toLocalDate(dateString);
+  if (!date) return "Chưa có";
 
   const day = String(date.getDate()).padStart(2, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -142,492 +141,208 @@ const formatDateToDisplay = (dateString: string) => {
   return `${day}/${month}/${year}`;
 };
 
-const getDateDiffInDays = (fromDate: string, toDate: string) => {
-  const from = new Date(fromDate);
-  const to = new Date(toDate);
-  const diffTime = to.getTime() - from.getTime();
-
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+const getDateDiffInDays = (fromDate: Date, toDate: Date) => {
+  const from = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+  const to = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
+  return Math.ceil((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
 };
 
-const getDaysLeft = (expiryDate: string) => {
-  return getDateDiffInDays(CURRENT_DATE, expiryDate);
+const getDaysLeft = (expiryDate?: string) => {
+  const expiry = toLocalDate(expiryDate);
+  if (!expiry) return null;
+  return getDateDiffInDays(new Date(), expiry);
 };
 
-const getDaysLeftLabel = (daysLeft: number) => {
+const getDaysLeftLabel = (daysLeft: number | null) => {
+  if (daysLeft === null) return "Chưa có hạn sử dụng";
   if (daysLeft < 0) return `Quá hạn ${Math.abs(daysLeft)} ngày`;
   if (daysLeft === 0) return "Hết hạn hôm nay";
-
   return `Còn ${daysLeft} ngày`;
 };
 
-const getProgressColor = (daysLeft: number) => {
+const getProgressColor = (daysLeft: number | null) => {
+  if (daysLeft === null) return "#94A3B8";
   if (daysLeft <= 3) return "#EF4444";
   if (daysLeft <= 7) return "#F59E0B";
-
   return "#6ED4B4";
 };
 
-const getProgressTrackColor = (daysLeft: number) => {
+const getProgressTrackColor = (daysLeft: number | null) => {
+  if (daysLeft === null) return "#E2E8F0";
   if (daysLeft <= 3) return "#FEE2E2";
   if (daysLeft <= 7) return "#FFEDD5";
-
   return "#CFE7DF";
 };
 
-const getProgressWidth = (addedDate: string, expiryDate: string) => {
-  const totalShelfLifeDays = Math.max(
-    getDateDiffInDays(addedDate, expiryDate),
-    1
-  );
+const getProgressWidth = (addedDate?: string, expiryDate?: string) => {
+  const added = toLocalDate(addedDate);
+  const expiry = toLocalDate(expiryDate);
+  if (!added || !expiry) return "100%";
 
-  const daysLeft = getDateDiffInDays(CURRENT_DATE, expiryDate);
-  const safeDaysLeft = Math.max(daysLeft, 0);
-
-  const percent = Math.min((safeDaysLeft / totalShelfLifeDays) * 100, 100);
-
+  const totalShelfLifeDays = Math.max(getDateDiffInDays(added, expiry), 1);
+  const daysLeft = Math.max(getDateDiffInDays(new Date(), expiry), 0);
+  const percent = Math.min((daysLeft / totalShelfLifeDays) * 100, 100);
   return `${Number(percent.toFixed(2))}%`;
 };
 
-const fridgeItemsFromDb: FridgeItemFromDb[] = [
-  {
-    id: 1,
-    family_id: 1,
-    food_id: 1,
-    quantity: 500,
-    storage_location: "COOL",
-    specific_location: "VEGETABLE_DRAWER",
-    added_date: "2026-04-26",
-    expiry_date: "2026-04-30",
-    status: "STORED",
-    food: {
-      id: 1,
-      category_id: 1,
-      name: "Cà chua",
-      unit: "g",
-      synonyms: "cà chua,tomato",
-      image_url: "",
-      icon_key: "tomato",
-      is_system: true,
-      category: {
-        id: 1,
-        name: "Rau củ",
-        icon_key: "vegetable",
-        color_code: "#FFE5E5",
-      },
-      preservation_methods: [
-        {
-          id: 1,
-          food_id: 1,
-          content: "Bảo quản trong ngăn mát ở nhiệt độ phù hợp",
-        },
-        {
-          id: 2,
-          food_id: 1,
-          content: "Nên để trong ngăn rau củ để giữ độ tươi",
-        },
-        {
-          id: 3,
-          food_id: 1,
-          content: "Tránh để lẫn với thực phẩm có mùi mạnh",
-        },
-      ],
-    },
-  },
-  {
-    id: 2,
-    family_id: 1,
-    food_id: 2,
-    quantity: 1,
-    storage_location: "COOL",
-    added_date: "2026-04-26",
-    expiry_date: "2026-04-28",
-    status: "STORED",
-    food: {
-      id: 2,
-      category_id: 5,
-      name: "Sữa tươi",
-      unit: "lít",
-      synonyms: "sữa tươi,milk",
-      image_url: "",
-      icon_key: "milk",
-      is_system: true,
-      category: {
-        id: 5,
-        name: "Trứng & Sữa",
-        icon_key: "dairy",
-        color_code: "#E5F3FF",
-      },
-      preservation_methods: [
-        {
-          id: 4,
-          food_id: 2,
-          content: "Luôn đậy kín nắp sau khi sử dụng",
-        },
-        {
-          id: 5,
-          food_id: 2,
-          content: "Bảo quản trong ngăn mát ở nhiệt độ 2-4°C",
-        },
-        {
-          id: 6,
-          food_id: 2,
-          content: "Không để gần thực phẩm có mùi mạnh",
-        },
-      ],
-    },
-  },
-  {
-    id: 3,
-    family_id: 1,
-    food_id: 3,
-    quantity: 300,
-    storage_location: "FREEZER",
-    added_date: "2026-04-26",
-    expiry_date: "2026-05-15",
-    status: "STORED",
-    food: {
-      id: 3,
-      category_id: 3,
-      name: "Thịt bò",
-      unit: "g",
-      synonyms: "thịt bò,beef",
-      image_url: "",
-      icon_key: "beef",
-      is_system: true,
-      category: {
-        id: 3,
-        name: "Thịt",
-        icon_key: "meat",
-        color_code: "#FFEAEA",
-      },
-      preservation_methods: [
-        {
-          id: 7,
-          food_id: 3,
-          content: "Bọc kín trước khi cho vào ngăn đông",
-        },
-        {
-          id: 8,
-          food_id: 3,
-          content: "Rã đông trong ngăn mát trước khi chế biến",
-        },
-        {
-          id: 9,
-          food_id: 3,
-          content: "Không cấp đông lại sau khi đã rã đông hoàn toàn",
-        },
-      ],
-    },
-  },
-  {
-    id: 4,
-    family_id: 1,
-    food_id: 4,
-    quantity: 6,
-    storage_location: "COOL",
-    specific_location: "FRUIT_DRAWER",
-    added_date: "2026-04-26",
-    expiry_date: "2026-05-02",
-    status: "STORED",
-    food: {
-      id: 4,
-      category_id: 2,
-      name: "Táo",
-      unit: "quả",
-      synonyms: "táo,apple",
-      image_url: "",
-      icon_key: "apple",
-      is_system: true,
-      category: {
-        id: 2,
-        name: "Trái cây",
-        icon_key: "fruit",
-        color_code: "#FFF4E5",
-      },
-      preservation_methods: [
-        {
-          id: 10,
-          food_id: 4,
-          content: "Bảo quản trong ngăn trái cây",
-        },
-        {
-          id: 11,
-          food_id: 4,
-          content: "Tránh để chung với thực phẩm có mùi mạnh",
-        },
-        {
-          id: 12,
-          food_id: 4,
-          content: "Nên kiểm tra độ tươi trước khi sử dụng",
-        },
-      ],
-    },
-  },
-  {
-    id: 5,
-    family_id: 1,
-    food_id: 5,
-    quantity: 400,
-    storage_location: "FREEZER",
-    added_date: "2026-04-26",
-    expiry_date: "2026-05-10",
-    status: "STORED",
-    food: {
-      id: 5,
-      category_id: 4,
-      name: "Cá hồi",
-      unit: "g",
-      synonyms: "cá hồi,salmon",
-      image_url: "",
-      icon_key: "fish",
-      is_system: true,
-      category: {
-        id: 4,
-        name: "Hải sản",
-        icon_key: "seafood",
-        color_code: "#E5F9FF",
-      },
-      preservation_methods: [
-        {
-          id: 13,
-          food_id: 5,
-          content: "Bảo quản trong ngăn đông nếu chưa dùng ngay",
-        },
-        {
-          id: 14,
-          food_id: 5,
-          content: "Đóng kín túi hoặc hộp để tránh ám mùi",
-        },
-        {
-          id: 15,
-          food_id: 5,
-          content: "Rã đông chậm trong ngăn mát trước khi chế biến",
-        },
-      ],
-    },
-  },
-  {
-    id: 6,
-    family_id: 1,
-    food_id: 6,
-    quantity: 10,
-    storage_location: "COOL",
-    added_date: "2026-04-26",
-    expiry_date: "2026-05-05",
-    status: "STORED",
-    food: {
-      id: 6,
-      category_id: 5,
-      name: "Trứng gà",
-      unit: "quả",
-      synonyms: "trứng gà,egg",
-      image_url: "",
-      icon_key: "egg",
-      is_system: true,
-      category: {
-        id: 5,
-        name: "Trứng & Sữa",
-        icon_key: "dairy",
-        color_code: "#FFF9E5",
-      },
-      preservation_methods: [
-        {
-          id: 16,
-          food_id: 6,
-          content: "Để trứng trong khay riêng",
-        },
-        {
-          id: 17,
-          food_id: 6,
-          content: "Không rửa trứng trước khi bảo quản",
-        },
-        {
-          id: 18,
-          food_id: 6,
-          content: "Tránh đặt ở cánh tủ nếu nhiệt độ thay đổi nhiều",
-        },
-      ],
-    },
-  },
-  {
-    id: 7,
-    family_id: 1,
-    food_id: 7,
-    quantity: 300,
-    storage_location: "COOL",
-    specific_location: "VEGETABLE_DRAWER",
-    added_date: "2026-04-26",
-    expiry_date: "2026-04-29",
-    status: "STORED",
-    food: {
-      id: 7,
-      category_id: 1,
-      name: "Cà rốt",
-      unit: "g",
-      synonyms: "cà rốt,carrot",
-      image_url: "",
-      icon_key: "carrot",
-      is_system: true,
-      category: {
-        id: 1,
-        name: "Rau củ",
-        icon_key: "vegetable",
-        color_code: "#FFE5E5",
-      },
-      preservation_methods: [
-        {
-          id: 19,
-          food_id: 7,
-          content: "Bảo quản trong ngăn rau củ",
-        },
-        {
-          id: 20,
-          food_id: 7,
-          content: "Giữ khô ráo trước khi cho vào tủ",
-        },
-        {
-          id: 21,
-          food_id: 7,
-          content: "Nên dùng sớm để giữ độ giòn và vị ngọt",
-        },
-      ],
-    },
-  },
-  {
-    id: 8,
-    family_id: 1,
-    food_id: 8,
-    quantity: 2,
-    storage_location: "DRY",
-    added_date: "2026-04-26",
-    expiry_date: "2026-07-20",
-    status: "STORED",
-    food: {
-      id: 8,
-      category_id: 6,
-      name: "Gạo",
-      unit: "kg",
-      synonyms: "gạo,rice",
-      image_url: "",
-      icon_key: "rice",
-      is_system: true,
-      category: {
-        id: 6,
-        name: "Đồ khô",
-        icon_key: "dry_food",
-        color_code: "#F5F5E5",
-      },
-      preservation_methods: [
-        {
-          id: 22,
-          food_id: 8,
-          content: "Bảo quản nơi khô ráo, thoáng mát",
-        },
-        {
-          id: 23,
-          food_id: 8,
-          content: "Đậy kín sau khi mở bao bì",
-        },
-        {
-          id: 24,
-          food_id: 8,
-          content: "Tránh để gần khu vực ẩm hoặc có côn trùng",
-        },
-      ],
-    },
-  },
-  {
-    id: 9,
-    family_id: 1,
-    food_id: 9,
-    quantity: 1,
-    storage_location: "COOL",
-    added_date: "2026-04-26",
-    expiry_date: "2026-04-27",
-    status: "STORED",
-    food: {
-      id: 9,
-      category_id: 2,
-      name: "Dưa hấu",
-      unit: "quả",
-      synonyms: "dưa hấu,watermelon",
-      image_url: "",
-      icon_key: "watermelon",
-      is_system: true,
-      category: {
-        id: 2,
-        name: "Trái cây",
-        icon_key: "fruit",
-        color_code: "#FFE5F3",
-      },
-      preservation_methods: [
-        {
-          id: 25,
-          food_id: 9,
-          content: "Bảo quản trong ngăn mát sau khi cắt",
-        },
-        {
-          id: 26,
-          food_id: 9,
-          content: "Bọc kín phần đã cắt để tránh mất nước",
-        },
-        {
-          id: 27,
-          food_id: 9,
-          content: "Nên sử dụng càng sớm càng tốt",
-        },
-      ],
-    },
-  },
-];
-
 const MyFridge: React.FC = () => {
-  const [fridgeItems, setFridgeItems] =
-    useState<FridgeItemFromDb[]>(fridgeItemsFromDb);
-  const [selectedFood, setSelectedFood] =
-    useState<FridgeItemFromDb | null>(null);
+  const [isAddingFood, setIsAddingFood] = useState(false);
+  const [fridgeItems, setFridgeItems] = useState<FridgeItemFromApi[]>([]);
+  const [fridgeOverviewItems, setFridgeOverviewItems] = useState<FridgeItemFromApi[]>([]);
+  const [categories, setCategories] = useState<CategoryFromApi[]>([]);
+  const [selectedFood, setSelectedFood] = useState<FridgeItemFromApi | null>(null);
+  const [keyword, setKeyword] = useState("");
+  const [filterMode, setFilterMode] = useState<FilterMode>("LOCATION");
+  const [activeLocation, setActiveLocation] = useState<StorageLocation | "ALL">("ALL");
+  const [activeCategoryId, setActiveCategoryId] = useState<number | "ALL">("ALL");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const expiringItemsCount = fridgeItems.filter((item) => {
-    const daysLeft = getDaysLeft(item.expiry_date);
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await api.get<CategoryFromApi[]>("/api/categories");
+        setCategories(response.data);
+      } catch {
+        setCategories([]);
+      }
+    };
 
-    return daysLeft >= 0 && daysLeft <= EXPIRING_SOON_THRESHOLD;
-  }).length;
+    loadCategories();
+  }, []);
 
-  const expiredItemsCount = fridgeItems.filter((item) => {
-    const daysLeft = getDaysLeft(item.expiry_date);
+  useEffect(() => {
+    const loadFridgeOverview = async () => {
+      try {
+        const response = await api.get<FridgeItemFromApi[]>("/api/fridge-items");
+        setFridgeOverviewItems(response.data);
+      } catch {
+        setFridgeOverviewItems([]);
+      }
+    };
 
-    return daysLeft < 0;
-  }).length;
+    loadFridgeOverview();
+  }, []);
 
-  const handleSaveQuantity = (
-    fridgeItemId: number,
-    newQuantityValue: number,
-    newUnit: string
-  ) => {
-    setFridgeItems((prevItems) =>
-      prevItems.map((item) => {
-        if (item.id !== fridgeItemId) return item;
+  useEffect(() => {
+    const timeoutId = window.setTimeout(async () => {
+      setIsLoading(true);
+      setErrorMessage("");
 
-        return {
-          ...item,
-          quantity: newQuantityValue,
-          food: {
-            ...item.food,
-            unit: newUnit,
+      try {
+        const response = await api.get<FridgeItemFromApi[]>("/api/fridge-items", {
+          params: {
+            keyword: keyword.trim() || undefined,
+            categoryId: filterMode === "CATEGORY" && activeCategoryId !== "ALL" ? activeCategoryId : undefined,
           },
-        };
-      })
-    );
+        });
+        setFridgeItems(response.data);
+      } catch {
+        setErrorMessage("Không tải được dữ liệu tủ lạnh.");
+      } finally {
+        setIsLoading(false);
+      }
+    }, 250);
 
-    setSelectedFood(null);
+    return () => window.clearTimeout(timeoutId);
+  }, [activeCategoryId, filterMode, keyword]);
+
+  const visibleItems = useMemo(() => {
+    if (filterMode === "CATEGORY") return fridgeItems;
+    if (activeLocation === "ALL") return fridgeItems;
+    return fridgeItems.filter((item) => item.storageLocation === activeLocation);
+  }, [activeLocation, filterMode, fridgeItems]);
+
+  const categoryFilters = useMemo(() => {
+    if (categories.length > 0) return categories;
+
+    const byId = new Map<number, CategoryFromApi>();
+    fridgeItems.forEach((item) => {
+      if (!item.categoryId || byId.has(item.categoryId)) return;
+
+      byId.set(item.categoryId, {
+        id: item.categoryId,
+        name: item.categoryName || "Danh mục",
+        iconKey: item.categoryIconKey,
+        colorCode: item.categoryColorCode,
+      });
+    });
+
+    return Array.from(byId.values());
+  }, [categories, fridgeItems]);
+
+  const handleFilterModeChange = (nextMode: FilterMode) => {
+    setFilterMode(nextMode);
+    if (nextMode === "LOCATION") {
+      setActiveCategoryId("ALL");
+    } else {
+      setActiveLocation("ALL");
+    }
   };
 
-  const handleRemoveFood = (fridgeItemId: number) => {
-    setFridgeItems((prevItems) =>
-      prevItems.filter((item) => item.id !== fridgeItemId)
-    );
+  const totalFridgeItemsCount = fridgeOverviewItems.length;
 
+  const expiringItemsCount = fridgeOverviewItems.filter((item) => {
+    const daysLeft = getDaysLeft(item.expiryDate);
+    return daysLeft !== null && daysLeft >= 0 && daysLeft <= EXPIRING_SOON_THRESHOLD;
+  }).length;
+
+  const expiredItemsCount = fridgeOverviewItems.filter((item) => {
+    const daysLeft = getDaysLeft(item.expiryDate);
+    return daysLeft !== null && daysLeft < 0;
+  }).length;
+
+  const almostOutCount = fridgeOverviewItems.filter((item) => item.quantity <= 1).length;
+  const fridgeStatus = useMemo(() => {
+    if (totalFridgeItemsCount === 0) {
+      return {
+        icon: neutralFridgeIcon,
+        title: "Tủ lạnh của bạn đang chờ thực phẩm...",
+        description: "Nhấn dấu “+” bên dưới để thêm thực phẩm đầu tiên.",
+      };
+    }
+
+    if (expiredItemsCount > 0 || expiringItemsCount > 0 || almostOutCount > 0) {
+      return {
+        icon: angryFridgeIcon,
+        title: "Tủ lạnh của bạn cần chú ý!",
+        description: "Hãy kiểm tra lại các thực phẩm có thể hết hạn hoặc sắp hết.",
+      };
+    }
+
+    return {
+      icon: happyFridgeIcon,
+      title: "Tủ lạnh của bạn đang hạnh phúc!",
+      description: "Tất cả thực phẩm đều tươi ngon và đầy đủ.",
+    };
+  }, [almostOutCount, expiredItemsCount, expiringItemsCount, totalFridgeItemsCount]);
+
+  const handleSaveQuantity = async (fridgeItemId: number, newQuantityValue: number) => {
+    const response = await api.patch<FridgeItemFromApi>(`/api/fridge-items/${fridgeItemId}`, {
+      quantity: newQuantityValue,
+    });
+
+    setFridgeItems((prevItems) =>
+      prevItems.map((item) => (item.id === fridgeItemId ? { ...item, ...response.data } : item))
+    );
+    setFridgeOverviewItems((prevItems) =>
+      prevItems.map((item) => (item.id === fridgeItemId ? { ...item, ...response.data } : item))
+    );
+    setSelectedFood((current) => (current?.id === fridgeItemId ? { ...current, ...response.data } : current));
+  };
+
+  const handleRemoveFood = async (
+    fridgeItemId: number,
+    removedReason: RemoveReasonCode,
+    removedReasonNote?: string
+  ) => {
+    await api.patch<FridgeItemFromApi>(`/api/fridge-items/${fridgeItemId}/remove`, {
+      removedReason,
+      removedReasonNote,
+    });
+
+    setFridgeItems((prevItems) => prevItems.filter((item) => item.id !== fridgeItemId));
+    setFridgeOverviewItems((prevItems) => prevItems.filter((item) => item.id !== fridgeItemId));
     setSelectedFood(null);
   };
 
@@ -638,27 +353,89 @@ const MyFridge: React.FC = () => {
       <div className="my-fridge-page">
         <Topbar />
 
-        <div className="my-fridge">
+        {isAddingFood ? (
+          <AddFoodToFridgeScreen onCancel={() => setIsAddingFood(false)} />
+        ) : (
+          <div className="my-fridge">
           <div className="my-fridge-content">
             <main className="my-fridge-main">
-              <div className="my-fridge-view-tabs">
-                <button className="active">Theo vị trí</button>
-                <button>Theo thực phẩm</button>
+              <div className="my-fridge-toolbar">
+                <div className="my-fridge-view-tabs">
+                  <button
+                    className={filterMode === "LOCATION" ? "active" : ""}
+                    onClick={() => handleFilterModeChange("LOCATION")}
+                  >
+                    Theo vị trí
+                  </button>
+                  <button
+                    className={filterMode === "CATEGORY" ? "active" : ""}
+                    onClick={() => handleFilterModeChange("CATEGORY")}
+                  >
+                    Theo thực phẩm
+                  </button>
+                </div>
+
+                <input
+                  className="my-fridge-search"
+                  value={keyword}
+                  onChange={(event) => setKeyword(event.target.value)}
+                  placeholder="Tìm thực phẩm"
+                />
               </div>
 
               <div className="my-fridge-filter-tabs">
-                <button className="active">Tất cả</button>
-                <button>Ngăn mát</button>
-                <button>Ngăn đông</button>
-                <button>Tủ đồ khô</button>
+                {filterMode === "LOCATION" ? (
+                  <>
+                    <button className={activeLocation === "ALL" ? "active" : ""} onClick={() => setActiveLocation("ALL")}>
+                      Tất cả
+                    </button>
+                    <button className={activeLocation === "COOL" ? "active" : ""} onClick={() => setActiveLocation("COOL")}>
+                      Ngăn mát
+                    </button>
+                    <button
+                      className={activeLocation === "FREEZER" ? "active" : ""}
+                      onClick={() => setActiveLocation("FREEZER")}
+                    >
+                      Ngăn đông
+                    </button>
+                    <button className={activeLocation === "DRY" ? "active" : ""} onClick={() => setActiveLocation("DRY")}>
+                      Tủ đồ khô
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button className={activeCategoryId === "ALL" ? "active" : ""} onClick={() => setActiveCategoryId("ALL")}>
+                      Tất cả
+                    </button>
+                    {categoryFilters.map((category) => (
+                      <button
+                        key={category.id}
+                        className={activeCategoryId === category.id ? "active" : ""}
+                        onClick={() => setActiveCategoryId(category.id)}
+                      >
+                        <span
+                          className="my-fridge-category-icon"
+                          style={{ backgroundColor: category.colorCode || "#F1F5F9" }}
+                        >
+                          {foodIconMap[category.iconKey || "default_food"] || foodIconMap.default_food}
+                        </span>
+                        {category.name}
+                      </button>
+                    ))}
+                  </>
+                )}
               </div>
 
+              {errorMessage && <div className="my-fridge-state error">{errorMessage}</div>}
+              {isLoading && <div className="my-fridge-state">Đang tải dữ liệu tủ lạnh...</div>}
+              {!isLoading && !errorMessage && visibleItems.length === 0 && (
+                <div className="my-fridge-state">Chưa có thực phẩm phù hợp.</div>
+              )}
+
               <section className="my-fridge-grid">
-                {fridgeItems.map((item) => {
-                  const daysLeft = getDaysLeft(item.expiry_date);
-                  const specificLocationText = getSpecificLocationText(
-                    item.specific_location
-                  );
+                {visibleItems.map((item) => {
+                  const daysLeft = getDaysLeft(item.expiryDate);
+                  const specificLocationText = getSpecificLocationText(item.specificLocation);
 
                   return (
                     <article
@@ -668,54 +445,38 @@ const MyFridge: React.FC = () => {
                       tabIndex={0}
                       onClick={() => setSelectedFood(item)}
                       onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          setSelectedFood(item);
-                        }
+                        if (event.key === "Enter") setSelectedFood(item);
                       }}
                     >
                       <div className="my-fridge-card-top">
-                        <div
-                          className="my-fridge-food-icon"
-                          style={{ backgroundColor: getFoodIconBg(item) }}
-                        >
+                        <div className="my-fridge-food-icon" style={{ backgroundColor: getFoodIconBg(item) }}>
                           {getFoodIcon(item)}
                         </div>
 
                         <div className="my-fridge-food-info">
-                          <h3>{item.food.name}</h3>
+                          <h3>{getFoodName(item)}</h3>
                           <p>{getQuantityText(item)}</p>
                         </div>
                       </div>
 
                       <div className="my-fridge-food-meta">
                         <p>
-                          <strong>
-                            {getStorageLocationText(item.storage_location)}
-                          </strong>
-                          {specificLocationText && (
-                            <span> • {specificLocationText}</span>
-                          )}
+                          <strong>{getStorageLocationText(item.storageLocation)}</strong>
+                          {specificLocationText && <span> • {specificLocationText}</span>}
                         </p>
-                        <p className="expiry-date">
-                          HSD: {formatDateToDisplay(item.expiry_date)}
-                        </p>
+                        <p className="expiry-date">HSD: {formatDateToDisplay(item.expiryDate)}</p>
                       </div>
 
                       <div className="my-fridge-progress-area">
                         <p>{getDaysLeftLabel(daysLeft)}</p>
                         <div
                           className="my-fridge-progress-track"
-                          style={{
-                            backgroundColor: getProgressTrackColor(daysLeft),
-                          }}
+                          style={{ backgroundColor: getProgressTrackColor(daysLeft) }}
                         >
                           <div
                             className="my-fridge-progress-bar"
                             style={{
-                              width: getProgressWidth(
-                                item.added_date,
-                                item.expiry_date
-                              ),
+                              width: getProgressWidth(item.addedDate, item.expiryDate),
                               backgroundColor: getProgressColor(daysLeft),
                             }}
                           />
@@ -728,35 +489,22 @@ const MyFridge: React.FC = () => {
             </main>
 
             <aside className="my-fridge-sidebar">
-              <section className="my-fridge-summary">
-                <div className="summary-card total">
-                  <img src={iconBox} alt="" className="summary-icon" />
-                  <div>
-                    <h2>{fridgeItems.length}</h2>
-                    <p>Tổng thực phẩm</p>
+              <section className="fridge-status-card">
+                <h2>Trạng thái tủ lạnh</h2>
+                <div className="fridge-status-body">
+                  <div className="fridge-status-visual" aria-hidden="true">
+                    <img src={fridgeStatus.icon} alt="" />
+                  </div>
+
+                  <div className="fridge-status-copy">
+                    <h3>{fridgeStatus.title}</h3>
+                    <p>{fridgeStatus.description}</p>
                   </div>
                 </div>
 
-                <div className="summary-card expiring">
-                  <img src={iconClock} alt="" className="summary-icon" />
-                  <div>
-                    <h2>{expiringItemsCount}</h2>
-                    <p>Sắp hết hạn</p>
-                  </div>
-                </div>
-
-                <div className="status-card temperature">
-                  <img src={iconSnowflake} alt="" className="status-icon" />
-                  <h2>4°C</h2>
-                  <p>Nhiệt độ</p>
-                </div>
-
-                <div className="status-card normal">
-                  <div className="normal-dot">
-                    <span />
-                  </div>
-                  <h2>Bình thường</h2>
-                  <p>Trạng thái</p>
+                <div className="fridge-status-total-pill">
+                  <strong>{totalFridgeItemsCount}</strong>
+                  <span>thực phẩm</span>
                 </div>
               </section>
 
@@ -775,26 +523,30 @@ const MyFridge: React.FC = () => {
 
                 <button className="alert-card success">
                   <img src={iconBox} alt="" className="alert-icon" />
-                  <span>{ALMOST_OUT_COUNT} thực phẩm sắp hết</span>
+                  <span>{almostOutCount} thực phẩm sắp hết</span>
                   <img src={iconArrow} alt="" className="alert-arrow" />
                 </button>
               </section>
 
               <section className="my-fridge-actions">
-                <button className="round-action add">
+                <button className="round-action add" aria-label="Thêm thực phẩm" onClick={() => setIsAddingFood(true)}>
                   <img src={iconPlus} alt="" />
+                  <span>Thêm thực phẩm</span>
                 </button>
-                <button className="round-action suggest">
+                <button className="round-action suggest" aria-label="Gợi ý món ăn">
                   <img src={iconRecipe} alt="" />
+                  <span>Gợi ý món ăn</span>
                 </button>
               </section>
             </aside>
           </div>
-        </div>
+          </div>
+        )}
       </div>
 
       {selectedFood && (
         <FoodDetailPopup
+          key={selectedFood.id}
           food={selectedFood}
           onClose={() => setSelectedFood(null)}
           onSaveQuantity={handleSaveQuantity}
