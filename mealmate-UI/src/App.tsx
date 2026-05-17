@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import ProfileDetail from '@/pages/profile/ProfileDetail';
 
 // Customer Pages
-import FamilyGroup from '@/pages/customer/FamilyGroup';
+import FamilyGroup from '@/pages/customer/group/FamilyGroup';
 import ShoppingPlan from '@/pages/customer/ShoppingPlan';
 import MyFridge from '@/pages/customer/fridge/MyFridge';
 import MenuSuggestion from '@/pages/customer/MenuSuggestion';

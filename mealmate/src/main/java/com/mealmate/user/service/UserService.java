@@ -19,4 +19,12 @@ public class UserService {
     public User save(User entity) {
         return repository.save(entity);
     }
+
+    public List<User> findByFamilyId(Long familyId) {
+        if (familyId == null) {
+            return List.of();
+        }
+        // 🎯 ĐÃ CẬP NHẬT: Gọi hàm sắp xếp theo ID tăng dần từ UserRepository
+        return repository.findByFamilyIdOrderByIdAsc(familyId);
+    }
 }

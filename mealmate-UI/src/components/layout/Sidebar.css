@@ -119,6 +119,7 @@
   width: 24px;
   height: 24px;
   object-fit: contain;
+  filter: grayscale(1) brightness(0.7);
 }
 
 .sidebar-menu-item.active .sidebar-menu-icon {

@@ -1,17 +1,20 @@
 import React from "react";
+import { useLocation, Link } from "react-router-dom";
 import "./Sidebar.css";
 
 import avatar from "@/assets/avatar/26.svg";
 
 import iconGroup from "@/assets/icon/Icon-group.svg";
 import iconShopping from "@/assets/icon/Icon-shopping.svg";
-import iconFridge from "@/assets/icon/Icon-fridge.svg";
+import fridgeMenuIcon from "@/assets/icon/Icon-fridge.svg";
 import iconLogo from "@/assets/icon/Icon-logo.svg";
 import iconSchedule from "@/assets/icon/Icon-schedule.svg";
 import iconStatistic from "@/assets/icon/Icon-statistic.svg";
 import iconRecipe from "@/assets/icon/Icon-recipe.svg";
 
 const Sidebar: React.FC = () => {
+  const location = useLocation();
+
   return (
     <aside className="sidebar">
       <div className="sidebar-logo-section">
@@ -24,47 +27,65 @@ const Sidebar: React.FC = () => {
       </div>
 
       <nav className="sidebar-nav">
-        <a className="sidebar-menu-item" href="#">
+        <Link 
+          className={`sidebar-menu-item ${location.pathname === "/family" ? "active" : ""}`} 
+          to="/family"
+        >
           <span className="sidebar-icon-wrap">
             <img src={iconGroup} alt="" className="sidebar-menu-icon" />
           </span>
           <span className="sidebar-menu-text">Nhóm gia đình</span>
-        </a>
+        </Link>
 
-        <a className="sidebar-menu-item active" href="#">
+        <Link 
+          className={`sidebar-menu-item ${location.pathname === "/fridge" || location.pathname === "/" ? "active" : ""}`} 
+          to="/fridge"
+        >
           <span className="sidebar-icon-wrap">
-            <img src={iconFridge} alt="" className="sidebar-menu-icon" />
+            <img src={fridgeMenuIcon} alt="" className="sidebar-menu-icon" />
           </span>
           <span className="sidebar-menu-text">Tủ lạnh nhà tôi</span>
-        </a>
+        </Link>
 
-        <a className="sidebar-menu-item" href="#">
+        <Link 
+          className={`sidebar-menu-item ${location.pathname === "/shopping" ? "active" : ""}`} 
+          to="/shopping"
+        >
           <span className="sidebar-icon-wrap">
             <img src={iconShopping} alt="" className="sidebar-menu-icon" />
           </span>
           <span className="sidebar-menu-text">Kế hoạch đi chợ</span>
-        </a>
+        </Link>
 
-        <a className="sidebar-menu-item" href="#">
+        <Link 
+          className={`sidebar-menu-item ${location.pathname === "/suggestions" ? "active" : ""}`} 
+          to="/suggestions"
+        >
           <span className="sidebar-icon-wrap">
             <img src={iconSchedule} alt="" className="sidebar-menu-icon" />
           </span>
           <span className="sidebar-menu-text">Kế hoạch bữa ăn</span>
-        </a>
+        </Link>
 
-        <a className="sidebar-menu-item" href="#">
+        <Link 
+          className={`sidebar-menu-item ${location.pathname === "/recipes" ? "active" : ""}`} 
+          to="#"
+        >
           <span className="sidebar-icon-wrap">
             <img src={iconRecipe} alt="" className="sidebar-menu-icon" />
           </span>
           <span className="sidebar-menu-text">Thư viện công thức</span>
-        </a>
+        </Link>
 
-        <a className="sidebar-menu-item" href="#">
+        <Link 
+          className={`sidebar-menu-item ${location.pathname === "/reports" ? "active" : ""}`} 
+          to="/reports"
+        >
           <span className="sidebar-icon-wrap">
             <img src={iconStatistic} alt="" className="sidebar-menu-icon" />
           </span>
           <span className="sidebar-menu-text">Báo cáo &amp; Thống kê</span>
-        </a>
+        </Link>
       </nav>
 
       <div className="sidebar-profile-section">
