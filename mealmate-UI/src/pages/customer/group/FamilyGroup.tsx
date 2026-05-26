@@ -27,7 +27,6 @@ const FamilyGroup: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [selectedMemberName, setSelectedMemberName] = useState<string>("");
-  const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
 
   const avatarColors = ["avatar-orange", "avatar-peach", "avatar-teal", "avatar-blue", "avatar-purple"];
 
@@ -250,7 +249,6 @@ const FamilyGroup: React.FC = () => {
                               className="action-btn-circle btn-delete" 
                               onClick={() => {
                                 setSelectedMemberName(member.fullName);
-                                setSelectedMemberId(member.id);
                                 setIsModalOpen(true);
                               }}
                             >

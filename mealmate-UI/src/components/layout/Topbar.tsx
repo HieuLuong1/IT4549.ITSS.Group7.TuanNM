@@ -11,6 +11,7 @@ interface TopbarProps {
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   familyName?: string; // Nhận từ trang cha truyền xuống (ví dụ: trang FamilyGroup)
+  showSearch?: boolean;
 }
 
 const Topbar: React.FC<TopbarProps> = ({
@@ -18,7 +19,8 @@ const Topbar: React.FC<TopbarProps> = ({
   searchPlaceholder = "Tìm kiếm",
   searchValue = "",
   onSearchChange,
-  familyName
+  familyName,
+  showSearch = true
 }) => {
   // 1. Tạo một state nội bộ để tự quản lý tên gia đình nếu trang cha không truyền
   const [localFamilyName, setLocalFamilyName] = useState<string>("Gia đình Fiza");
@@ -61,21 +63,23 @@ const Topbar: React.FC<TopbarProps> = ({
       </div>
 
       <div className="topbar-actions">
-        <div className="topbar-search">
-          <div className="topbar-search-input">
-            <input
-              type="text"
-              className="topbar-search-field"
-              placeholder={searchPlaceholder}
-              value={searchValue}
-              onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
-            />
-          </div>
+        {showSearch && (
+          <div className="topbar-search">
+            <div className="topbar-search-input">
+              <input
+                type="text"
+                className="topbar-search-field"
+                placeholder={searchPlaceholder}
+                value={searchValue}
+                onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
+              />
+            </div>
 
-          <div className="topbar-search-icon-wrapper">
-            <img src={iconSearch} alt="" className="topbar-search-icon" />
+            <div className="topbar-search-icon-wrapper">
+              <img src={iconSearch} alt="" className="topbar-search-icon" />
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="topbar-notification">
           <img src={iconNotification} alt="" className="topbar-bell-icon" />
