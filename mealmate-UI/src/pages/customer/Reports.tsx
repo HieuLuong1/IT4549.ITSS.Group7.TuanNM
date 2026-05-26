@@ -296,7 +296,6 @@ const DetailChart: React.FC<{
     return purchaseSeries;
   }, [activeTab, expiredSeries, purchaseSeries, usedSeries]);
 
-  const latestPoint = currentSeries[currentSeries.length - 1];
   const chartData = useMemo(() => buildChartData(currentSeries), [currentSeries]);
 
   return (
@@ -337,7 +336,7 @@ const DetailChart: React.FC<{
             <YAxis hide />
             <Tooltip
               formatter={(value: any) => [`${value ?? 0} mục`, ""]}
-              labelFormatter={(label) => label}
+              labelFormatter={(label: string) => label}
             />
             <Line
               type="monotone"

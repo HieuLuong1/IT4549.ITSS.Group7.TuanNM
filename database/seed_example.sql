@@ -412,61 +412,6 @@ FROM (
 JOIN meals meal ON meal.meal_type = v.meal_type AND meal.meal_date = CURRENT_DATE
 JOIN recipes recipe ON recipe.name = v.recipe_name;
 
--- =====================================================
--- 11. HISTORICAL DATA FOR REPORTS (TESTING)
--- Create data for current 7 days vs previous 7 days
--- =====================================================
-
-DO $$
-DECLARE
-    v_family_id BIGINT;
-    v_user_id BIGINT;
-    v_sl_id BIGINT;
-    v_i INT;
-BEGIN
-    SELECT id INTO v_family_id FROM families WHERE name = 'Gia đình Minh Quang' LIMIT 1;
-    SELECT id INTO v_user_id FROM users WHERE email = 'user@mealmate.local' LIMIT 1;
-
-    -- A. SHOPPING (PURCHASED) - Current 7 days: 3 items/day
-    FOR v_i IN 0..6 LOOP
-        INSERT INTO shopping_lists (family_id, created_by, created_date, planned_date, note)
-        VALUES (v_family_id, v_user_id, CURRENT_DATE - v_i, CURRENT_DATE - v_i, 'Historical List ' || v_i)
-        RETURNING id INTO v_sl_id;
-
-        INSERT INTO shopping_list_items (shopping_list_id, food_id, quantity, unit, is_purchased, order_number)
-        SELECT v_sl_id, id, floor(random()*10+1), unit, true, 1 
-        FROM foods ORDER BY random() LIMIT 3;
-    END LOOP;
-
-    -- B. SHOPPING (PURCHASED) - Previous 7 days: 1 item/day (to show + trend)
-    FOR v_i IN 7..13 LOOP
-        INSERT INTO shopping_lists (family_id, created_by, created_date, planned_date, note)
-        VALUES (v_family_id, v_user_id, CURRENT_DATE - v_i, CURRENT_DATE - v_i, 'Historical List ' || v_i)
-        RETURNING id INTO v_sl_id;
-
-        INSERT INTO shopping_list_items (shopping_list_id, food_id, quantity, unit, is_purchased, order_number)
-        SELECT v_sl_id, id, 5, unit, true, 1 
-        FROM foods ORDER BY random() LIMIT 1;
-    END LOOP;
-
-    -- C. CONSUMPTION (USED)
-    -- This week: 2 items/day
-    FOR v_i IN 0..6 LOOP
-        INSERT INTO fridge_items (family_id, food_id, quantity, storage_location, added_date, status, note, created_at, updated_at)
-        SELECT v_family_id, id, 1, 'COOL', CURRENT_DATE - v_i, 'USED', 'Fake Used', (CURRENT_DATE - v_i)::timestamp, (CURRENT_DATE - v_i)::timestamp
-        FROM foods ORDER BY random() LIMIT 2;
-    END LOOP;
-
-    -- D. WASTE (EXPIRED)
-    -- This week: 8 items expired
-    FOR v_i IN 1..8 LOOP
-        INSERT INTO fridge_items (family_id, food_id, quantity, storage_location, added_date, expiry_date, status, note)
-        SELECT v_family_id, id, 1, 'COOL', CURRENT_DATE - 10, CURRENT_DATE - (v_i % 7), 'EXPIRED', 'Fake Expired' 
-        FROM foods ORDER BY random() LIMIT 1;
-    END LOOP;
-
-END $$;
-
 COMMIT;
 
 -- =====================================================
@@ -500,3 +445,9 @@ DO $$
 BEGIN
     RAISE NOTICE 'Seed data reset and completed successfully. Login: user@mealmate.local / password';
 END $$;
+
+
+--Cập nhật thêm role
+INSERT INTO roles (name, description, is_active)
+VALUES
+    ('BOSS', 'Người nội trợ', TRUE);

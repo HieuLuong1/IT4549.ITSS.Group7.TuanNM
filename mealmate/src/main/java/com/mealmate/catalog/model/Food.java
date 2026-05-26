@@ -11,23 +11,33 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Food extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id")
-    private Category category; // Thuộc chủng loại nào
+
+    @Column(name = "category_id")
+    private Long categoryId;
 
     @Column(nullable = false)
-    private String name; // Tên thực phẩm
+    private String name;
 
-    @Column(name = "unit")
-    private String unit; // Đơn vị đo
+    private String unit;
 
-    @Column(name = "synonyms")
-    private String synonyms; // Từ đồng nghĩa
+    private String synonyms;
 
     @Column(name = "image_url")
-    private String imageUrl; // Đường dẫn ảnh minh họa
+    private String imageUrl;
+
+    @Column(name = "is_system")
+    private Boolean isSystem = true;
+
+    @Column(name = "created_by")
+    private Long createdBy;
+
+    @Column(name = "family_id")
+    private Long familyId;
+
+    @PrePersist
+    public void prePersistFood() {
+        if (isSystem == null) {
+            isSystem = true;
+        }
+    }
 }

@@ -1,0 +1,638 @@
+.add-fridge-screen {
+  width: 100%;
+  min-height: calc(100vh - 80px);
+  padding: 10px 32px 48px;
+  box-sizing: border-box;
+  color: #1e293b;
+  font-family: "Plus Jakarta Sans", "Inter", "Segoe UI", sans-serif;
+}
+
+.add-fridge-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  min-height: 70px;
+}
+
+.add-fridge-back {
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 12px;
+  background: #d9f1eb;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.add-fridge-back span {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  left: 19px;
+  top: 17px;
+  border-left: 5px solid #006b55;
+  border-bottom: 5px solid #006b55;
+  transform: rotate(45deg);
+  border-radius: 2px;
+}
+
+.add-fridge-header h1 {
+  margin: -0.6px 0 2px;
+  color: #006b55;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 36px;
+}
+
+.add-fridge-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+}
+
+.add-fridge-tabs {
+  width: 280px;
+  height: 43.44px;
+  margin-top: 1px;
+  padding: 3.99px;
+  border-radius: 16px;
+  background: #ffffff;
+  display: flex;
+  gap: 7.98px;
+  box-sizing: border-box;
+}
+
+.add-fridge-tabs button {
+  flex: 1;
+  height: 35.46px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 19.5px;
+  cursor: pointer;
+}
+
+.add-fridge-tabs button.active {
+  background: #6ed4b4;
+  color: #ffffff;
+}
+
+.add-fridge-plan-layout {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 23.97px;
+  align-items: start;
+}
+
+.purchased-food-card,
+.add-fridge-summary,
+.manual-add-card {
+  background: #ffffff;
+  border-radius: 20px;
+  box-sizing: border-box;
+}
+
+.purchased-food-card {
+  min-height: 1124.81px;
+  padding: 23.98px 24px;
+}
+
+.purchased-food-card h2,
+.manual-add-card h2 {
+  margin: -0.4px 0 7.96px;
+  color: #1e293b;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 27px;
+}
+
+.purchased-food-card > p,
+.manual-add-card > p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 19.5px;
+}
+
+.shopping-category-list {
+  margin-top: 15.04px;
+  display: flex;
+  flex-direction: column;
+  gap: 19.99px;
+}
+
+.shopping-category {
+  padding: 19.99px;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.shopping-category-header {
+  display: flex;
+  align-items: center;
+  gap: 11.97px;
+  min-height: 40.5px;
+}
+
+.shopping-category-icon {
+  width: 35.46px;
+  height: 35.46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 27px;
+  flex-shrink: 0;
+}
+
+.shopping-category-header h3 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 22.5px;
+}
+
+.shopping-category-header p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.shopping-item-list {
+  margin-top: 15.99px;
+  display: flex;
+  flex-direction: column;
+  gap: 15.99px;
+}
+
+.shopping-item {
+  padding: 16.79px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 0.8px solid #e2e8f0;
+  box-sizing: border-box;
+}
+
+.shopping-item.selected {
+  border-color: #6ed4b4;
+}
+
+.shopping-item-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 11.97px;
+}
+
+.shopping-check {
+  width: 18px;
+  height: 18px;
+  margin-top: 3.99px;
+  padding: 0;
+  border: 2px solid #d1d5dc;
+  border-radius: 2px;
+  background: #ffffff;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.shopping-check.selected {
+  border-color: #6dd4b4;
+  background: #6dd4b4;
+}
+
+.shopping-check.selected span {
+  position: absolute;
+  width: 9px;
+  height: 5px;
+  left: 3px;
+  top: 4px;
+  border-left: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  transform: rotate(-45deg);
+}
+
+.shopping-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.shopping-item-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.shopping-item-topline h4 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 21px;
+}
+
+.shopping-item-info p {
+  margin: 3.97px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.shopping-item-actions {
+  display: flex;
+  gap: 7.99px;
+  flex-shrink: 0;
+}
+
+.shopping-item-actions button {
+  height: 24.45px;
+  min-width: 60.73px;
+  padding: 0 11.98px;
+  border: none;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16.5px;
+  cursor: pointer;
+}
+
+.shopping-item-actions button.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.shopping-item-actions button.active.skip {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.shopping-item-fields {
+  margin-top: 11.98px;
+  padding-top: 12.77px;
+  border-top: 0.8px solid #e2e8f0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 11.98px;
+}
+
+.add-fridge-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5.99px;
+  min-width: 0;
+}
+
+.add-fridge-field.wide {
+  grid-column: 1 / -1;
+}
+
+.add-fridge-field span {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.add-fridge-field strong {
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.add-fridge-field input,
+.add-fridge-field select,
+.add-fridge-field textarea {
+  width: 100%;
+  height: 35.48px;
+  padding: 7.99px 11.98px;
+  border: none;
+  border-radius: 12px;
+  outline: none;
+  background: #f1f5f9;
+  color: #1e293b;
+  font-family: "Plus Jakarta Sans", "Inter", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 19.5px;
+  box-sizing: border-box;
+}
+
+.add-fridge-field input::placeholder,
+.add-fridge-field textarea::placeholder {
+  color: #94a3b8;
+}
+
+.add-fridge-field input:disabled,
+.add-fridge-field select:disabled,
+.add-fridge-field textarea:disabled {
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.add-fridge-field textarea {
+  height: 86.97px;
+  resize: none;
+}
+
+.add-fridge-summary {
+  min-height: 653.56px;
+  padding: 23.98px;
+  position: sticky;
+  top: 104px;
+}
+
+.add-fridge-summary h2 {
+  margin: -0.4px 0 19.96px;
+  color: #1e293b;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.add-fridge-summary-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 11.98px;
+}
+
+.summary-box {
+  height: 89.95px;
+  padding: 15.99px;
+  border-radius: 12px;
+  box-sizing: border-box;
+}
+
+.summary-box.selected {
+  background: #f0fdf9;
+}
+
+.summary-box.warning {
+  background: #fef3c7;
+}
+
+.summary-box.muted {
+  background: #f1f5f9;
+}
+
+.summary-box span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.summary-box.warning span {
+  color: #78716c;
+}
+
+.summary-box strong {
+  display: block;
+  margin-top: 3.98px;
+  color: #4d9a80;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 36px;
+}
+
+.summary-box.warning strong {
+  color: #a16207;
+}
+
+.summary-box.muted strong {
+  color: #64748b;
+}
+
+.add-fridge-note {
+  margin-top: 23.98px;
+}
+
+.add-fridge-note h3 {
+  margin: 0 0 11.98px;
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 21px;
+}
+
+.add-fridge-note ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7.99px;
+}
+
+.add-fridge-note li {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  display: flex;
+  gap: 7.99px;
+}
+
+.add-fridge-note li::before {
+  content: "•";
+  color: #6ed4b4;
+}
+
+.add-fridge-summary-actions {
+  margin-top: 23.98px;
+  display: flex;
+  flex-direction: column;
+  gap: 11.97px;
+}
+
+.add-fridge-summary-actions button,
+.manual-form-actions button {
+  height: 43.48px;
+  border: none;
+  border-radius: 12px;
+  color: #64748b;
+  background: #f1f5f9;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 19.5px;
+  cursor: pointer;
+}
+
+.add-fridge-summary-actions button:last-child,
+.manual-form-actions button:last-child {
+  color: #ffffff;
+  background: #6ed4b4;
+}
+
+.manual-add-card {
+  width: min(900px, calc(100% - 224px));
+  min-height: 823.15px;
+  margin: 20px auto 0;
+  padding: 31.98px;
+}
+
+.manual-form {
+  margin-top: 31.98px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 19.99px;
+}
+
+.manual-food-search {
+  position: relative;
+}
+
+.manual-food-suggestions {
+  position: absolute;
+  top: 78px;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  max-height: 320px;
+  padding: 10px;
+  border: 1px solid #d9f1eb;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  overflow-y: auto;
+}
+
+.manual-food-suggestions > button {
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.manual-food-suggestions > button:hover,
+.manual-other-category button:hover {
+  background: #f0fdf9;
+}
+
+.manual-food-suggestions strong {
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 19.5px;
+}
+
+.manual-food-suggestions span,
+.manual-suggestion-state,
+.manual-other-foods p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.manual-other-foods {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.manual-other-category {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.manual-other-category > span {
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 19.5px;
+}
+
+.manual-other-category > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.manual-other-category button {
+  min-height: 30px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.manual-form .add-fridge-field span {
+  font-size: 13px;
+  line-height: 19.5px;
+}
+
+.manual-form .add-fridge-field input,
+.manual-form .add-fridge-field select {
+  height: 44.98px;
+  padding: 11.99px 15.99px;
+  font-size: 14px;
+}
+
+.manual-form .add-fridge-field textarea {
+  height: 86.97px;
+  padding: 11.99px 15.99px;
+  font-size: 14px;
+  line-height: 21px;
+}
+
+.manual-form-actions {
+  margin-top: 23.98px;
+  padding-top: 23.98px;
+  border-top: 0.8px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 15.99px;
+}
+
+.manual-form-actions button {
+  width: 88.24px;
+}
+
+.manual-form-actions button:last-child {
+  width: 137.96px;
+}
+
+.manual-form-error {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 19.5px;
+}
+
+.manual-form-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
