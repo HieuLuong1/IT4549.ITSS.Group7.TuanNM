@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./Reports.css";
+import jsPDF from "jspdf";
 
 import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/layout/Topbar";
@@ -43,6 +44,13 @@ const formatPercent = (value: number) => {
 };
 
 const formatAbsolutePercent = (value: number) => `${Math.abs(Math.round(value))}%`;
+const formatFullDate = (date: string) => {
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) {
+    return date;
+  }
+  return parsed.toLocaleDateString("vi-VN");
+};
 
 const formatShortDate = (date: string) => {
   const parsed = new Date(date);
@@ -83,30 +91,63 @@ const CategorySelect: React.FC<{
   selectedId: number | null;
   onChange: (value: number | null) => void;
 }> = ({ categories, selectedId, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedLabel =
+    selectedId == null
+      ? "Tất cả danh mục"
+      : categories.find((category) => category.id === selectedId)?.name ?? "Tất cả danh mục";
+
   return (
-    <div className="user-reports-select">
-      <select
-        value={selectedId ?? "all"}
-        onChange={(event) => {
-          const value = event.target.value;
-          onChange(value === "all" ? null : Number(value));
-        }}
-      >
-        <option value="all">Tất cả danh mục</option>
-        {categories.map((category) => (
-          <option key={category.id} value={category.id}>
-            {category.name}
-          </option>
-        ))}
-      </select>
+    <div className={`user-reports-select ${open ? "open" : ""}`} ref={wrapperRef}>
+      <button type="button" className="user-reports-select-trigger" onClick={() => setOpen((prev) => !prev)}>
+        <span className="user-reports-select-label">{selectedLabel}</span>
+      </button>
       <span className="caret" />
+      {open && (
+        <div className="user-reports-select-menu">
+          <button
+            type="button"
+            className={`user-reports-option ${selectedId == null ? "active" : ""}`}
+            onClick={() => {
+              onChange(null);
+              setOpen(false);
+            }}
+          >
+            Tất cả danh mục
+          </button>
+          {categories.map((category) => (
+            <button
+              key={category.id}
+              type="button"
+              className={`user-reports-option ${selectedId === category.id ? "active" : ""}`}
+              onClick={() => {
+                onChange(category.id);
+                setOpen(false);
+              }}
+            >
+              {category.name}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
 
-const PrimaryButton: React.FC<{ label: string }> = ({ label }) => {
+const PrimaryButton: React.FC<{ label: string; onClick?: () => void }> = ({ label, onClick }) => {
   return (
-    <button className="user-reports-primary" type="button">
+    <button className="user-reports-primary" type="button" onClick={onClick}>
       <span className="export-icon" />
       {label}
     </button>
@@ -119,6 +160,8 @@ const SummaryCard: React.FC<{
   series: ReportPoint[];
 }> = ({ purchasedCount, changePercent, series }) => {
   const chartData = useMemo(() => buildChartData(series), [series]);
+  const isUp = changePercent > 0;
+  const isDown = changePercent < 0;
 
   return (
     <div className="user-reports-card">
@@ -130,8 +173,8 @@ const SummaryCard: React.FC<{
             <small>mục</small>
           </div>
         </div>
-        <div className="user-reports-chip">
-          <span className="arrow" />
+        <div className={`user-reports-chip ${isUp ? "up" : isDown ? "down" : ""}`}>
+          <span className="trend-icon" />
           <span>{formatPercent(changePercent)}</span>
         </div>
       </div>
@@ -140,9 +183,9 @@ const SummaryCard: React.FC<{
           <LineChart data={chartData} margin={{ top: 16, right: 8, left: 8, bottom: 0 }}>
             <XAxis dataKey="date" hide />
             <YAxis hide />
-            <Tooltip
+           <Tooltip
               cursor={false}
-              formatter={(value: number) => [`${value} mục`, ""]}
+              formatter={(value: any) => [`${value ?? 0} mục`, ""]}
               labelFormatter={() => ""}
             />
             <Line
@@ -207,10 +250,13 @@ const TrendCard: React.FC<{ items: TrendItem[] }> = ({ items }) => {
 
 const WasteCard: React.FC<{
   expiredCount: number;
+  purchasedCount: number;
   changePercent: number;
   note: string;
-}> = ({ expiredCount, changePercent, note }) => {
+}> = ({ expiredCount, purchasedCount, changePercent, note }) => {
   const prefix = changePercent > 0 ? "Tăng" : changePercent < 0 ? "Giảm" : "Không đổi";
+  const wasteRate = purchasedCount > 0 ? Math.round((expiredCount / purchasedCount) * 100) : 0;
+  const riskClass = wasteRate >= 20 ? "high" : wasteRate >= 10 ? "medium" : "low";
 
   return (
     <div className="user-reports-card waste">
@@ -224,7 +270,7 @@ const WasteCard: React.FC<{
           <span className="waste-label">sản phẩm đã hết hạn</span>
         </div>
         <div className="waste-bar">
-          <div className="waste-bar-fill" />
+          <div className={`waste-bar-fill ${riskClass}`} style={{ width: `${wasteRate}%` }} />
         </div>
         <p className="waste-note">
           {prefix} <span>{formatAbsolutePercent(changePercent)}</span> so với kỳ trước. {note}
@@ -290,7 +336,7 @@ const DetailChart: React.FC<{
             <XAxis dataKey="date" hide />
             <YAxis hide />
             <Tooltip
-              formatter={(value: number) => [`${value} mục`, ""]}
+              formatter={(value: any) => [`${value ?? 0} mục`, ""]}
               labelFormatter={(label) => label}
             />
             <Line
@@ -303,13 +349,6 @@ const DetailChart: React.FC<{
             />
           </LineChart>
         </ResponsiveContainer>
-        <div className="detail-tooltip">
-          <div>{latestPoint ? formatShortDate(latestPoint.date) : "--"}</div>
-          <div className="detail-tooltip-value">
-            <span className="dot" />
-            <span>{latestPoint ? `${latestPoint.value} mục` : "0 mục"}</span>
-          </div>
-        </div>
       </div>
       <div className="detail-weekdays">
         {weekdayLabels.map((label) => (
@@ -384,6 +423,106 @@ const Reports: React.FC = () => {
   const summary = report?.summary;
   const waste = report?.waste;
   const detail = report?.detail;
+  const exportPdfReport = () => {
+    if (!report) return;
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const left = 40;
+    const right = pageWidth - 40;
+    let y = 36;
+
+    doc.setFillColor(0, 107, 85);
+    doc.roundedRect(left, y, right - left, 74, 12, 12, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.text("BAO CAO THUC PHAM GIA DINH", left + 16, y + 30);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.text(`Ky bao cao: ${formatFullDate(report.from)} - ${formatFullDate(report.to)}`, left + 16, y + 50);
+    doc.text(`Danh muc: ${selectedCategoryId == null ? "Tat ca" : "Da loc"}`, left + 16, y + 66);
+    y += 92;
+
+    const cardW = (right - left - 12) / 2;
+    const cards = [
+      { t: "Thuc pham mua vao", v: `${report.summary.purchasedCount} muc` },
+      { t: "Bien dong mua vao", v: formatPercent(report.summary.changePercent) },
+      { t: "Thuc pham het han", v: `${report.waste.expiredCount} muc` },
+      { t: "Bien dong lang phi", v: formatPercent(report.waste.changePercent) }
+    ];
+    doc.setTextColor(23, 29, 26);
+    cards.forEach((c, i) => {
+      const row = Math.floor(i / 2);
+      const col = i % 2;
+      const x = left + col * (cardW + 12);
+      const cy = y + row * 62;
+      doc.setFillColor(245, 249, 248);
+      doc.roundedRect(x, cy, cardW, 52, 10, 10, "F");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(c.t, x + 12, cy + 20);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text(c.v, x + 12, cy + 38);
+    });
+    y += 136;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Xu huong tieu thu", left, y);
+    y += 16;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    const trendRows = report.trend.items.length ? report.trend.items : [{ label: "Chua co du lieu", count: 0, percent: 0 }];
+    trendRows.slice(0, 5).forEach((item, i) => {
+      doc.text(`${i + 1}. ${item.label}`, left, y);
+      doc.text(`${item.count} muc`, left + 250, y, { align: "right" });
+      doc.text(`${Math.round(item.percent)}%`, right, y, { align: "right" });
+      y += 14;
+    });
+    y += 12;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Chi tiet theo ngay", left, y);
+    y += 14;
+
+    const drawHeader = () => {
+      doc.setFillColor(230, 255, 250);
+      doc.rect(left, y, right - left, 22, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(0, 107, 85);
+      doc.text("Ngay", left + 8, y + 15);
+      doc.text("Mua vao", left + 180, y + 15, { align: "right" });
+      doc.text("Tieu thu (USED)", left + 320, y + 15, { align: "right" });
+      doc.text("Het han (EXPIRED)", right - 8, y + 15, { align: "right" });
+      y += 22;
+      doc.setTextColor(23, 29, 26);
+      doc.setFont("helvetica", "normal");
+    };
+    drawHeader();
+
+    report.detail.purchaseSeries.forEach((point, idx) => {
+      if (y > 780) {
+        doc.addPage();
+        y = 36;
+        drawHeader();
+      }
+      if (idx % 2 === 0) {
+        doc.setFillColor(248, 250, 251);
+        doc.rect(left, y, right - left, 20, "F");
+      }
+      doc.setFontSize(10);
+      doc.text(formatFullDate(point.date), left + 8, y + 14);
+      doc.text(String(point.value), left + 180, y + 14, { align: "right" });
+      doc.text(String(report.detail.usedSeries[idx]?.value ?? 0), left + 320, y + 14, { align: "right" });
+      doc.text(String(report.detail.expiredSeries[idx]?.value ?? 0), right - 8, y + 14, { align: "right" });
+      y += 20;
+    });
+
+    doc.save(`bao-cao-thuc-pham-${report.from}-${report.to}.pdf`);
+  };
 
   return (
     <div className="user-reports">
@@ -401,7 +540,7 @@ const Reports: React.FC = () => {
                   selectedId={selectedCategoryId}
                   onChange={setSelectedCategoryId}
                 />
-                <PrimaryButton label="Xuất báo cáo" />
+                <PrimaryButton label="Xuất báo cáo" onClick={exportPdfReport} />
               </div>
             </div>
 
@@ -414,6 +553,7 @@ const Reports: React.FC = () => {
               <TrendCard items={trendItems} />
               <WasteCard
                 expiredCount={waste?.expiredCount ?? 0}
+                purchasedCount={summary?.purchasedCount ?? 0}
                 changePercent={waste?.changePercent ?? 0}
                 note={waste?.note ?? ""}
               />

@@ -19,6 +19,81 @@ public interface FridgeItemRepository extends JpaRepository<FridgeItem, Long> {
 	Long getCount();
     }
 
+    interface CategoryCountProjection {
+	Long getCategoryId();
+
+	String getCategoryName();
+
+	Long getCount();
+    }
+
+    @Query("""
+	    select count(i.id)
+	    from FridgeItem i
+	    where i.family.id = :familyId
+	      and i.addedDate between :from and :to
+	      and (:categoryId is null or i.food.category.id = :categoryId)
+	    """)
+    Long countItemsAddedToFridge(
+	    @Param("familyId") Long familyId,
+	    @Param("from") LocalDate from,
+	    @Param("to") LocalDate to,
+	    @Param("categoryId") Long categoryId
+    );
+
+    @Query("""
+	    select i.addedDate as date, count(i.id) as count
+	    from FridgeItem i
+	    where i.family.id = :familyId
+	      and i.addedDate between :from and :to
+	      and (:categoryId is null or i.food.category.id = :categoryId)
+	    group by i.addedDate
+	    order by i.addedDate
+	    """)
+    List<DateCountProjection> countItemsAddedToFridgeByDate(
+	    @Param("familyId") Long familyId,
+	    @Param("from") LocalDate from,
+	    @Param("to") LocalDate to,
+	    @Param("categoryId") Long categoryId
+    );
+
+    @Query("""
+	    select c.id as categoryId, c.name as categoryName, count(i.id) as count
+	    from FridgeItem i
+	    join i.food f
+	    left join f.category c
+	    where i.family.id = :familyId
+	      and i.addedDate between :from and :to
+	      and (:categoryId is null or c.id = :categoryId)
+	    group by c.id, c.name
+	    """)
+    List<CategoryCountProjection> countItemsAddedToFridgeByCategory(
+	    @Param("familyId") Long familyId,
+	    @Param("from") LocalDate from,
+	    @Param("to") LocalDate to,
+	    @Param("categoryId") Long categoryId
+    );
+
+    @Query("""
+	    select c.id as categoryId, c.name as categoryName, count(i.id) as count
+	    from FridgeItem i
+	    join i.food f
+	    left join f.category c
+	    where i.family.id = :familyId
+	      and i.status = :status
+	      and i.updatedAt >= :from
+	      and i.updatedAt < :to
+	      and (:categoryId is null or c.id = :categoryId)
+	    group by c.id, c.name
+	    """)
+    List<CategoryCountProjection> countByStatusAndUpdatedAtByCategory(
+	    @Param("familyId") Long familyId,
+	    @Param("status") String status,
+	    @Param("from") LocalDateTime from,
+	    @Param("to") LocalDateTime to,
+	    @Param("categoryId") Long categoryId
+    );
+
     @Query("""
 	    select count(i.id)
 	    from FridgeItem i

@@ -8,7 +8,6 @@ import com.mealmate.report.dto.ReportSummaryDto;
 import com.mealmate.report.dto.ReportTrendDto;
 import com.mealmate.report.dto.TrendItemDto;
 import com.mealmate.report.dto.WasteDto;
-import com.mealmate.shopping.repository.ShoppingListItemRepository;
 import com.mealmate.user.model.User;
 import com.mealmate.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,14 +29,16 @@ public class ReportService {
     private static final String STATUS_EXPIRED = "EXPIRED";
     private static final String STATUS_USED = "USED";
     private static final String[] TREND_COLORS = {
-            "#006B55",
-            "#4D9A80",
-            "#6DD4B4",
-            "#9AE6B4",
-            "#A7F3D0"
+            "#FF6B6B", // Red-ish
+            "#4DABF7", // Blue-ish
+            "#51CF66", // Green-ish
+            "#FCC419", // Yellow-ish
+            "#FF922B", // Orange-ish
+            "#845EF7", // Purple-ish
+            "#20C997", // Teal-ish
+            "#FF8787"  // Soft Red
     };
 
-    private final ShoppingListItemRepository shoppingListItemRepository;
     private final FridgeItemRepository fridgeItemRepository;
     private final UserRepository userRepository;
 
@@ -49,14 +50,14 @@ public class ReportService {
 
         DateRange previousRange = buildPreviousRange(from, to);
 
-        long purchasedCount = safeCount(shoppingListItemRepository.countPurchasedItems(
+        long purchasedCount = safeCount(fridgeItemRepository.countItemsAddedToFridge(
                 resolvedFamilyId,
                 from,
                 to,
                 categoryId
         ));
 
-        long previousPurchasedCount = safeCount(shoppingListItemRepository.countPurchasedItems(
+        long previousPurchasedCount = safeCount(fridgeItemRepository.countItemsAddedToFridge(
                 resolvedFamilyId,
                 previousRange.from(),
                 previousRange.to(),
@@ -67,14 +68,14 @@ public class ReportService {
         List<ReportPointDto> purchasedSeries = fillSeries(
             from,
             to,
-            shoppingListItemRepository.countPurchasedItemsByDate(
+            fridgeItemRepository.countItemsAddedToFridgeByDate(
                 resolvedFamilyId,
                 from,
                 to,
                 categoryId
             ),
-            ShoppingListItemRepository.DateCountProjection::getDate,
-            ShoppingListItemRepository.DateCountProjection::getCount
+            FridgeItemRepository.DateCountProjection::getDate,
+            FridgeItemRepository.DateCountProjection::getCount
         );
 
         ReportSummaryDto summary = ReportSummaryDto.builder()
@@ -222,8 +223,16 @@ public class ReportService {
     }
 
     private ReportTrendDto buildTrend(Long familyId, LocalDate from, LocalDate to, Long categoryId) {
-        List<ShoppingListItemRepository.CategoryCountProjection> rows =
-                shoppingListItemRepository.countPurchasedItemsByCategory(familyId, from, to, categoryId);
+        LocalDateTime fromDateTime = from.atStartOfDay();
+        LocalDateTime toDateTime = to.plusDays(1).atStartOfDay();
+        List<FridgeItemRepository.CategoryCountProjection> rows =
+                fridgeItemRepository.countByStatusAndUpdatedAtByCategory(
+                        familyId,
+                        STATUS_USED,
+                        fromDateTime,
+                        toDateTime,
+                        categoryId
+                );
 
         long totalCount = rows.stream()
                 .mapToLong(row -> row.getCount() == null ? 0 : row.getCount())
@@ -232,7 +241,7 @@ public class ReportService {
         List<TrendItemDto> items = new ArrayList<>();
         int colorIndex = 0;
 
-        for (ShoppingListItemRepository.CategoryCountProjection row : rows) {
+        for (FridgeItemRepository.CategoryCountProjection row : rows) {
             long count = row.getCount() == null ? 0 : row.getCount();
             double percent = totalCount == 0 ? 0 : (count * 100.0) / totalCount;
             String label = row.getCategoryName() == null ? "Chưa phân loại" : row.getCategoryName();
