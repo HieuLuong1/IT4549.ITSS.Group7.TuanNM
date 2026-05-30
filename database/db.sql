@@ -298,3 +298,14 @@ INSERT INTO roles (name, description) VALUES
 ALTER TABLE fridge_items
     ADD COLUMN custom_name VARCHAR(255),
     ADD COLUMN note TEXT;
+
+CREATE TABLE invitations (
+    id SERIAL PRIMARY KEY,
+    family_id INT NOT NULL,                  -- Lời mời từ gia đình nào
+    receiver_id INT NOT NULL,                -- Gửi lời mời tới User ID nào
+    status VARCHAR(50) DEFAULT 'PENDING',    -- Trạng thái: PENDING, ACCEPTED, DECLINED
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_invite_family FOREIGN KEY (family_id) REFERENCES families(id) ON DELETE CASCADE,
+    CONSTRAINT fk_invite_receiver FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+);

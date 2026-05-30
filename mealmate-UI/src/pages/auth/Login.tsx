@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { login as loginRequest } from '@/features/auth/api/authApi';
 import { AuthInput, AuthButton, AuthLayout } from '@/components/auth/AuthComponents';
-import './Login.css'; // Import trực tiếp file css cùng cấp
+import './Login.css';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -39,11 +39,9 @@ const Login: React.FC = () => {
         return response.data.message;
       }
     }
-
     if (error instanceof Error) {
       return error.message;
     }
-
     return 'Đăng nhập thất bại. Vui lòng thử lại.';
   };
 
@@ -83,6 +81,7 @@ const Login: React.FC = () => {
     >
       <div className="login-container">
         <form className="login-form" onSubmit={handleLogin}>
+          
           <div className="input-group">
             <AuthInput 
               label="Email"
@@ -117,13 +116,13 @@ const Login: React.FC = () => {
 
           {submitError && <span className="error-text" style={{ marginTop: '-4px' }}>{submitError}</span>}
 
-          <AuthButton type="submit" style={{ marginTop: '8px' }} disabled={isSubmitting}>
+          <AuthButton type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'ĐANG XỬ LÝ...' : 'ĐĂNG NHẬP'}
           </AuthButton>
         </form>
 
         <footer className="login-footer">
-          <span style={{ color: 'var(--fiza-gray-500)' }}>Chưa có tài khoản?</span>
+          <span style={{ color: '#88938E' }}>Chưa có tài khoản?</span>
           <span onClick={() => navigate('/register')} className="register-link">
             Đăng ký ngay
           </span>

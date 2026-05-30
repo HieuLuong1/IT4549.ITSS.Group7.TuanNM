@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+// 🎯 ĐÃ SỬA: Thay thế axios gốc bằng instance api cấu hình động của dự án
+import api from "@/services/api";
 import "./Topbar.css";
 
 import iconSearch from "@/assets/icon/Icon-search.svg";
 import iconNotification from "@/assets/icon/Icon-noti.svg";
+import ReceiveInviteModal from "@/pages/customer/group/ReceiveInviteModal"; 
 
 interface TopbarProps {
   title?: string;
@@ -22,24 +24,26 @@ const Topbar: React.FC<TopbarProps> = ({
   familyName,
   showSearch = true
 }) => {
-  // 1. Tạo một state nội bộ để tự quản lý tên gia đình nếu trang cha không truyền
   const [localFamilyName, setLocalFamilyName] = useState<string>("Gia đình Fiza");
+  const [inviteInfo, setInviteInfo] = useState<{ isOpen: boolean; familyName: string; familyId: number | null }>({
+    isOpen: false,
+    familyName: "",
+    familyId: null
+  });
 
+  // Luồng lấy tên gia đình hiện tại
   useEffect(() => {
-    // Nếu trang cha ĐÃ TRUYỀN tên gia đình vào rồi thì dùng luôn, không gọi API nữa
     if (familyName && familyName !== "Đang tải...") {
       setLocalFamilyName(familyName);
       return;
     }
 
-    // Nếu trang cha KHÔNG TRUYỀN (như trang MyFridge), Topbar sẽ tự chủ động đi gọi API lấy tên về
     const token = localStorage.getItem("accessToken");
     if (!token) return;
 
-    axios.get('http://localhost:8080/api/v1/users/familys/current', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+    // 🎯 ĐÃ SỬA: Chuyển sang dùng api chung của dự án và bỏ http://localhost:8080
+    api.get('/api/v1/users/familys/current', {
+      headers: { 'Authorization': `Bearer ${token}` }
     })
     .then(response => {
       if (response.data) {
@@ -52,9 +56,77 @@ const Topbar: React.FC<TopbarProps> = ({
     })
     .catch(error => {
       console.error("Topbar tự gọi API lấy tên gia đình bị lỗi:", error);
-      setLocalFamilyName("Gia đình Fiza"); // Dự phòng khi lỗi kết nối
+      setLocalFamilyName("Gia đình Fiza"); 
     });
-  }, [familyName]); // Chạy lại nếu biến familyName từ trang cha thay đổi
+  }, [familyName]);
+
+  // Luồng Polling kiểm tra lời mời ngầm (Chống spam 401)
+  useEffect(() => {
+    const checkIncomingInvite = async () => {
+      const token = localStorage.getItem("accessToken");
+      if (!token || token === "null" || token === "undefined") return;
+      if (inviteInfo.isOpen) return; // Nếu đang mở modal thì không check nữa
+
+      try {
+        // 🎯 ĐÃ SỬA: Chuyển sang dùng api chung của dự án và bỏ http://localhost:8080
+        const res = await api.get('/api/v1/users/users/check-invite', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.data && res.data.success && res.data.data) {
+          setInviteInfo({
+            isOpen: true,
+            familyName: res.data.data.familyName,
+            familyId: res.data.data.familyId
+          });
+        }
+      } catch (err: any) {
+        if (err.response?.status === 401) {
+          console.warn("⚠️ Token không hợp lệ hoặc đã hết hạn.");
+        }
+      }
+    };
+
+    checkIncomingInvite();
+    const timer = setInterval(checkIncomingInvite, 5000); // 5 giây chạy 1 lần ổn định
+    
+    return () => clearInterval(timer);
+  }, [inviteInfo.isOpen]);
+
+  const handleAcceptInvite = async () => {
+    const token = localStorage.getItem("accessToken");
+    if (!inviteInfo.familyId) return;
+
+    try {
+      // 🎯 ĐÃ SỬA: Chuyển sang dùng api chung của dự án và bỏ http://localhost:8080
+      await api.post(`/api/v1/users/users/accept-invite`, 
+        { familyId: inviteInfo.familyId },
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      alert("🎉 Bạn đã gia nhập nhóm gia đình mới thành công!");
+      setInviteInfo({ isOpen: false, familyName: "", familyId: null });
+      window.location.reload(); 
+    } catch (err) {
+      alert("❌ Đồng ý gia nhập thất bại!");
+    }
+  };
+
+  const handleDeclineInvite = async () => {
+    const token = localStorage.getItem("accessToken");
+    if (!inviteInfo.familyId) return;
+
+    try {
+      // 🎯 ĐÃ SỬA: Truyền thêm familyId vào body để Backend cập nhật đúng bản ghi PostgreSQL
+      await api.post(`/api/v1/users/users/decline-invite`, 
+        { familyId: inviteInfo.familyId }, 
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      setInviteInfo({ isOpen: false, familyName: "", familyId: null });
+    } catch (err) {
+      console.error("Từ chối lời mời thất bại:", err);
+      setInviteInfo({ isOpen: false, familyName: "", familyId: null });
+    }
+  };
 
   return (
     <header className="topbar">
@@ -83,17 +155,22 @@ const Topbar: React.FC<TopbarProps> = ({
 
         <div className="topbar-notification">
           <img src={iconNotification} alt="" className="topbar-bell-icon" />
-
           <div className="topbar-notification-badge">
             <div>3</div>
           </div>
         </div>
 
-        {/* 2. Hiển thị state localFamilyName đã được xử lý tự động */}
         <div className="topbar-family-button">
           <div>{localFamilyName}</div>
         </div>
       </div>
+
+      <ReceiveInviteModal 
+        isOpen={inviteInfo.isOpen}
+        familyName={inviteInfo.familyName}
+        onAccept={handleAcceptInvite}
+        onDecline={handleDeclineInvite}
+      />
     </header>
   );
 };

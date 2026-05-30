@@ -27,6 +27,12 @@ public class UserService {
         if (familyId == null) {
             return List.of();
         }
-        return repository.findByFamily_IdOrderByIdAsc(familyId);
+        return repository.findByFamilyIdOrderByIdAsc(familyId);
+    }
+
+    // 🎯 CHỈNH SỬA DÒNG NÀY: Truyền biến keyword vào cả 2 vị trí tham số
+    public User searchByEmailOrPhone(String keyword) {
+    // Chỉ cần truyền đúng 1 lần biến keyword
+    return repository.findByEmailOrPhone(keyword).orElse(null);
     }
 }
