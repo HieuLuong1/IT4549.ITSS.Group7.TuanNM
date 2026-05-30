@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+// 🎯 ĐÃ SỬA: Thay axios gốc bằng api chung của dự án
+import api from "@/services/api";
 import './FamilyGroup.css';
 
 import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/layout/Topbar";
 import DeleteMember from "./DeleteMember"; 
+import AddMember from "./AddMember"; 
 
 import iconEdit from "@/assets/icon/Icon-edit-eye.svg";  
 import iconDelete from "@/assets/icon/Icon-delete.svg";
@@ -25,13 +27,16 @@ const FamilyGroup: React.FC = () => {
   const [editName, setEditName] = useState<string>("");
   const [members, setMembers] = useState<MemberType[]>([]);
 
+  // State kiểm soát modal Xóa thành viên
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [selectedMemberName, setSelectedMemberName] = useState<string>("");
   const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
 
+  // State kiểm soát modal Thêm thành viên
+  const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
+
   const avatarColors = ["avatar-orange", "avatar-peach", "avatar-teal", "avatar-blue", "avatar-purple"];
 
-  // 🎯 SỬA DỨT ĐIỂM: Chuyển sang dùng async/await độc lập để chống nuốt log và crash luồng
   useEffect(() => {
     const loadFamilyData = async () => {
       const token = localStorage.getItem("accessToken");
@@ -39,7 +44,6 @@ const FamilyGroup: React.FC = () => {
       
       let currentUserId: number | null = null;
 
-      // 1. Lấy ID an toàn, lỗi ở đây không làm chết luồng API bên dưới
       if (authUserString) {
         try {
           const parsedUser = JSON.parse(authUserString);
@@ -51,27 +55,39 @@ const FamilyGroup: React.FC = () => {
         }
       }
 
-      // 2. Gọi API lấy thông tin nhóm gia đình hiện tại
       try {
-        const resGroup = await axios.get('http://localhost:8080/api/v1/users/familys/current', {
+        // 🎯 ĐÃ SỬA: Chuyển sang api.get và bỏ http://localhost:8080
+        const resGroup = await api.get('/api/v1/users/familys/current', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
         console.log("👉 [LOG] API Nhóm Gia Đình trả về:", resGroup.data);
-        
         const groupData = resGroup.data.success ? resGroup.data.data : resGroup.data;
         
         if (groupData) {
           const cleanName = String(groupData.name || "Gia đình Fiza").trim();
+          const familyIdFromDb = groupData.id;
+          
           setFamilyName(cleanName);
           setEditName(cleanName);
-          setFamilyId(groupData.id);
+          setFamilyId(familyIdFromDb);
 
-          // Quét sạch mã ID chủ nhà từ Backend
+          // Cứu vãn nếu localStorage chưa kịp lưu familyId
+          if (authUserString && familyIdFromDb) {
+            try {
+              const parsedUser = JSON.parse(authUserString);
+              if (!parsedUser.familyId) {
+                parsedUser.familyId = familyIdFromDb;
+                localStorage.setItem("authUser", JSON.stringify(parsedUser));
+              }
+            } catch (e) {
+              console.error(e);
+            }
+          }
+
           const dbHousekeeperId = groupData.housekeeperId || groupData.ownerId || groupData.createdBy || (groupData.housekeeper && groupData.housekeeper.id);
           console.log("👉 [LOG] Đối chiếu ID:", currentUserId, "với Chủ nhà DB:", dbHousekeeperId);
 
-          // Kiểm tra quyền: ID người dùng trùng khớp với ID chủ nhà thì mở khóa
           if (currentUserId && dbHousekeeperId && Number(currentUserId) === Number(dbHousekeeperId)) {
             console.log("➔ MỞ KHÓA: Bạn là chủ nhà!");
             setIsHousekeeper(true);
@@ -86,14 +102,13 @@ const FamilyGroup: React.FC = () => {
         setEditName("Gia đình Fiza");
       }
 
-      // 3. Gọi API lấy danh sách thành viên trong nhà
       try {
-        const resMembers = await axios.get('http://localhost:8080/api/v1/users/users/family/members', {
+        // 🎯 ĐÃ SỬA: Chuyển sang api.get và bỏ http://localhost:8080
+        const resMembers = await api.get('/api/v1/users/users/family/members', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
         console.log("👉 [LOG] API Thành Viên trả về:", resMembers.data);
-
         const dbMembers = resMembers.data.success ? resMembers.data.data : resMembers.data;
 
         if (Array.isArray(dbMembers)) {
@@ -124,7 +139,8 @@ const FamilyGroup: React.FC = () => {
     }
 
     const token = localStorage.getItem("accessToken");
-    axios.put(`http://localhost:8080/api/v1/users/familys/${familyId}`, 
+    // 🎯 ĐÃ SỬA: Chuyển sang api.put và bỏ http://localhost:8080
+    api.put(`/api/v1/users/familys/${familyId}`, 
       { id: familyId, name: cleanedName },
       { headers: { 'Authorization': `Bearer ${token}` } }
     )
@@ -137,6 +153,66 @@ const FamilyGroup: React.FC = () => {
       alert(`Backend từ chối lưu! Lỗi HTTP: ${error.response?.status}`);
       setEditName(familyName);
     });
+  };
+
+  const handleSearchUser = async (emailOrPhone: string) => {
+    const token = localStorage.getItem("accessToken");
+    try {
+      // 🎯 ĐÃ SỬA: Chuyển sang api.get và bỏ http://localhost:8080
+      const res = await api.get(`/api/v1/users/familys/search-user?keyword=${emailOrPhone}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.data && res.data.success && res.data.data) {
+        return res.data.data;
+      }
+      return null;
+    } catch (err) {
+      console.error("❌ Lỗi gọi API search thành viên:", err);
+      return null;
+    }
+  };
+
+  const handleAddMemberConfirm = async (userId: number) => {
+    const token = localStorage.getItem("accessToken");
+    let currentFamilyId = familyId;
+
+    if (!currentFamilyId) {
+      const authUserString = localStorage.getItem("authUser");
+      if (authUserString) {
+        try {
+          const parsedUser = JSON.parse(authUserString);
+          if (parsedUser.familyId) currentFamilyId = Number(parsedUser.familyId);
+        } catch (e) {
+          console.error("Không thể giải mã authUser");
+        }
+      }
+    }
+
+    if (!currentFamilyId) {
+      alert("❌ Lỗi: Không thể tìm thấy mã ID nhóm gia đình của bạn để tiến hành gửi lời mời!");
+      console.error("❌ CRASH FRONTEND: Biến familyId rỗng.");
+      return;
+    }
+
+    console.log(`🚀 [XUẤT PHÁT REQUEST] Gửi lời mời: familyId = ${currentFamilyId} | userId = ${userId}`);
+
+    try {
+      // 🎯 ĐÃ SỬA: Chuyển sang api.post và bỏ http://localhost:8080
+      const res = await api.post(`/api/v1/users/familys/${currentFamilyId}/invite`, 
+        { userId: userId },
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      
+      if (res.data && res.data.success) {
+        alert("🎉 Đã gửi yêu cầu mời thành viên vào hệ thống thành công!");
+        setIsAddModalOpen(false);
+      } else {
+        alert(`❌ Backend từ chối: ${res.data.message || "Lỗi không xác định"}`);
+      }
+    } catch (err: any) {
+      console.error("❌ Lỗi gọi API mời thành viên:", err);
+      alert(`❌ Không thể gửi lời mời. Mã lỗi HTTP: ${err.response?.status || "Mất kết nối"}`);
+    }
   };
 
   const filteredMembers = members
@@ -169,10 +245,7 @@ const FamilyGroup: React.FC = () => {
                     className="info-value-name-input-blank"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    
-                    // 🎯 THAY ĐỔI ĐỂ TEST: Nếu vẫn dính cấm, đổi thẳng thành disabled={false} để gõ chữ thoải mái
                     disabled={!isHousekeeper} 
-                    
                     onBlur={handleUpdateName} 
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleUpdateName(); 
@@ -205,7 +278,7 @@ const FamilyGroup: React.FC = () => {
               </div>
             </div>
             
-            <button className="btn-add-member" onClick={() => alert('Chức năng thêm thành viên')}>
+            <button className="btn-add-member" onClick={() => setIsAddModalOpen(true)}>
               <div className="btn-shadow" />
               <div className="btn-text">Thêm thành viên</div>
             </button>
@@ -223,9 +296,7 @@ const FamilyGroup: React.FC = () => {
 
                 <div className="table-body">
                   {filteredMembers.map((member, index) => {
-                    const showDeleteButton = isHousekeeper 
-                      ? member.roleName !== "Chủ nhà" 
-                      : member.roleName !== "Chủ nhà";
+                    const showDeleteButton = isHousekeeper ? member.roleName !== "Chủ nhà" : member.roleName !== "Chủ nhà";
 
                     return (
                       <div className={index === 0 ? "table-row" : "table-row-bordered"} key={member.id}>
@@ -273,6 +344,14 @@ const FamilyGroup: React.FC = () => {
         memberName={isHousekeeper ? selectedMemberName : "bản thân"}
         onClose={() => setIsModalOpen(false)}
         onConfirm={() => setIsModalOpen(false)}
+      />
+
+      <AddMember
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onConfirm={handleAddMemberConfirm}
+        onSearchUser={handleSearchUser}
+        currentMemberCount={members.length}
       />
     </div>
   );

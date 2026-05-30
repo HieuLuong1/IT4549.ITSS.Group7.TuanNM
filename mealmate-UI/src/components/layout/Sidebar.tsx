@@ -1,12 +1,15 @@
-import { useAuth } from "@/context/AuthContext"; // Import useAuth để lấy thông tin user thực
-import React from "react";
+import React, { useState } from "react"; // 🎯 ĐÃ SỬA: Thêm useState để quản lý trạng thái đóng/mở modal
 import { useLocation, Link } from "react-router-dom";
 import "./Sidebar.css";
 
-import avatar from "@/assets/avatar/26.svg";
+// 🎯 ĐÃ SỬA: Import useAuth hệ thống để bốc thông tin đăng nhập thực tế
+import { useAuth } from "@/context/AuthContext"; 
 
+// 🎯 ĐÃ SỬA: Import Component ProfileModal vừa tạo ở bước trước
+import ProfileModal from "./ProfileModal";
+
+// Giữ lại toàn bộ hệ thống icon điều hướng
 import iconGroup from "@/assets/icon/Icon-group.svg";
-import iconShopping from "@/assets/icon/Icon-shopping.svg";
 import fridgeMenuIcon from "@/assets/icon/Icon-fridge.svg";
 import iconLogo from "@/assets/icon/Icon-logo.svg";
 import iconRecipe from "@/assets/icon/Icon-recipe.svg";
@@ -14,8 +17,54 @@ import iconSchedule from "@/assets/icon/Icon-schedule.svg";
 import iconShopping from "@/assets/icon/Icon-shopping.svg";
 import iconStatistic from "@/assets/icon/Icon-statistic.svg";
 
+// Avatar mặc định phòng trường hợp tài khoản chưa cài ảnh
+import defaultAvatar from "@/assets/avatar/26.svg";
+
 const Sidebar: React.FC = () => {
   const location = useLocation();
+  
+  // 🎯 ĐÃ SỬA: Khai báo State kiểm soát việc hiển thị Modal thông tin cá nhân (Mặc định ẩn)
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
+  
+  // Lấy dữ liệu từ Context (nếu máy đó có cấu hình)
+  const authContext = useAuth();
+  const userFromContext = authContext?.user;
+
+  // 🎯 PHÒNG VỆ CHỐNG LỆCH MÁY: Bốc thêm từ LocalStorage để cứu vãn nếu máy khác không dùng Context
+  let userFromLocalStorage = null;
+  const authUserString = localStorage.getItem("authUser");
+  if (authUserString) {
+    try {
+      userFromLocalStorage = JSON.parse(authUserString);
+    } catch (e) {
+      console.error("Lỗi parse authUser tại Sidebar:", e);
+    }
+  }
+
+  // Chốt đối tượng dữ liệu cuối cùng (Ưu tiên Context -> LocalStorage)
+  const displayUser = userFromContext || userFromLocalStorage;
+
+  // 🎯 GIẢI QUYẾT LỆCH BIẾN: Quét sạch mọi cách đặt tên thuộc tính (CamelCase của Java lẫn SnakeCase của JS)
+  const rawName = displayUser?.fullName || displayUser?.full_name || displayUser?.name || "Thành viên Fiza";
+  const rawAvatar = displayUser?.avatarUrl || displayUser?.avatar_url || displayUser?.avatar;
+
+  // 🎯 PHÂN QUYỀN HIỂN THỊ: Ép chữ hiển thị tiếng Việt dựa trên Role Object hoặc chuỗi String của các máy
+  const getRoleLabel = () => {
+    if (!displayUser) return "Thành viên";
+    
+    // Đón đầu mọi kiểu trả về của trường Role từ Backend
+    const roleObj = displayUser.role;
+    const roleName = (typeof roleObj === "object" && roleObj !== null ? roleObj.name : roleObj) 
+                     || displayUser.roleName 
+                     || "";
+
+    const normalizedRole = String(roleName).toUpperCase();
+    
+    if (normalizedRole.includes("ADMIN") || normalizedRole.includes("HOUSEKEEPER")) {
+      return "Nội trợ";
+    }
+    return "Thành viên";
+  };
 
   return (
     <aside className="sidebar">
@@ -90,33 +139,40 @@ const Sidebar: React.FC = () => {
         </Link>
       </nav>
 
-      {/* <div className="sidebar-profile-section">
+      {/* 🎯 ĐÃ SỬA: Thêm sự kiện onClick để mở Modal khi bấm vào vùng Profile, bổ sung inline style đổi hình con trỏ */}
+      <div 
+        className="sidebar-profile-section"
+        onClick={() => setIsProfileModalOpen(true)}
+        style={{ cursor: 'pointer' }}
+      >
         <div className="sidebar-profile">
           <div className="sidebar-avatar">
             <div className="sidebar-avatar-line" />
-            <img src={user?.avatar || defaultAvatar} alt="Avatar" />
+            <img 
+              src={rawAvatar || defaultAvatar} 
+              alt="Avatar" 
+              onError={(e) => {
+                // Biện pháp phòng vệ: Nếu link ảnh lỗi hoặc null, tự động đưa về ảnh local SVG
+                (e.target as HTMLImageElement).src = defaultAvatar;
+              }}
+            />
           </div>
 
           <div className="sidebar-profile-text">
-            {/* Hiển thị tên thực từ database */}
-      {/* <p>{user?.full_name || "Khách"}</p>
-            <span>{user?.role === 'CUSTOMER' ? 'Thành viên' : 'Nội trợ'}</span>
-          </div>
-        </div>
-      </div> */}
-      <div className="sidebar-profile-section">
-        <div className="sidebar-profile">
-          <div className="sidebar-avatar">
-            <div className="sidebar-avatar-line" />
-            <img src={avatar} alt="" />
-          </div>
-
-          <div className="sidebar-profile-text">
-            <p>Minh Quang</p>
-            <span>Nội trợ</span>
+            {/* Tên hiển thị động từ DB */}
+            <p>{rawName}</p>
+            {/* Vai trò tương ứng */}
+            <span>{getRoleLabel()}</span>
           </div>
         </div>
       </div>
+
+      {/* 🎯 ĐÃ SỬA: Gắn cấu trúc Modal vào chân Sidebar, truyền State kiểm soát đóng mở */}
+      <ProfileModal 
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        familyName={localStorage.getItem("currentFamilyName") || undefined}
+      />
     </aside>
   );
 };
