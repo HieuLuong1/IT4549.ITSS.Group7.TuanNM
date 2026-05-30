@@ -30,7 +30,6 @@ const FamilyGroup: React.FC = () => {
   // State kiểm soát modal Xóa thành viên
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [selectedMemberName, setSelectedMemberName] = useState<string>("");
-  const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
 
   // State kiểm soát modal Thêm thành viên
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
@@ -321,7 +320,6 @@ const FamilyGroup: React.FC = () => {
                               className="action-btn-circle btn-delete" 
                               onClick={() => {
                                 setSelectedMemberName(member.fullName);
-                                setSelectedMemberId(member.id);
                                 setIsModalOpen(true);
                               }}
                             >

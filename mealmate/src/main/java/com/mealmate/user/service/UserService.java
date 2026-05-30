@@ -17,6 +17,9 @@ public class UserService {
     }
 
     public User save(User entity) {
+        if (entity == null) {
+            throw new IllegalArgumentException("User entity must not be null");
+        }
         return repository.save(entity);
     }
 

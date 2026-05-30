@@ -12,7 +12,8 @@ interface TopbarProps {
   searchPlaceholder?: string;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
-  familyName?: string; 
+  familyName?: string; // Nhận từ trang cha truyền xuống (ví dụ: trang FamilyGroup)
+  showSearch?: boolean;
 }
 
 const Topbar: React.FC<TopbarProps> = ({
@@ -20,7 +21,8 @@ const Topbar: React.FC<TopbarProps> = ({
   searchPlaceholder = "Tìm kiếm",
   searchValue = "",
   onSearchChange,
-  familyName
+  familyName,
+  showSearch = true
 }) => {
   const [localFamilyName, setLocalFamilyName] = useState<string>("Gia đình Fiza");
   const [inviteInfo, setInviteInfo] = useState<{ isOpen: boolean; familyName: string; familyId: number | null }>({
@@ -133,20 +135,23 @@ const Topbar: React.FC<TopbarProps> = ({
       </div>
 
       <div className="topbar-actions">
-        <div className="topbar-search">
-          <div className="topbar-search-input">
-            <input
-              type="text"
-              className="topbar-search-field"
-              placeholder={searchPlaceholder}
-              value={searchValue}
-              onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
-            />
+        {showSearch && (
+          <div className="topbar-search">
+            <div className="topbar-search-input">
+              <input
+                type="text"
+                className="topbar-search-field"
+                placeholder={searchPlaceholder}
+                value={searchValue}
+                onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
+              />
+            </div>
+
+            <div className="topbar-search-icon-wrapper">
+              <img src={iconSearch} alt="" className="topbar-search-icon" />
+            </div>
           </div>
-          <div className="topbar-search-icon-wrapper">
-            <img src={iconSearch} alt="" className="topbar-search-icon" />
-          </div>
-        </div>
+        )}
 
         <div className="topbar-notification">
           <img src={iconNotification} alt="" className="topbar-bell-icon" />
