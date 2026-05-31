@@ -1,3 +1,7 @@
+/* =========================================================================
+   🌐 KHUNG NỀN VÀ THỰC THỂ LỚP PHỦ MODAL
+   ========================================================================= */
+
 /* Lớp nền mờ phủ toàn màn hình */
 .profile-modal-overlay {
   position: fixed;
@@ -70,6 +74,10 @@
   letter-spacing: 0.6px;
   display: inline-block;
 }
+
+/* =========================================================================
+   📐 BỐ CỤC HAI CỘT (SIDEBAR VÀ CONTENT)
+   ========================================================================= */
 
 /* Thân chính chứa 2 cột */
 .profile-modal-body {
@@ -169,7 +177,7 @@
   font-weight: 600;
 }
 
-/* 🎯 ĐÃ THÊM: Lưới bọc chia 2 cột cho các ô thông tin */
+/* Lưới bọc chia 2 cột cho các ô thông tin */
 .profile-modal-info-grid {
   display: flex;
   flex-direction: row;
@@ -178,7 +186,7 @@
   width: 100%;
 }
 
-/* 🎯 ĐÃ SỬA: Mỗi ô thông tin chiếm gần 50% hàng (trừ bớt khoảng gap) */
+/* Mỗi ô khối bọc (Bound) thông tin */
 .profile-modal-info-col {
   flex: 1 1 calc(50% - 6px);
   padding: 12px 16px;
@@ -203,9 +211,74 @@
   font-size: 15px;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 500;
+  min-height: 22px; /* Đảm bảo chiều cao không bị sụt khi ô rỗng */
 }
 
-/* 🎯 ĐÃ SỬA: Hàng mật khẩu chiếm trọn 100% bề ngang, tạo dòng riêng ở dưới */
+/* =========================================================================
+   🎯 HỆ THỐNG PHÂN LỚP Ô ĐIỀN THÔNG TIN MỀM MẠI, HOÀ TAN VÀO NỀN BOUNDS
+   ========================================================================= */
+
+/* Ô input cho phép nhập liệu sửa đổi (Họ tên, Số điện thoại, 2 ô Mật khẩu) */
+.profile-modal-input-editing,
+.profile-modal-select-editing {
+  width: 100%;
+  padding: 2px 0;
+  border: none;
+  border-bottom: 2px solid #006B55; /* Nét gạch chân thanh lịch thay cho viền hộp thô cứng */
+  background: transparent;           /* Trùng khớp và hoà tan hoàn toàn vào màu nền của bound cha */
+  color: #171D1A;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  outline: none;
+  transition: border-color 0.2s ease-in-out;
+}
+
+/* Khi nhấp chuột chọn ô điền -> Nét gạch chân đổi màu sáng ngọc bích mềm mại */
+.profile-modal-input-editing:focus,
+.profile-modal-select-editing:focus {
+  border-bottom-color: #6DD4B4;
+}
+
+/* Ô dropdown select Giới tính (Lọc bỏ mũi tên thô mặc định) */
+.profile-modal-select-editing {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23006B55' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0 center;
+  background-size: 16px;
+  padding-right: 24px;
+  cursor: pointer;
+}
+
+/* Ô bị khóa cấm sửa (Email, Vai trò, Gia đình) */
+.profile-modal-input-disabled {
+  width: 100%;
+  padding: 2px 0;
+  border: none;
+  border-bottom: 1px dashed #6E7A74; /* Nét đứt tinh tế màu xám khói biểu thị trạng thái đóng băng */
+  background: transparent;           /* Vẫn giữ màu nền tiệp với bound cha */
+  color: #6E7A74;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: not-allowed;               /* Hiện biểu tượng con trỏ cấm */
+  outline: none;
+}
+
+/* Khung lưới chia đôi hàng ngang khi Edit 2 ô mật khẩu */
+.profile-modal-password-edit-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+}
+
+/* =========================================================================
+   🔒 HÀNG MẬT KHẨU (TRẠNG THÁI XEM TĨNH)
+   ========================================================================= */
+
 .profile-modal-password-row {
   width: 100%;
   padding: 12px 16px;
@@ -234,7 +307,10 @@
   cursor: pointer;
 }
 
-/* Nhóm nút hành động ở chân modal */
+/* =========================================================================
+   🔘 KHỐI NÚT HÀNH ĐỘNG CHÂN MODAL
+   ========================================================================= */
+
 .profile-modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -252,7 +328,7 @@
   color: #3E4944;
   font-size: 14px;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .profile-modal-btn-close:hover {
@@ -278,7 +354,11 @@
   opacity: 0.9;
 }
 
-/* Tự động chuyển thành 1 cột dọc hoàn toàn khi co màn hình nhỏ */
+/* =========================================================================
+   📱 THIẾT KẾ ĐÁP ỨNG (RESPONSIVE)
+   ========================================================================= */
+
+/* Chuyển thành 1 cột dọc khi màn hình ở cỡ Tablet nhỏ hoặc Mobile rộng */
 @media (max-width: 768px) {
   .profile-modal-body {
     flex-direction: column;
@@ -288,6 +368,13 @@
     border-bottom: 1px #F0F5F1 solid;
   }
   .profile-modal-info-col {
+    flex: 1 1 100%;
+  }
+}
+
+/* Đẩy 2 ô mật khẩu edit thành cột dọc khi trên thiết bị di động nhỏ */
+@media (max-width: 640px) {
+  .profile-modal-password-edit-grid .profile-modal-info-col {
     flex: 1 1 100%;
   }
 }

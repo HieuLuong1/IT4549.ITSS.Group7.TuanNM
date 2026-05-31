@@ -6,6 +6,7 @@ import com.mealmate.user.model.dto.FamilyResponse;
 import com.mealmate.user.service.FamilyService;
 import com.mealmate.user.service.UserService; 
 import com.mealmate.user.mapper.FamilyMapper;
+import com.mealmate.user.repository.UserRepository; // 🎯 Bổ sung import Repo để lấy User sạch
 import com.mealmate.common.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,7 @@ public class FamilyController {
     private final FamilyService service;
     private final FamilyMapper familyMapper;
     private final UserService userService; 
+    private final UserRepository userRepository; // 🎯 Inject trực tiếp Repo để triệt tiêu lỗi Hibernate Proxy
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<Family>>> getAll() {
@@ -41,12 +43,16 @@ public class FamilyController {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(401).body(new ApiResponse<>(false, "Chưa đăng nhập", null));
         }
-        User currentUser = (User) authentication.getPrincipal(); 
-        Long currentFamilyId = currentUser.getFamilyId(); 
-        if (currentFamilyId == null) {
+        
+        // 🎯 GIẢI PHÁP: Tìm đối tượng sạch thông qua Email từ Token để tránh lỗi Lazy Loading Proxy
+        String currentEmail = authentication.getName();
+        User currentUser = userRepository.findByEmail(currentEmail).orElse(null);
+        
+        if (currentUser == null || currentUser.getFamilyId() == null) {
             return ResponseEntity.ok(new ApiResponse<>(false, "Tài khoản chưa tham gia nhóm", null));
         }
-        Family family = service.findByFamilyId(currentFamilyId);
+        
+        Family family = service.findByFamilyId(currentUser.getFamilyId());
         FamilyResponse response = familyMapper.toResponse(family);
         return ResponseEntity.ok(new ApiResponse<>(true, "Success", response));
     }
@@ -59,19 +65,27 @@ public class FamilyController {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(401).body(new ApiResponse<>(false, "Chưa đăng nhập", null));
         }
+        
         Family family = service.findByFamilyId(id);
-        User currentUser = (User) authentication.getPrincipal();
+        
+        String currentEmail = authentication.getName();
+        User currentUser = userRepository.findByEmail(currentEmail).orElse(null);
+        if (currentUser == null) {
+            return ResponseEntity.status(401).body(new ApiResponse<>(false, "Người dùng không tồn tại", null));
+        }
+        
         Long currentUserId = currentUser.getId(); 
         if (family.getHousekeeperId() == null || !family.getHousekeeperId().equals(currentUserId)) {
             return ResponseEntity.status(403).body(new ApiResponse<>(false, "Bạn không phải là chủ nhà!", null));
         }
+        
         family.setName(familyRequest.getName());
         Family updatedFamily = service.save(family);
         FamilyResponse response = familyMapper.toResponse(updatedFamily);
         return ResponseEntity.ok(new ApiResponse<>(true, "Cập nhật thành công!", response));
     }
 
-    // 🎯 ĐÃ SỬA: Bọc phòng vệ bốc dỡ userId từ Request Body, triệt tiêu lỗi 400 lệch ký tự hoa/thường
+    // 🎯 GIỮ NGUYÊN VẸN 100%: Hàm invite cũ xử lý bọc dữ liệu an toàn của bạn
     @PostMapping("/{id}/invite")
     public ResponseEntity<ApiResponse<Void>> inviteMember(
             @PathVariable("id") Long familyId, 
@@ -106,7 +120,6 @@ public class FamilyController {
                 return ResponseEntity.ok(new ApiResponse<>(false, "Không tìm thấy người dùng", null));
             }
             
-            // Cắt sạch các liên kết thực thể để Jackson parse JSON mượt mà, không dính lỗi Lazy Loading / Circular Reference
             user.setPasswordHash(null); 
             user.setRole(null); 
             
