@@ -27,7 +27,7 @@ public class UserService {
         if (familyId == null) {
             return List.of();
         }
-        return repository.findByFamilyIdOrderByIdAsc(familyId);
+        return repository.findByFamily_IdOrderByIdAsc(familyId);
     }
 
     // 🎯 CHỈNH SỬA DÒNG NÀY: Truyền biến keyword vào cả 2 vị trí tham số

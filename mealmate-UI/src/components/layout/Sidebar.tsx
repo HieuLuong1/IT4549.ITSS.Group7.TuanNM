@@ -1,11 +1,11 @@
-import React, { useState } from "react"; // 🎯 ĐÃ SỬA: Thêm useState để quản lý trạng thái đóng/mở modal
+import React, { useState } from "react"; 
 import { useLocation, Link } from "react-router-dom";
 import "./Sidebar.css";
 
-// 🎯 ĐÃ SỬA: Import useAuth hệ thống để bốc thông tin đăng nhập thực tế
+// 🎯 GIỮ NGUYÊN: Import useAuth hệ thống để bốc thông tin đăng nhập thực tế
 import { useAuth } from "@/context/AuthContext"; 
 
-// 🎯 ĐÃ SỬA: Import Component ProfileModal vừa tạo ở bước trước
+// 🎯 GIỮ NGUYÊN: Import Component ProfileModal chuẩn của bạn
 import ProfileModal from "./ProfileModal";
 
 // Giữ lại toàn bộ hệ thống icon điều hướng
@@ -15,6 +15,7 @@ import iconLogo from "@/assets/icon/Icon-logo.svg";
 import iconRecipe from "@/assets/icon/Icon-recipe.svg";
 import iconSchedule from "@/assets/icon/Icon-schedule.svg";
 import iconStatistic from "@/assets/icon/Icon-statistic.svg";
+import iconShopping from "@/assets/icon/Icon-shopping.svg";
 
 // Avatar mặc định phòng trường hợp tài khoản chưa cài ảnh
 import defaultAvatar from "@/assets/avatar/26.svg";
@@ -22,14 +23,14 @@ import defaultAvatar from "@/assets/avatar/26.svg";
 const Sidebar: React.FC = () => {
   const location = useLocation();
   
-  // 🎯 ĐÃ SỬA: Khai báo State kiểm soát việc hiển thị Modal thông tin cá nhân (Mặc định ẩn)
+  // 🎯 GIỮ NGUYÊN: State kiểm soát việc hiển thị Modal thông tin cá nhân
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
   
-  // Lấy dữ liệu từ Context (nếu máy đó có cấu hình)
+  // Lấy dữ liệu từ Context (Bây giờ đã cực kỳ giàu trường sau khi sửa file Login)
   const authContext = useAuth();
   const userFromContext = authContext?.user;
 
-  // 🎯 PHÒNG VỆ CHỐNG LỆCH MÁY: Bốc thêm từ LocalStorage để cứu vãn nếu máy khác không dùng Context
+  // Phòng vệ chống lệch máy: Bốc thêm từ LocalStorage
   let userFromLocalStorage = null;
   const authUserString = localStorage.getItem("authUser");
   if (authUserString) {
@@ -40,30 +41,78 @@ const Sidebar: React.FC = () => {
     }
   }
 
-  // Chốt đối tượng dữ liệu cuối cùng (Ưu tiên Context -> LocalStorage)
-  const displayUser = userFromContext || userFromLocalStorage;
+  // Gốc dữ liệu đăng nhập cơ bản
+  const baseAuthUser = userFromContext || userFromLocalStorage;
 
-  // 🎯 GIẢI QUYẾT LỆCH BIẾN: Quét sạch mọi cách đặt tên thuộc tính (CamelCase của Java lẫn SnakeCase của JS)
-  const rawName = displayUser?.fullName || displayUser?.full_name || displayUser?.name || "Thành viên Fiza";
-  const rawAvatar = displayUser?.avatarUrl || displayUser?.avatar_url || displayUser?.avatar;
-
-  // 🎯 PHÂN QUYỀN HIỂN THỊ: Ép chữ hiển thị tiếng Việt dựa trên Role Object hoặc chuỗi String của các máy
-  const getRoleLabel = () => {
-    if (!displayUser) return "Thành viên";
-    
-    // Đón đầu mọi kiểu trả về của trường Role từ Backend
-    const roleObj = displayUser.role;
+  // Phân quyền hiển thị vai trò tiếng Việt tốc hành vùng chân Sidebar
+  const getRoleLabel = (userObj: any) => {
+    if (!userObj) return "Thành viên";
+    const roleObj = userObj.role;
     const roleName = (typeof roleObj === "object" && roleObj !== null ? roleObj.name : roleObj) 
-                     || displayUser.roleName 
+                     || userObj.roleName 
                      || "";
 
     const normalizedRole = String(roleName).toUpperCase();
-    
-    if (normalizedRole.includes("ADMIN") || normalizedRole.includes("HOUSEKEEPER")) {
+    if (
+      normalizedRole.includes("ADMIN") || 
+      normalizedRole.includes("HOUSEKEEPER") || 
+      normalizedRole.includes("BOSS") || 
+      normalizedRole.includes("CHỦ NHÀ")
+    ) {
       return "Nội trợ";
     }
     return "Thành viên";
   };
+
+  // =========================================================================
+  // 🎯 TÍNH TOÁN REAL-TIME: Không dùng useEffect để loại bỏ tình trạng render ra null
+  // =========================================================================
+  let refinedUserData = null;
+
+  if (baseAuthUser) {
+    const currentUserId = Number(baseAuthUser.id || baseAuthUser.userId);
+    const cachedMembersString = localStorage.getItem("familyMembersCache");
+    let foundFullProfile = null;
+
+    if (cachedMembersString) {
+      try {
+        const cachedMembers = JSON.parse(cachedMembersString);
+        if (Array.isArray(cachedMembers)) {
+          foundFullProfile = cachedMembers.find((m: any) => Number(m.id) === currentUserId);
+        }
+      } catch (e) {
+        console.error("Lỗi xử lý cache tại Sidebar:", e);
+      }
+    }
+
+    // Ưu tiên 1: Dữ liệu đồng bộ từ cache xịn của bảng thành viên
+    if (foundFullProfile) {
+      refinedUserData = {
+        id: foundFullProfile.id,
+        fullName: foundFullProfile.fullName,
+        roleName: foundFullProfile.roleName, 
+        email: foundFullProfile.email,
+        phone: foundFullProfile.phone,
+        gender: foundFullProfile.gender,
+        avatarUrl: foundFullProfile.avatarUrl
+      };
+    } else {
+      // Ưu tiên 2: Dữ liệu siêu đầy đủ từ Context mới (đã bao gồm phone, gender, roleName từ Login mới)
+      refinedUserData = {
+        id: currentUserId,
+        fullName: baseAuthUser.fullName || baseAuthUser.full_name || baseAuthUser.name || "Thành viên Fiza",
+        roleName: baseAuthUser.roleName || (getRoleLabel(baseAuthUser) === "Nội trợ" ? "Chủ nhà" : "Thành viên"),
+        email: baseAuthUser.email || "Chưa cập nhật",
+        phone: baseAuthUser.phone || "Chưa cập nhật",
+        gender: baseAuthUser.gender || "OTHER",
+        avatarUrl: baseAuthUser.avatarUrl || undefined
+      };
+    }
+  }
+
+  // Quét sạch thuộc tính phục vụ hiển thị nhanh vùng chân Sidebar thô
+  const rawName = baseAuthUser?.fullName || baseAuthUser?.full_name || baseAuthUser?.name || "Thành viên Fiza";
+  const rawAvatar = baseAuthUser?.avatarUrl || baseAuthUser?.avatar_url || baseAuthUser?.avatar;
 
   return (
     <aside className="sidebar">
@@ -138,10 +187,13 @@ const Sidebar: React.FC = () => {
         </Link>
       </nav>
 
-      {/* 🎯 ĐÃ SỬA: Thêm sự kiện onClick để mở Modal khi bấm vào vùng Profile, bổ sung inline style đổi hình con trỏ */}
+      {/* Sự kiện onClick mở Modal khi bấm vào vùng Profile */}
       <div 
         className="sidebar-profile-section"
-        onClick={() => setIsProfileModalOpen(true)}
+        onClick={() => {
+          console.log("👤 [SIDEBAR DEBUG] Đã click vào Avatar vùng chân Sidebar để mở Profile tài khoản chính mình.");
+          setIsProfileModalOpen(true);
+        }}
         style={{ cursor: 'pointer' }}
       >
         <div className="sidebar-profile">
@@ -151,26 +203,27 @@ const Sidebar: React.FC = () => {
               src={rawAvatar || defaultAvatar} 
               alt="Avatar" 
               onError={(e) => {
-                // Biện pháp phòng vệ: Nếu link ảnh lỗi hoặc null, tự động đưa về ảnh local SVG
                 (e.target as HTMLImageElement).src = defaultAvatar;
               }}
             />
           </div>
 
           <div className="sidebar-profile-text">
-            {/* Tên hiển thị động từ DB */}
             <p>{rawName}</p>
-            {/* Vai trò tương ứng */}
-            <span>{getRoleLabel()}</span>
+            <span>{getRoleLabel(baseAuthUser)}</span>
           </div>
         </div>
       </div>
 
-      {/* 🎯 ĐÃ SỬA: Gắn cấu trúc Modal vào chân Sidebar, truyền State kiểm soát đóng mở */}
+      {/* =========================================================================
+      // 🎯 ĐÃ ĐỒNG BỘ TUYỆT ĐỐI: Dữ liệu được tính trực tiếp, render phát ăn ngay lập tức!
+      // ========================================================================= */}
       <ProfileModal 
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
-        familyName={localStorage.getItem("currentFamilyName") || undefined}
+        familyName={localStorage.getItem("currentFamilyName") || "Gia đình My My"}
+        isMe={true} 
+        memberData={refinedUserData}
       />
     </aside>
   );
