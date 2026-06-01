@@ -26,8 +26,9 @@ const Sidebar: React.FC = () => {
   // 🎯 GIỮ NGUYÊN: State kiểm soát việc hiển thị Modal thông tin cá nhân
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
   
-  // Lấy dữ liệu từ Context và hàm logout hệ thống
-  const { user: userFromContext, logout } = useAuth();
+  // Lấy dữ liệu từ Context (Bây giờ đã cực kỳ giàu trường sau khi sửa file Login)
+  const authContext = useAuth();
+  const userFromContext = authContext?.user;
 
   // Phòng vệ chống lệch máy: Bốc thêm từ LocalStorage
   let userFromLocalStorage = null;
@@ -84,7 +85,7 @@ const Sidebar: React.FC = () => {
       }
     }
 
-    // Ưu tiên 1: Dữ liệu đồng bộ từ cache xịn của bảng thành viên (Chứa giới tính, SĐT mới nhất)
+    // Ưu tiên 1: Dữ liệu đồng bộ từ cache xịn của bảng thành viên
     if (foundFullProfile) {
       refinedUserData = {
         id: foundFullProfile.id,
@@ -96,7 +97,7 @@ const Sidebar: React.FC = () => {
         avatarUrl: foundFullProfile.avatarUrl
       };
     } else {
-      // Ưu tiên 2: Dữ liệu siêu đầy đủ từ Context/Login mới
+      // Ưu tiên 2: Dữ liệu siêu đầy đủ từ Context mới (đã bao gồm phone, gender, roleName từ Login mới)
       refinedUserData = {
         id: currentUserId,
         fullName: baseAuthUser.fullName || baseAuthUser.full_name || baseAuthUser.name || "Thành viên Fiza",
@@ -125,8 +126,8 @@ const Sidebar: React.FC = () => {
       </div>
 
       <nav className="sidebar-nav">
-        <Link
-          className={`sidebar-menu-item ${location.pathname === "/family" ? "active" : ""}`}
+        <Link 
+          className={`sidebar-menu-item ${location.pathname === "/family" ? "active" : ""}`} 
           to="/family"
         >
           <span className="sidebar-icon-wrap">
@@ -135,8 +136,8 @@ const Sidebar: React.FC = () => {
           <span className="sidebar-menu-text">Nhóm gia đình</span>
         </Link>
 
-        <Link
-          className={`sidebar-menu-item ${location.pathname === "/fridge" || location.pathname === "/" ? "active" : ""}`}
+        <Link 
+          className={`sidebar-menu-item ${location.pathname === "/fridge" || location.pathname === "/" ? "active" : ""}`} 
           to="/fridge"
         >
           <span className="sidebar-icon-wrap">
@@ -145,8 +146,8 @@ const Sidebar: React.FC = () => {
           <span className="sidebar-menu-text">Tủ lạnh nhà tôi</span>
         </Link>
 
-        <Link
-          className={`sidebar-menu-item ${location.pathname === "/shopping" ? "active" : ""}`}
+        <Link 
+          className={`sidebar-menu-item ${location.pathname === "/shopping" ? "active" : ""}`} 
           to="/shopping"
         >
           <span className="sidebar-icon-wrap">
@@ -155,8 +156,8 @@ const Sidebar: React.FC = () => {
           <span className="sidebar-menu-text">Kế hoạch đi chợ</span>
         </Link>
 
-        <Link
-          className={`sidebar-menu-item ${location.pathname === "/suggestions" ? "active" : ""}`}
+        <Link 
+          className={`sidebar-menu-item ${location.pathname === "/suggestions" ? "active" : ""}`} 
           to="/suggestions"
         >
           <span className="sidebar-icon-wrap">
@@ -165,8 +166,8 @@ const Sidebar: React.FC = () => {
           <span className="sidebar-menu-text">Kế hoạch bữa ăn</span>
         </Link>
 
-        <Link
-          className={`sidebar-menu-item ${location.pathname === "/recipes" ? "active" : ""}`}
+        <Link 
+          className={`sidebar-menu-item ${location.pathname === "/recipes" ? "active" : ""}`} 
           to="#"
         >
           <span className="sidebar-icon-wrap">
@@ -175,45 +176,22 @@ const Sidebar: React.FC = () => {
           <span className="sidebar-menu-text">Thư viện công thức</span>
         </Link>
 
-        <Link
-          className={`sidebar-menu-item ${location.pathname === "/reports" ? "active" : ""}`}
+        <Link 
+          className={`sidebar-menu-item ${location.pathname === "/reports" ? "active" : ""}`} 
           to="/reports"
         >
           <span className="sidebar-icon-wrap">
             <img src={iconStatistic} alt="" className="sidebar-menu-icon" />
           </span>
-          <span className="sidebar-menu-text">Báo cáo thống kê</span>
+          <span className="sidebar-menu-text">Báo cáo &amp; Thống kê</span>
         </Link>
-
-        <button
-          className="sidebar-menu-item"
-          onClick={logout}
-          style={{
-            background: 'none',
-            border: 'none',
-            width: '100%',
-            textAlign: 'left',
-            cursor: 'pointer',
-            padding: '12px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            color: '#ef4444',
-            marginTop: '2rem'
-          }}
-        >
-          <span className="sidebar-icon-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-log-out"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
-          </span>
-          <span className="sidebar-menu-text" style={{ fontWeight: 600 }}>Đăng xuất</span>
-        </button>
       </nav>
 
       {/* Sự kiện onClick mở Modal khi bấm vào vùng Profile */}
       <div 
         className="sidebar-profile-section"
         onClick={() => {
-          console.log("👤 [SIDEBAR DEBUG] Đã click mở Profile tài khoản chính mình.");
+          console.log("👤 [SIDEBAR DEBUG] Đã click vào Avatar vùng chân Sidebar để mở Profile tài khoản chính mình.");
           setIsProfileModalOpen(true);
         }}
         style={{ cursor: 'pointer' }}
@@ -237,11 +215,13 @@ const Sidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* ProfileModal đồng bộ dữ liệu tuyệt đối */}
+      {/* =========================================================================
+      // 🎯 ĐÃ ĐỒNG BỘ TUYỆT ĐỐI: Dữ liệu được tính trực tiếp, render phát ăn ngay lập tức!
+      // ========================================================================= */}
       <ProfileModal 
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
-        familyName={localStorage.getItem("currentFamilyName") || "Gia đình Fiza"}
+        familyName={localStorage.getItem("currentFamilyName") || "Gia đình My My"}
         isMe={true} 
         memberData={refinedUserData}
       />
