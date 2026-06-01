@@ -1,16 +1,20 @@
 package com.mealmate.fridge.controller;
 
 import com.mealmate.fridge.model.dto.CreateFridgeItemRequest;
+import com.mealmate.fridge.model.dto.CustomFoodRequestResponse;
 import com.mealmate.fridge.model.dto.FridgeOverviewResponse;
 import com.mealmate.fridge.model.dto.FridgeItemResponse;
 import com.mealmate.fridge.model.dto.ImportShoppingItemsRequest;
 import com.mealmate.fridge.model.dto.ImportShoppingItemsResponse;
 import com.mealmate.fridge.model.dto.RecipeSuggestionResponse;
 import com.mealmate.fridge.model.dto.RemoveFridgeItemRequest;
+import com.mealmate.fridge.model.dto.ResolveCustomFoodAsNewRequest;
+import com.mealmate.fridge.model.dto.ResolveCustomFoodAsSynonymRequest;
 import com.mealmate.fridge.model.dto.ShoppingImportCandidateResponse;
 import com.mealmate.fridge.model.dto.UpdateFridgeItemRequest;
 import com.mealmate.fridge.service.FridgeItemService;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -87,5 +91,30 @@ public class FridgeItemController {
             @Valid @RequestBody ImportShoppingItemsRequest request
     ) {
         return fridgeItemService.importFromShopping(request);
+    }
+
+    @GetMapping("/custom-food-requests")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<CustomFoodRequestResponse> getPendingCustomFoodRequests(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId
+    ) {
+        return fridgeItemService.getPendingCustomFoodRequests(keyword, categoryId);
+    }
+
+    @PostMapping("/custom-food-requests/resolve-synonym")
+    @PreAuthorize("hasRole('ADMIN')")
+    public CustomFoodRequestResponse resolveCustomFoodAsSynonym(
+            @Valid @RequestBody ResolveCustomFoodAsSynonymRequest request
+    ) {
+        return fridgeItemService.resolveCustomFoodAsSynonym(request);
+    }
+
+    @PostMapping("/custom-food-requests/resolve-new")
+    @PreAuthorize("hasRole('ADMIN')")
+    public CustomFoodRequestResponse resolveCustomFoodAsNew(
+            @Valid @RequestBody ResolveCustomFoodAsNewRequest request
+    ) {
+        return fridgeItemService.resolveCustomFoodAsNew(request);
     }
 }
