@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 // 🎯 GIỮ NGUYÊN: Import Component ProfileModal chuẩn của bạn
 import ProfileModal from "./ProfileModal";
 
-// Giữ lại toàn bộ hệ thống icon điều hướng
+// --- Hệ thống Icon dành cho Người dùng cuối (CUSTOMER) ---
 import iconGroup from "@/assets/icon/Icon-group.svg";
 import fridgeMenuIcon from "@/assets/icon/Icon-fridge.svg";
 import iconLogo from "@/assets/icon/Icon-logo.svg";
@@ -17,16 +17,26 @@ import iconSchedule from "@/assets/icon/Icon-schedule.svg";
 import iconStatistic from "@/assets/icon/Icon-statistic.svg";
 import iconShopping from "@/assets/icon/Icon-shopping.svg";
 
+// --- Hệ thống Icon dành cho Quản trị viên (ADMIN) ---
+import { 
+  Users, 
+  UtensilsCrossed, 
+  BookOpen, 
+  BarChart3, 
+  LogOut 
+} from "lucide-react";
+
 // Avatar mặc định phòng trường hợp tài khoản chưa cài ảnh
 import defaultAvatar from "@/assets/avatar/26.svg";
 
 const Sidebar: React.FC = () => {
   const location = useLocation();
+  const { logout } = useAuth();
   
-  // 🎯 GIỮ NGUYÊN: State kiểm soát việc hiển thị Modal thông tin cá nhân
+  // State kiểm soát việc hiển thị Modal thông tin cá nhân
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
   
-  // Lấy dữ liệu từ Context (Bây giờ đã cực kỳ giàu trường sau khi sửa file Login)
+  // Lấy dữ liệu từ Context
   const authContext = useAuth();
   const userFromContext = authContext?.user;
 
@@ -44,28 +54,30 @@ const Sidebar: React.FC = () => {
   // Gốc dữ liệu đăng nhập cơ bản
   const baseAuthUser = userFromContext || userFromLocalStorage;
 
-  // Phân quyền hiển thị vai trò tiếng Việt tốc hành vùng chân Sidebar
-  const getRoleLabel = (userObj: any) => {
-    if (!userObj) return "Thành viên";
+  // =========================================================================
+  // 🛡️ PHÂN QUYỀN: CHỈ CẦN LÀ ADMIN THÌ MỚI LÀ TRUE, CÒN LẠI LÀ CUSTOMER HẾT
+  // =========================================================================
+  const checkIsAdmin = (userObj: any): boolean => {
+    if (!userObj) return false;
     const roleObj = userObj.role;
+    // Bốc chuỗi tên quyền (hỗ trợ cả dạng object { name: '...' } hoặc dạng string '...')
     const roleName = (typeof roleObj === "object" && roleObj !== null ? roleObj.name : roleObj) 
                      || userObj.roleName 
                      || "";
 
-    const normalizedRole = String(roleName).toUpperCase();
-    if (
-      normalizedRole.includes("ADMIN") || 
-      normalizedRole.includes("HOUSEKEEPER") || 
-      normalizedRole.includes("BOSS") || 
-      normalizedRole.includes("CHỦ NHÀ")
-    ) {
-      return "Nội trợ";
-    }
-    return "Thành viên";
+    // Chỉ giữ lại điều kiện duy nhất: chứa từ khóa "ADMIN"
+    return String(roleName).toUpperCase().includes("ADMIN");
+  };
+
+  const isAdmin = checkIsAdmin(baseAuthUser);
+
+  // Hiển thị text vai trò vùng chân Sidebar (Nếu là ADMIN thì ghi Người nội trợ/Admin, ngược lại ghi Thành viên)
+  const getRoleLabel = (userObj: any) => {
+    return checkIsAdmin(userObj) ? "Người nội trợ (Admin)" : "Thành viên";
   };
 
   // =========================================================================
-  // 🎯 TÍNH TOÁN REAL-TIME: Không dùng useEffect để loại bỏ tình trạng render ra null
+  // 🎯 TÍNH TOÁN REAL-TIME DỮ LIỆU PROFILE MODAL
   // =========================================================================
   let refinedUserData = null;
 
@@ -85,7 +97,6 @@ const Sidebar: React.FC = () => {
       }
     }
 
-    // Ưu tiên 1: Dữ liệu đồng bộ từ cache xịn của bảng thành viên
     if (foundFullProfile) {
       refinedUserData = {
         id: foundFullProfile.id,
@@ -97,11 +108,10 @@ const Sidebar: React.FC = () => {
         avatarUrl: foundFullProfile.avatarUrl
       };
     } else {
-      // Ưu tiên 2: Dữ liệu siêu đầy đủ từ Context mới (đã bao gồm phone, gender, roleName từ Login mới)
       refinedUserData = {
         id: currentUserId,
         fullName: baseAuthUser.fullName || baseAuthUser.full_name || baseAuthUser.name || "Thành viên Fiza",
-        roleName: baseAuthUser.roleName || (getRoleLabel(baseAuthUser) === "Nội trợ" ? "Chủ nhà" : "Thành viên"),
+        roleName: baseAuthUser.roleName || (isAdmin ? "ADMIN" : "CUSTOMER"),
         email: baseAuthUser.email || "Chưa cập nhật",
         phone: baseAuthUser.phone || "Chưa cập nhật",
         gender: baseAuthUser.gender || "OTHER",
@@ -110,7 +120,6 @@ const Sidebar: React.FC = () => {
     }
   }
 
-  // Quét sạch thuộc tính phục vụ hiển thị nhanh vùng chân Sidebar thô
   const rawName = baseAuthUser?.fullName || baseAuthUser?.full_name || baseAuthUser?.name || "Thành viên Fiza";
   const rawAvatar = baseAuthUser?.avatarUrl || baseAuthUser?.avatar_url || baseAuthUser?.avatar;
 
@@ -121,79 +130,142 @@ const Sidebar: React.FC = () => {
           <div className="sidebar-logo-box">
             <img src={iconLogo} alt="Logo" className="sidebar-logo-icon" />
           </div>
-          <span className="sidebar-brand-full">MealMate</span>
+          <span className="sidebar-brand-full">Fiza</span>
         </div>
       </div>
 
       <nav className="sidebar-nav">
-        <Link 
-          className={`sidebar-menu-item ${location.pathname === "/family" ? "active" : ""}`} 
-          to="/family"
-        >
-          <span className="sidebar-icon-wrap">
-            <img src={iconGroup} alt="" className="sidebar-menu-icon" />
-          </span>
-          <span className="sidebar-menu-text">Nhóm gia đình</span>
-        </Link>
+        {isAdmin ? (
+          // =========================================================================
+          // 🛡️ GIAO DIỆN CHỈ DÀNH CHO ADMIN
+          // =========================================================================
+          <>
+            <Link 
+              className={`sidebar-menu-item ${location.pathname === "/admin/users" ? "active" : ""}`} 
+              to="/admin/users"
+            >
+              <span className="sidebar-icon-wrap">
+                <Users size={20} className="sidebar-menu-icon-lucide" />
+              </span>
+              <span className="sidebar-menu-text">Quản lý người dùng</span>
+            </Link>
 
-        <Link 
-          className={`sidebar-menu-item ${location.pathname === "/fridge" || location.pathname === "/" ? "active" : ""}`} 
-          to="/fridge"
-        >
-          <span className="sidebar-icon-wrap">
-            <img src={fridgeMenuIcon} alt="" className="sidebar-menu-icon" />
-          </span>
-          <span className="sidebar-menu-text">Tủ lạnh nhà tôi</span>
-        </Link>
+            <Link 
+              className={`sidebar-menu-item ${location.pathname === "/admin/foods" ? "active" : ""}`} 
+              to="/admin/foods"
+            >
+              <span className="sidebar-icon-wrap">
+                <UtensilsCrossed size={20} className="sidebar-menu-icon-lucide" />
+              </span>
+              <span className="sidebar-menu-text">Quản lý thực phẩm</span>
+            </Link>
 
-        <Link 
-          className={`sidebar-menu-item ${location.pathname === "/shopping" ? "active" : ""}`} 
-          to="/shopping"
-        >
-          <span className="sidebar-icon-wrap">
-            <img src={iconShopping} alt="" className="sidebar-menu-icon" />
-          </span>
-          <span className="sidebar-menu-text">Kế hoạch đi chợ</span>
-        </Link>
+            <Link 
+              className={`sidebar-menu-item ${location.pathname === "/admin/recipes" ? "active" : ""}`} 
+              to="/admin/recipes"
+            >
+              <span className="sidebar-icon-wrap">
+                <BookOpen size={20} className="sidebar-menu-icon-lucide" />
+              </span>
+              <span className="sidebar-menu-text">Quản lý món ăn</span>
+            </Link>
 
-        <Link 
-          className={`sidebar-menu-item ${location.pathname === "/suggestions" ? "active" : ""}`} 
-          to="/suggestions"
-        >
-          <span className="sidebar-icon-wrap">
-            <img src={iconSchedule} alt="" className="sidebar-menu-icon" />
-          </span>
-          <span className="sidebar-menu-text">Kế hoạch bữa ăn</span>
-        </Link>
+            <Link 
+              className={`sidebar-menu-item ${location.pathname === "/admin/performance" ? "active" : ""}`} 
+              to="/admin/performance"
+            >
+              <span className="sidebar-icon-wrap">
+                <BarChart3 size={20} className="sidebar-menu-icon-lucide" />
+              </span>
+              <span className="sidebar-menu-text">Quản lý hiệu suất</span>
+            </Link>
 
-        <Link 
-          className={`sidebar-menu-item ${location.pathname === "/recipes" ? "active" : ""}`} 
-          to="#"
-        >
-          <span className="sidebar-icon-wrap">
-            <img src={iconRecipe} alt="" className="sidebar-menu-icon" />
-          </span>
-          <span className="sidebar-menu-text">Thư viện công thức</span>
-        </Link>
+            <Link 
+              className="sidebar-menu-item logout-item" 
+              to="#"
+              onClick={(e) => {
+                e.preventDefault();
+                logout();
+              }}
+            >
+              <span className="sidebar-icon-wrap">
+                <LogOut size={20} className="sidebar-menu-icon-lucide" color="#ef4444" />
+              </span>
+              <span className="sidebar-menu-text" style={{ color: '#ef4444' }}>Đăng xuất</span>
+            </Link>
+          </>
+        ) : (
+          // =========================================================================
+          // 🏠 GIAO DIỆN CUSTOMER (Bao gồm tất cả các chức danh còn lại)
+          // =========================================================================
+          <>
+            <Link 
+              className={`sidebar-menu-item ${location.pathname === "/family" ? "active" : ""}`} 
+              to="/family"
+            >
+              <span className="sidebar-icon-wrap">
+                <img src={iconGroup} alt="" className="sidebar-menu-icon" />
+              </span>
+              <span className="sidebar-menu-text">Nhóm gia đình</span>
+            </Link>
 
-        <Link 
-          className={`sidebar-menu-item ${location.pathname === "/reports" ? "active" : ""}`} 
-          to="/reports"
-        >
-          <span className="sidebar-icon-wrap">
-            <img src={iconStatistic} alt="" className="sidebar-menu-icon" />
-          </span>
-          <span className="sidebar-menu-text">Báo cáo &amp; Thống kê</span>
-        </Link>
+            <Link 
+              className={`sidebar-menu-item ${location.pathname === "/fridge" || location.pathname === "/" ? "active" : ""}`} 
+              to="/fridge"
+            >
+              <span className="sidebar-icon-wrap">
+                <img src={fridgeMenuIcon} alt="" className="sidebar-menu-icon" />
+              </span>
+              <span className="sidebar-menu-text">Tủ lạnh nhà tôi</span>
+            </Link>
+
+            <Link 
+              className={`sidebar-menu-item ${location.pathname === "/shopping" ? "active" : ""}`} 
+              to="/shopping"
+            >
+              <span className="sidebar-icon-wrap">
+                <img src={iconShopping} alt="" className="sidebar-menu-icon" />
+              </span>
+              <span className="sidebar-menu-text">Kế hoạch đi chợ</span>
+            </Link>
+
+            <Link 
+              className={`sidebar-menu-item ${location.pathname === "/suggestions" ? "active" : ""}`} 
+              to="/suggestions"
+            >
+              <span className="sidebar-icon-wrap">
+                <img src={iconSchedule} alt="" className="sidebar-menu-icon" />
+              </span>
+              <span className="sidebar-menu-text">Kế hoạch bữa ăn</span>
+            </Link>
+
+            <Link 
+              className={`sidebar-menu-item ${location.pathname === "/recipes" ? "active" : ""}`} 
+              to="/recipes"
+            >
+              <span className="sidebar-icon-wrap">
+                <img src={iconRecipe} alt="" className="sidebar-menu-icon" />
+              </span>
+              <span className="sidebar-menu-text">Thư viện công thức</span>
+            </Link>
+
+            <Link 
+              className={`sidebar-menu-item ${location.pathname === "/reports" ? "active" : ""}`} 
+              to="/reports"
+            >
+              <span className="sidebar-icon-wrap">
+                <img src={iconStatistic} alt="" className="sidebar-menu-icon" />
+              </span>
+              <span className="sidebar-menu-text">Báo cáo &amp; Thống kê</span>
+            </Link>
+          </>
+        )}
       </nav>
 
-      {/* Sự kiện onClick mở Modal khi bấm vào vùng Profile */}
+      {/* Vùng Profile ở chân Sidebar */}
       <div 
         className="sidebar-profile-section"
-        onClick={() => {
-          console.log("👤 [SIDEBAR DEBUG] Đã click vào Avatar vùng chân Sidebar để mở Profile tài khoản chính mình.");
-          setIsProfileModalOpen(true);
-        }}
+        onClick={() => setIsProfileModalOpen(true)}
         style={{ cursor: 'pointer' }}
       >
         <div className="sidebar-profile">
@@ -215,13 +287,10 @@ const Sidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* =========================================================================
-      // 🎯 ĐÃ ĐỒNG BỘ TUYỆT ĐỐI: Dữ liệu được tính trực tiếp, render phát ăn ngay lập tức!
-      // ========================================================================= */}
       <ProfileModal 
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
-        familyName={localStorage.getItem("currentFamilyName") || "Gia đình My My"}
+        familyName={localStorage.getItem("currentFamilyName") || "Gia đình Fiza"}
         isMe={true} 
         memberData={refinedUserData}
       />

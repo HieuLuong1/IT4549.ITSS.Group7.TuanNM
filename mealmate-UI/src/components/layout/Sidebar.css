@@ -216,3 +216,16 @@
   font-family: "Plus Jakarta Sans", "Inter", "Segoe UI", sans-serif;
   font-size: 12px;
 }
+
+.sidebar-menu-icon-lucide {
+  width: 20px;
+  height: 20px;
+  color: #64748b; /* Màu xám mặc định của icon */
+  transition: color 0.2s ease;
+}
+
+/* Đổi màu icon khi Menu item được active hoặc hover */
+.sidebar-menu-item.active .sidebar-menu-icon-lucide,
+.sidebar-menu-item:hover .sidebar-menu-icon-lucide {
+  color: var(--mint-green); /* Hoặc mã màu primary của bạn */
+}

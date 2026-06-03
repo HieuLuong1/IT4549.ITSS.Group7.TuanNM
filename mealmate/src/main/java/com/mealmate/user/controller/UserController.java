@@ -269,8 +269,6 @@ public class UserController {
             System.out.println("-> ID Nhà gốc bốc được từ DB (targetFamilyId): " + targetFamilyId);
             System.out.println("=================================");
 
-            // 2. Kích hoạt câu lệnh UPDATE thô native xuống PostgreSQL
-            // Gán family_id = 3 (targetFamilyId), role_id = 3 (BOSS) cho user_id = 5
             userRepository.updateFamilyAndRoleDirectlyNative(targetUserId, targetFamilyId, 3L);
 
             return ResponseEntity.ok(new ApiResponse<>(true, "Đã trục xuất thành viên và trả về làm chủ nhà gốc thành công!", null));
