@@ -36,6 +36,7 @@ public class Role extends BaseEntity {
         joinColumns = @JoinColumn(name = "role_id"),
         inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<Permission> permissions;
 
     // Nhúng Object createdBy

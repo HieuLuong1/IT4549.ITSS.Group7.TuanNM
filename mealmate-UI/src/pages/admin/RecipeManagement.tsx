@@ -37,7 +37,6 @@ export interface Recipe {
   preferredMealTime: 'BREAKFAST' | 'LUNCH' | 'DINNER';
   imageUrl?: string;
   ingredients: Ingredient[];
-  regionalNames?: string[];
 }
 
 const RecipeManagement: React.FC = () => {
@@ -149,8 +148,7 @@ const RecipeManagement: React.FC = () => {
 
       const updatedRecipe = {
         ...recipe,
-        ingredients: mappedIngredients,
-        regionalNames: recipe.regionalNames || []
+        ingredients: mappedIngredients
       };
       setViewRecipe(updatedRecipe);
       setEditData(JSON.parse(JSON.stringify(updatedRecipe)));
@@ -159,18 +157,6 @@ const RecipeManagement: React.FC = () => {
     } catch (err) {
       console.error(err);
       alert('Không thể tải danh sách nguyên liệu.');
-    }
-  };
-
-  const handleAddInlineRegional = () => {
-    if (inlineValue.trim() && editData) {
-      const current = editData.regionalNames || [];
-      if (!current.includes(inlineValue.trim())) {
-        const updated = [...current, inlineValue.trim()];
-        setEditData({ ...editData, regionalNames: updated });
-      }
-      setInlineValue('');
-      setInlineAdding(false);
     }
   };
 
@@ -428,8 +414,12 @@ const RecipeManagement: React.FC = () => {
                           <td style={{ fontWeight: 700, color: '#94a3b8', fontSize: '0.875rem' }}>#{recipe.id}</td>
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                              <div style={{ width: '48px', height: '48px', borderRadius: '12px', overflow: 'hidden' }}>
-                                <img src={recipe.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              <div style={{ width: '48px', height: '48px', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#F1FAF6', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0', flexShrink: 0 }}>
+                                {recipe.imageUrl ? (
+                                  <img src={recipe.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                  <UtensilsCrossed size={22} color="#6DD4B4" />
+                                )}
                               </div>
                               <span style={{ fontWeight: 700, color: '#1e293b' }}>{recipe.name}</span>
                             </div>
@@ -494,9 +484,6 @@ const RecipeManagement: React.FC = () => {
                   <FormGroup label="Nguồn trích dẫn (Link)" name="referenceLink" placeholder="VD: https://food-source.com" />
                   <div style={{ gridColumn: 'span 2' }}>
                     <FormGroup label="Hình ảnh món ăn (URL)" name="imageUrl" placeholder="VD: https://images.unsplash.com/photo-..." />
-                  </div>
-                  <div style={{ gridColumn: 'span 2' }}>
-                    <FormGroup label="Tên gọi khác / Từ đồng nghĩa (phân cách bằng dấu phẩy)" name="regionalNames" placeholder="VD: Nem rán, Chả giò" />
                   </div>
                 </div>
 
@@ -564,8 +551,15 @@ const RecipeManagement: React.FC = () => {
             <SharedModal title={isEditing ? "Chỉnh sửa món ăn" : "Chi tiết món ăn"} onClose={() => { setViewRecipe(null); setIsEditing(false); }} width="1000px">
               <div style={{ display: 'flex', gap: '2.5rem' }}>
                 <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  <div style={{ width: '220px', height: '220px', borderRadius: '32px', overflow: 'hidden', backgroundColor: '#F1FAF6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }}>
-                    <img src={viewRecipe.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <div style={{ width: '220px', height: '220px', borderRadius: '32px', overflow: 'hidden', backgroundColor: '#F1FAF6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)', border: '2px solid #e2e8f0' }}>
+                    {viewRecipe.imageUrl ? (
+                      <img src={viewRecipe.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                        <UtensilsCrossed size={56} color="#6DD4B4" />
+                        <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>Chưa có hình ảnh</span>
+                      </div>
+                    )}
                   </div>
                   <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '1.5rem', border: '1px solid #e2e8f0' }}>
                     <p style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '1rem' }}>Thông tin chung</p>
@@ -598,54 +592,7 @@ const RecipeManagement: React.FC = () => {
                       <div style={{ gridColumn: 'span 2' }}>
                         <FormGroup label="Hình ảnh món ăn (URL)" value={editData.imageUrl} onChange={(e: any) => setEditData({ ...editData, imageUrl: e.target.value })} />
                       </div>
-                      <div style={{ gridColumn: 'span 2' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                          <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Tên gọi khác / Từ đồng nghĩa</label>
-                        </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem', background: '#f8fafc', padding: '1.25rem', borderRadius: '1.5rem', border: '1px solid #e2e8f0', alignItems: 'center' }}>
-                          {editData.regionalNames?.map((name, idx) => (
-                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.25rem 0.85rem', backgroundColor: '#E1F2EB', borderRadius: '9999px', border: '1px solid #6DD4B4' }}>
-                              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--fiza-primary)' }}>{name}</span>
-                              <button 
-                                type="button"
-                                onClick={() => {
-                                  const updated = editData.regionalNames?.filter((_, i) => i !== idx) || [];
-                                  setEditData({ ...editData, regionalNames: updated });
-                                }}
-                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', padding: 0 }}
-                              >
-                                <X size={14} color="var(--fiza-primary)" />
-                              </button>
-                            </div>
-                          ))}
-                          {inlineAdding ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <input 
-                                autoFocus
-                                value={inlineValue}
-                                onChange={(e) => setInlineValue(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleAddInlineRegional()}
-                                onBlur={() => {
-                                  if (!inlineValue.trim()) setInlineAdding(false);
-                                  else handleAddInlineRegional();
-                                }}
-                                placeholder="Nhập tên..."
-                                className="um-search-input"
-                                style={{ width: '130px', height: '28px', paddingLeft: '0.5rem', fontSize: '12px', background: 'white' }}
-                              />
-                            </div>
-                          ) : (
-                            <button 
-                              type="button" 
-                              onClick={() => { setInlineAdding(true); setInlineValue(''); }}
-                              className="um-btn-add"
-                              style={{ padding: '0.25rem 0.75rem', height: '28px', fontSize: '10px' }}
-                            >
-                              <Plus size={12} /> Thêm
-                            </button>
-                          )}
-                        </div>
-                      </div>
+
 
                       <div style={{ gridColumn: 'span 2' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
@@ -701,7 +648,6 @@ const RecipeManagement: React.FC = () => {
                         <DetailItem label="Tên món ăn" value={viewRecipe.name} />
                         <DetailItem label="Tác giả" value={viewRecipe.author || 'Admin'} />
                         <DetailItem label="Nguồn" value={viewRecipe.referenceLink || 'Nội bộ'} />
-                        <DetailItem label="Tên gọi khác" value={viewRecipe.regionalNames?.join(', ') || 'Không có'} />
                       </div>
 
                       

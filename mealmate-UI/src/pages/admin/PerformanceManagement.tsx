@@ -12,12 +12,13 @@ import {
   Trash2,
   X,
   ChevronRight,
+  ChevronLeft,
   LogOut,
   Eye,
   RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 import { 
@@ -58,6 +59,7 @@ const formatDateTime = (value?: string) => {
 
 const PerformanceManagement: React.FC = () => {
   const { logout } = useAuth();
+  const navigate = useNavigate();
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [foods, setFoods] = useState<any[]>([]);
   const [stats, setStats] = useState<any>({
@@ -74,6 +76,7 @@ const PerformanceManagement: React.FC = () => {
   const [customFoodRequestError, setCustomFoodRequestError] = useState('');
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [synonymPage, setSynonymPage] = useState(1);
   const [uiSearchQuery, setUiSearchQuery] = useState('');
   const [inlineAdding, setInlineAdding] = useState<number | null>(null);
   const [inlineValue, setInlineValue] = useState('');
@@ -280,7 +283,7 @@ const PerformanceManagement: React.FC = () => {
     setApproveName(item.customName);
     setApproveCategory(item.categoryId);
     setApproveUnit(item.unit || 'g');
-    setApproveSynonyms(`${item.customName},${item.placeholderFoodName}`);
+    setApproveSynonyms('');
   };
 
   const handleSaveApproval = async () => {
@@ -350,6 +353,24 @@ const PerformanceManagement: React.FC = () => {
     s.originalName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.variants.some(v => v.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  const synonymItemsPerPage = 10;
+  const synonymTotalPages = Math.ceil(filteredSynonyms.length / synonymItemsPerPage);
+  const synonymStartIndex = (synonymPage - 1) * synonymItemsPerPage;
+  const displayedSynonyms = filteredSynonyms.slice(synonymStartIndex, synonymStartIndex + synonymItemsPerPage);
+
+  const getVisibleSynonymPages = () => {
+    if (synonymTotalPages <= 3) {
+      return Array.from({ length: synonymTotalPages }, (_, i) => i + 1);
+    }
+    if (synonymPage === 1) {
+      return [1, 2, 3];
+    }
+    if (synonymPage === synonymTotalPages) {
+      return [synonymTotalPages - 2, synonymTotalPages - 1, synonymTotalPages];
+    }
+    return [synonymPage - 1, synonymPage, synonymPage + 1];
+  };
 
   const itemsToSelect = foods.filter(f => 
     (!f.synonyms || f.synonyms.trim().length === 0) &&
@@ -423,7 +444,13 @@ const PerformanceManagement: React.FC = () => {
             
             {/* Stats Summary Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
-              <div className="um-card" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem 1.5rem' }}>
+              <div 
+                className="um-card" 
+                onClick={() => navigate('/admin/users')}
+                style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem 1.5rem', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.05)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+              >
                 <div style={{ width: '48px', height: '48px', borderRadius: '16px', backgroundColor: '#E0F2FE', color: '#0284C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Users size={24} />
                 </div>
@@ -432,7 +459,13 @@ const PerformanceManagement: React.FC = () => {
                   <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{stats.totalUsers}</p>
                 </div>
               </div>
-              <div className="um-card" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem 1.5rem' }}>
+              <div 
+                className="um-card" 
+                onClick={() => navigate('/admin/users')}
+                style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem 1.5rem', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.05)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+              >
                 <div style={{ width: '48px', height: '48px', borderRadius: '16px', backgroundColor: '#FEE2E2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Leaf size={24} />
                 </div>
@@ -441,7 +474,13 @@ const PerformanceManagement: React.FC = () => {
                   <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{stats.totalFamilies}</p>
                 </div>
               </div>
-              <div className="um-card" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem 1.5rem' }}>
+              <div 
+                className="um-card" 
+                onClick={() => navigate('/admin/foods')}
+                style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem 1.5rem', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.05)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+              >
                 <div style={{ width: '48px', height: '48px', borderRadius: '16px', backgroundColor: '#DCFCE7', color: '#22C55E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <UtensilsCrossed size={24} />
                 </div>
@@ -450,7 +489,13 @@ const PerformanceManagement: React.FC = () => {
                   <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{stats.totalFoods}</p>
                 </div>
               </div>
-              <div className="um-card" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem 1.5rem' }}>
+              <div 
+                className="um-card" 
+                onClick={() => navigate('/admin/recipes')}
+                style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem 1.5rem', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.05)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+              >
                 <div style={{ width: '48px', height: '48px', borderRadius: '16px', backgroundColor: '#F3E8FF', color: '#A855F7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <BookOpen size={24} />
                 </div>
@@ -501,8 +546,7 @@ const PerformanceManagement: React.FC = () => {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="um-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', gap: '2rem' }}>
                 <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--fiza-primary)' }}>Thực phẩm trong nhóm "khác" do người dùng nhập</h3>
-                  <p style={{ fontSize: '0.875rem', color: '#64748b' }}>Các item đang nằm dưới Rau củ khác, Trái cây khác, Thịt khác, Hải sản khác, Đồ khô khác, Gia vị khác... cần admin xem xét.</p>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--fiza-primary)' }}>Thực phẩm tự nhập chờ duyệt</h3>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', flex: 1, justifyContent: 'flex-end' }}>
                   <div className="um-search-container" style={{ maxWidth: '300px' }}>
@@ -591,9 +635,19 @@ const PerformanceManagement: React.FC = () => {
             {/* Synonym Management */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="um-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', gap: '2rem' }}>
-                <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--fiza-primary)' }}>Quản lý tên gọi địa phương</h3>
-                  <p style={{ fontSize: '0.875rem', color: '#64748b' }}>Đồng nhất tên gọi thực phẩm cho các vùng miền</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ 
+                    fontSize: '12px', 
+                    fontWeight: 800, 
+                    color: '#0f766e', 
+                    background: '#ccfbf1', 
+                    borderRadius: '999px', 
+                    padding: '0.35rem 0.75rem', 
+                    whiteSpace: 'nowrap' 
+                  }}>
+                    {filteredSynonyms.length}
+                  </span>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--fiza-primary)', margin: 0 }}>Tên gọi địa phương</h3>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', flex: 1, justifyContent: 'flex-end' }}>
                   <div className="um-search-container" style={{ maxWidth: '300px' }}>
@@ -603,7 +657,10 @@ const PerformanceManagement: React.FC = () => {
                       placeholder="Tìm kiếm tên gọi..." 
                       className="um-search-input"
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setSynonymPage(1);
+                      }}
                     />
                   </div>
                   <button onClick={() => { setSelectedItem(null); setStep(2); setShowAddModal(true); }} className="um-btn-primary">
@@ -627,7 +684,7 @@ const PerformanceManagement: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredSynonyms.map(item => (
+                      {displayedSynonyms.map(item => (
                         <tr key={item.id}>
                           <td style={{ fontWeight: 800, color: 'var(--fiza-primary)' }}>{item.originalName}</td>
                           <td>
@@ -722,6 +779,36 @@ const PerformanceManagement: React.FC = () => {
                       )}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {/* Pagination */}
+              {filteredSynonyms.length > 10 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3rem' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>
+                    Hiển thị {synonymStartIndex + 1} - {Math.min(synonymStartIndex + synonymItemsPerPage, filteredSynonyms.length)} trên {filteredSynonyms.length} tên gọi
+                  </p>
+                  <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                    <PageArrow 
+                      icon={<ChevronLeft size={18} />} 
+                      disabled={synonymPage === 1}
+                      onClick={() => setSynonymPage(prev => Math.max(prev - 1, 1))}
+                    />
+                    {getVisibleSynonymPages().map((p) => (
+                      <PageNum 
+                        key={p} 
+                        active={synonymPage === p}
+                        onClick={() => setSynonymPage(p)}
+                      >
+                        {p}
+                      </PageNum>
+                    ))}
+                    <PageArrow 
+                      icon={<ChevronRight size={18} />} 
+                      disabled={synonymPage === synonymTotalPages}
+                      onClick={() => setSynonymPage(prev => Math.min(prev + 1, synonymTotalPages))}
+                    />
+                  </div>
                 </div>
               )}
             </motion.div>
@@ -1082,6 +1169,27 @@ function DetailItem({ label, value, isBadge }: any) {
         <span style={{ fontWeight: 600, color: '#1e293b' }}>{value || 'N/A'}</span>
       )}
     </div>
+  );
+}
+
+function PageNum({ children, active, onClick }: any) {
+  return (
+    <button 
+      onClick={onClick}
+      style={{ width: '36px', height: '36px', borderRadius: '50%', border: 'none', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.2s', backgroundColor: active ? 'var(--mint-green)' : 'transparent', color: active ? 'white' : '#475569', boxShadow: active ? '0 10px 15px -3px rgba(109, 212, 180, 0.3)' : 'none' }}>
+      {children}
+    </button>
+  );
+}
+
+function PageArrow({ icon, disabled, onClick }: any) {
+  return (
+    <button 
+      disabled={disabled} 
+      onClick={onClick}
+      style={{ width: '36px', height: '36px', borderRadius: '50%', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: disabled ? 'default' : 'pointer', color: '#94a3b8', opacity: disabled ? 0.3 : 1 }}>
+      {icon}
+    </button>
   );
 }
 

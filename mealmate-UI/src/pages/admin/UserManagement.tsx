@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Bell, 
   Settings, 
@@ -7,18 +7,33 @@ import {
   Eye, 
   Trash2, 
   ChevronLeft, 
-  ChevronRight
+  ChevronRight,
+  Users,
+  UtensilsCrossed,
+  BookOpen,
+  BarChart3,
+  LogOut,
+  Leaf,
+  Upload,
+  UserCircle2,
+  Home
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { NavLink } from 'react-router-dom';
 import SharedModal from '../../components/admin/Modal';
 import api from '../../services/api';
-
-import Sidebar from '../../components/layout/Sidebar';
+import { useAuth } from '../../context/AuthContext';
 
 interface Role {
   id: number;
   name: string;
   description?: string;
+}
+
+interface Family {
+  id: number;
+  name: string;
+  housekeeperId?: number;
 }
 
 export interface User {
@@ -30,13 +45,28 @@ export interface User {
   avatarUrl?: string;
   emailVerified?: boolean;
   role?: Role;
+  family?: Family;
+}
+
+interface FamilyMember {
+  id: number;
+  fullName: string;
+  email: string;
+  phone?: string;
+  gender?: string;
+  avatarUrl?: string;
+  roleName?: string;
 }
 
 const UserManagement: React.FC = () => {
+  const { logout } = useAuth();
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [roleFilter, setRoleFilter] = useState('Tất cả');
   
   // Pagination state
@@ -49,6 +79,25 @@ const UserManagement: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<User | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+
+  // Family members modal state
+  const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+
+  const openFamilyModal = async (family: Family) => {
+    setSelectedFamily(family);
+    setLoadingMembers(true);
+    try {
+      const res = await api.get(`/api/v1/users/users/family/${family.id}/members`);
+      setFamilyMembers(res.data?.data || []);
+    } catch (e) {
+      console.error(e);
+      setFamilyMembers([]);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -149,6 +198,7 @@ const UserManagement: React.FC = () => {
       const response = await api.post('/api/v1/users/users', newUser);
       if (response.data?.success) {
         setUsers([response.data.data, ...users]);
+        setAvatarPreview(null);
         setShowAddModal(false);
       }
     } catch (err) {
@@ -158,11 +208,54 @@ const UserManagement: React.FC = () => {
 
   return (
     <div className="um-layout">
-      {/* 🎯 ĐÃ THAY ĐỔI: Nhúng thanh Sidebar mới, xóa bỏ hoàn toàn mã sidebar cũ cồng kềnh */}
-      <Sidebar />
+      {/* Sidebar - Consistent with other Admin pages */}
+      <aside 
+        onMouseEnter={() => setIsSidebarHovered(true)}
+        onMouseLeave={() => setIsSidebarHovered(false)}
+        className={`um-sidebar ${isSidebarHovered ? "expanded" : "collapsed"}`}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', marginBottom: '3rem', padding: isSidebarHovered ? '0 1.25rem' : '0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: isSidebarHovered ? 'flex-start' : 'center' }}>
+            <div style={{ width: '48px', height: '48px', backgroundColor: 'var(--fiza-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '20px', flexShrink: 0, margin: isSidebarHovered ? '0' : '0 auto' }}>
+              <Leaf color="white" fill="white" size={28} />
+            </div>
+            <AnimatePresence>
+              {isSidebarHovered && (
+                <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--mint-green)', marginLeft: '0.75rem', whiteSpace: 'nowrap' }}>
+                  Fiza
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
 
-      {/* Main Content - Giữ nguyên các class bọc nội dung cốt lõi của bạn */}
-      <div className="um-main">
+        <nav style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <SidebarLink icon={<Users size={22} />} label="Quản lý người dùng" to="/admin/users" isExpanded={isSidebarHovered} active />
+          <SidebarLink icon={<UtensilsCrossed size={22} />} label="Quản lý thực phẩm" to="/admin/foods" isExpanded={isSidebarHovered} />
+          <SidebarLink icon={<BookOpen size={22} />} label="Quản lý món ăn" to="/admin/recipes" isExpanded={isSidebarHovered} />
+          <SidebarLink icon={<BarChart3 size={22} />} label="Quản lý hiệu suất" to="/admin/performance" isExpanded={isSidebarHovered} />
+          <SidebarLink icon={<LogOut size={22} />} label="Đăng xuất" to="#" isExpanded={isSidebarHovered} onClick={logout} />
+        </nav>
+
+        <div style={{ width: '100%', paddingTop: '1.5rem', borderTop: '1px solid #f1f5f9' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 1rem', margin: '0.5rem 0.5rem 0', borderRadius: '1rem', cursor: 'pointer' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', border: '1px solid var(--fiza-primary)', flexShrink: 0, margin: isSidebarHovered ? '0' : '0 auto' }}>
+              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Admin" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
+            <AnimatePresence>
+              {isSidebarHovered && (
+                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} style={{ marginLeft: '0.75rem' }}>
+                  <p style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1e293b' }}>Admin Fiza</p>
+                  <p style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Super Admin</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className={`um-main ${isSidebarHovered ? 'shifted' : 'unshifted'}`}>
         <header className="um-header">
           <div className="um-header-left">
             <h1 className="um-title">Quản lý người dùng</h1>
@@ -222,10 +315,11 @@ const UserManagement: React.FC = () => {
                   <table className="um-table">
                     <thead>
                       <tr>
-                        <th style={{ width: '80px' }}>ID</th>
+                        <th style={{ width: '60px' }}>ID</th>
                         <th>Họ tên</th>
                         <th>Số điện thoại</th>
                         <th>Email</th>
+                        <th>Gia đình</th>
                         <th style={{ textAlign: 'center' }}>Vai trò</th>
                         <th style={{ textAlign: 'center', width: '120px' }}>Hành động</th>
                       </tr>
@@ -236,12 +330,12 @@ const UserManagement: React.FC = () => {
                           <td style={{ fontWeight: 700, color: '#94a3b8', fontSize: '0.875rem' }}>{user.id}</td>
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                              <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden' }}>
-                                <img 
-                                  src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.fullName}`} 
-                                  alt="" 
-                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                />
+                              <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #e2e8f0', flexShrink: 0 }}>
+                                {user.avatarUrl ? (
+                                  <img src={user.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                  <UserCircle2 size={22} color="#94a3b8" />
+                                )}
                               </div>
                               <span style={{ fontWeight: 700, color: '#1e293b' }}>{user.fullName}</span>
                             </div>
@@ -249,9 +343,35 @@ const UserManagement: React.FC = () => {
                           <td style={{ fontSize: '0.875rem', color: '#64748b' }}>{user.phone || 'N/A'}</td>
                           <td style={{ fontSize: '0.875rem', color: '#64748b' }}>{user.email}</td>
                           <td>
+                            {user.family ? (
+                              <div
+                                onClick={() => openFamilyModal(user.family!)}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.4rem',
+                                  cursor: 'pointer',
+                                  padding: '0.25rem 0.6rem',
+                                  borderRadius: '999px',
+                                  background: '#F1FAF6',
+                                  border: '1px solid #d1fae5',
+                                  width: 'fit-content',
+                                  transition: 'background 0.15s, box-shadow 0.15s',
+                                }}
+                                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = '#dcfce7'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 8px rgba(109,212,180,0.25)'; }}
+                                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = '#F1FAF6'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; }}
+                              >
+                                <Home size={12} color="#6DD4B4" />
+                                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#059669', whiteSpace: 'nowrap' }}>{user.family.name}</span>
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>Không có</span>
+                            )}
+                          </td>
+                          <td>
                             <div style={{ display: 'flex', justifyContent: 'center' }}>
                               <div className="um-role-badge">
-                                {user.role?.name === 'ADMIN' ? 'Người nội trợ (Admin)' : 'Thành viên'}
+                                {user.role?.name === 'ADMIN' ? 'Người nội trợ' : 'Thành viên'}
                               </div>
                             </div>
                           </td>
@@ -317,7 +437,7 @@ const UserManagement: React.FC = () => {
         {/* MODALS */}
         <AnimatePresence mode="wait">
           {showAddModal && (
-            <SharedModal title="Thêm người dùng mới" onClose={() => setShowAddModal(false)}>
+            <SharedModal title="Thêm người dùng mới" onClose={() => { setShowAddModal(false); setAvatarPreview(null); }}>
               <form onSubmit={handleAddUser} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <FormGroup label="Họ tên" name="name" placeholder="VD: Nguyễn Văn A" required />
@@ -340,11 +460,61 @@ const UserManagement: React.FC = () => {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Ảnh đại diện</label>
-                    <input type="file" name="avatar" className="um-search-input" style={{ paddingLeft: '1rem', paddingTop: '0.5rem' }} accept="image/*" />
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      style={{
+                        border: '2px dashed #e2e8f0',
+                        borderRadius: '16px',
+                        padding: '1rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        cursor: 'pointer',
+                        background: avatarPreview ? 'transparent' : '#f8fafc',
+                        transition: 'border-color 0.2s, background 0.2s',
+                        minHeight: '90px',
+                        position: 'relative',
+                        overflow: 'hidden',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--mint-green)')}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor = '#e2e8f0')}
+                    >
+                      {avatarPreview ? (
+                        <>
+                          <img src={avatarPreview} alt="preview" style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--mint-green)' }} />
+                          <span style={{ fontSize: '11px', color: '#6DD4B4', fontWeight: 700 }}>Nhấn để đổi ảnh</span>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Upload size={18} color="#94a3b8" />
+                          </div>
+                          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Tải ảnh lên</span>
+                          <span style={{ fontSize: '10px', color: '#94a3b8' }}>PNG, JPG, GIF (tối đa 2MB)</span>
+                        </>
+                      )}
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      name="avatar"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = ev => setAvatarPreview(ev.target?.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                  <button type="button" onClick={() => setShowAddModal(false)} style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600, cursor: 'pointer' }}>Hủy</button>
+                  <button type="button" onClick={() => { setShowAddModal(false); setAvatarPreview(null); }} style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600, cursor: 'pointer' }}>Hủy</button>
                   <button type="submit" className="um-btn-primary">Lưu người dùng</button>
                 </div>
               </form>
@@ -354,8 +524,12 @@ const UserManagement: React.FC = () => {
           {viewUser && editData && (
             <SharedModal title={isEditing ? "Chỉnh sửa người dùng" : "Chi tiết người dùng"} onClose={() => { setViewUser(null); setIsEditing(false); }}>
               <div style={{ display: 'flex', gap: '2rem' }}>
-                <div style={{ width: '120px', height: '120px', borderRadius: '24px', overflow: 'hidden', backgroundColor: '#F1FAF6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <img src={viewUser.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${viewUser.fullName}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div style={{ width: '120px', height: '120px', borderRadius: '24px', overflow: 'hidden', backgroundColor: '#F1FAF6', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #e2e8f0' }}>
+                  {viewUser.avatarUrl ? (
+                    <img src={viewUser.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <UserCircle2 size={64} color="#6DD4B4" />
+                  )}
                 </div>
                 <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <DetailItem label="Mã người dùng" value={viewUser.id} readOnly />
@@ -377,7 +551,7 @@ const UserManagement: React.FC = () => {
                             role: { id: e.target.value === 'ADMIN' ? 1 : 2, name: e.target.value } 
                           })}
                         >
-                          <option value="ADMIN">Người nội trợ (Admin)</option>
+                          <option value="ADMIN">Người nội trợ</option>
                           <option value="CUSTOMER">Thành viên</option>
                         </select>
                       </div>
@@ -408,10 +582,11 @@ const UserManagement: React.FC = () => {
                   ) : (
                     <>
                       <DetailItem label="Họ tên" value={viewUser.fullName} />
-                      <DetailItem label="Vai trò" value={viewUser.role?.name === 'ADMIN' ? 'Người nội trợ (Admin)' : 'Thành viên'} isBadge />
+                      <DetailItem label="Vai trò" value={viewUser.role?.name === 'ADMIN' ? 'Người nội trợ' : 'Thành viên'} isBadge />
                       <DetailItem label="Giới tính" value={viewUser.gender === 'MALE' ? 'Nam' : viewUser.gender === 'FEMALE' ? 'Nữ' : 'Khác'} />
                       <DetailItem label="Số điện thoại" value={viewUser.phone} />
                       <DetailItem label="Email" value={viewUser.email} />
+                      <DetailItem label="Gia đình" value={viewUser.family?.name || 'Không có'} />
                     </>
                   )}
                 </div>
@@ -457,6 +632,108 @@ const UserManagement: React.FC = () => {
                   <button onClick={() => handleDelete(deleteConfirm)} style={{ flex: 1, padding: '0.75rem', borderRadius: '9999px', background: '#EF4444', color: 'white', fontWeight: 600, border: 'none', cursor: 'pointer' }}>Xóa ngay</button>
                 </div>
               </div>
+            </SharedModal>
+          )}
+
+          {/* FAMILY MEMBERS MODAL */}
+          {selectedFamily && (
+            <SharedModal
+              title=""
+              onClose={() => { setSelectedFamily(null); setFamilyMembers([]); }}
+              width="760px"
+            >
+              {/* Custom header */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '12px', background: 'linear-gradient(135deg, #6DD4B4, #3BA89A)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Home size={18} color="white" />
+                  </div>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>{selectedFamily.name}</h2>
+                    <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>
+                      {loadingMembers ? 'Đang tải...' : `${familyMembers.length} thành viên`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {loadingMembers ? (
+                <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
+                  <div style={{ width: '40px', height: '40px', border: '3px solid #e2e8f0', borderTopColor: '#6DD4B4', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
+                  <p style={{ fontWeight: 600 }}>Đang tải danh sách thành viên...</p>
+                </div>
+              ) : familyMembers.length === 0 ? (
+                <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
+                  <UserCircle2 size={48} color="#e2e8f0" style={{ marginBottom: '1rem' }} />
+                  <p style={{ fontWeight: 600 }}>Gia đình chưa có thành viên nào</p>
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="um-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '50px' }}>ID</th>
+                        <th>Họ tên</th>
+                        <th>Số điện thoại</th>
+                        <th>Email</th>
+                        <th style={{ textAlign: 'center' }}>Vai trò</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {familyMembers.map(member => (
+                        <tr
+                          key={member.id}
+                          style={{ cursor: 'pointer', transition: 'background 0.15s' }}
+                          onClick={() => {
+                            const asUser: User = {
+                              id: member.id,
+                              fullName: member.fullName,
+                              email: member.email,
+                              phone: member.phone,
+                              gender: member.gender as any,
+                              avatarUrl: member.avatarUrl,
+                              role: { id: member.roleName === 'ADMIN' ? 1 : 2, name: member.roleName || 'CUSTOMER' },
+                              family: selectedFamily,
+                            };
+                            setViewUser(asUser);
+                            setEditData(asUser);
+                            setIsEditing(false);
+                            setSelectedFamily(null);
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                          onMouseLeave={e => (e.currentTarget.style.background = '')}
+                        >
+                          <td style={{ fontWeight: 700, color: '#94a3b8', fontSize: '0.875rem' }}>{member.id}</td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <div style={{ width: '34px', height: '34px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #e2e8f0', flexShrink: 0 }}>
+                                {member.avatarUrl ? (
+                                  <img src={member.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                  <UserCircle2 size={20} color="#94a3b8" />
+                                )}
+                              </div>
+                              <span style={{ fontWeight: 700, color: '#1e293b' }}>{member.fullName}</span>
+                            </div>
+                          </td>
+                          <td style={{ fontSize: '0.875rem', color: '#64748b' }}>{member.phone || 'N/A'}</td>
+                          <td style={{ fontSize: '0.875rem', color: '#64748b' }}>{member.email}</td>
+                          <td>
+                            <div style={{ display: 'flex', justifyContent: 'center' }}>
+                              <div className="um-role-badge">
+                                {member.roleName === 'ADMIN' ? 'Người nội trợ' : 'Thành viên'}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center', marginTop: '1rem', fontWeight: 600 }}>
+                    Nhấn vào một thành viên để xem chi tiết
+                  </p>
+                </div>
+              )}
             </SharedModal>
           )}
         </AnimatePresence>
@@ -529,6 +806,21 @@ function PageArrow({ icon, disabled, onClick }: any) {
       style={{ width: '36px', height: '36px', borderRadius: '50%', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: disabled ? 'default' : 'pointer', color: '#94a3b8', opacity: disabled ? 0.3 : 1 }}>
       {icon}
     </button>
+  );
+}
+
+function SidebarLink({ icon, label, to, isExpanded, active, onClick }: any) {
+  return (
+    <NavLink to={to} onClick={onClick} className={`um-nav-item ${active ? 'active' : ''} ${isExpanded ? 'expanded' : 'collapsed'}`}>
+      <div className="um-nav-icon">{icon}</div>
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="um-nav-label">
+            {label}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </NavLink>
   );
 }
 
