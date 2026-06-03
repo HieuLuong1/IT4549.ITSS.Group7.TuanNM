@@ -81,15 +81,22 @@ const FamilyGroup: React.FC = () => {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
+        console.log("🔍 [DEBUG] API /familys/current response:", resGroup.data);
+        
         const groupData = resGroup.data.success ? resGroup.data.data : resGroup.data;
+        
+        console.log("🔍 [DEBUG] groupData sau khi bóc vỏ:", groupData);
+        console.log("🔍 [DEBUG] groupData.id:", groupData?.id);
         
         if (groupData) {
           const cleanName = String(groupData.name || "Gia đình Fiza").trim();
           const familyIdFromDb = groupData.id;
           
+          console.log("🔍 [DEBUG] familyIdFromDb từ groupData:", familyIdFromDb);
+          
           setFamilyName(cleanName);
           setEditName(cleanName);
-          localStorage.setItem("currentFamilyName", cleanName); // Đồng bộ tên gia đình lên local storage
+          localStorage.setItem("currentFamilyName", cleanName);
           familyIdFromDb && setFamilyId(familyIdFromDb);
 
           dbHousekeeperId = groupData.housekeeperId || groupData.ownerId || groupData.createdBy || (groupData.housekeeper && groupData.housekeeper.id);
@@ -280,7 +287,8 @@ const FamilyGroup: React.FC = () => {
           searchPlaceholder="Tìm kiếm thành viên..."
           searchValue={keyword}
           onSearchChange={(value) => setKeyword(value)}
-          familyName={familyName} 
+          familyName={familyName}
+          familyId={familyId}
         />
 
         <div className="family-group-main-wrapper">

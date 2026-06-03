@@ -14,7 +14,7 @@ import {
   ChevronRight,
   LogOut,
   Eye,
-  Link2
+  RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NavLink } from 'react-router-dom';
@@ -35,17 +35,26 @@ import {
 import Modal from '../../components/admin/Modal';
 import api from '../../services/api';
 
-export interface UnidentifiedItem {
-  id: string;
-  type: 'meat' | 'ingredient';
-  generalName: string; 
-  actualName: string;  
-  note: string;
-  submittedBy: string;
-  submittedAt: string;
+export interface CustomFoodRequest {
+  customName: string;
+  categoryId: number;
+  categoryName: string;
+  unit?: string;
+  placeholderFoodId: number;
+  placeholderFoodName: string;
+  requestCount: number;
+  firstRequestedAt?: string;
+  lastRequestedAt?: string;
 }
 
 const COLORS = ['#6DD4B4', '#F99F1B', '#FF7E7E', '#64748b', '#0EA5E9', '#A855F7', '#EC4899', '#F59E0B'];
+
+const formatDateTime = (value?: string) => {
+  if (!value) return 'Chưa có';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('vi-VN');
+};
 
 const PerformanceManagement: React.FC = () => {
   const { logout } = useAuth();
@@ -60,12 +69,9 @@ const PerformanceManagement: React.FC = () => {
     userActivity: []
   });
   
-  // Unidentified items (kept local since it's a review queue)
-  const [unidentifiedItems, setUnidentifiedItems] = useState<UnidentifiedItem[]>([
-    { id: 'ui-1', type: 'meat', generalName: 'Thịt chung 1', actualName: 'Thịt cá sấu', note: 'Mua tại chợ đầu mối, cần cách chế biến phù hợp', submittedBy: 'Nguyễn Văn A', submittedAt: '2026-05-15' },
-    { id: 'ui-2', type: 'meat', generalName: 'Thịt chung 2', actualName: 'Thịt lươn đồng', note: 'Đặc sản vùng quê', submittedBy: 'Trần Thị B', submittedAt: '2026-05-16' },
-    { id: 'ui-3', type: 'ingredient', generalName: 'Nguyên liệu chung 1', actualName: 'Gia vị Tây Bắc', note: 'Mắc khén, hạt dổi hỗn hợp', submittedBy: 'Lê Văn C', submittedAt: '2026-05-14' },
-  ]);
+  const [customFoodRequests, setCustomFoodRequests] = useState<CustomFoodRequest[]>([]);
+  const [isLoadingCustomFoodRequests, setIsLoadingCustomFoodRequests] = useState(false);
+  const [customFoodRequestError, setCustomFoodRequestError] = useState('');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [uiSearchQuery, setUiSearchQuery] = useState('');
@@ -80,9 +86,8 @@ const PerformanceManagement: React.FC = () => {
   const [newVariants, setNewVariants] = useState<string>('');
   const [itemSearch, setItemSearch] = useState('');
   const [categories, setCategories] = useState<any[]>([]);
-  const [approvingItem, setApprovingItem] = useState<UnidentifiedItem | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [viewingItem, setViewingItem] = useState<UnidentifiedItem | null>(null);
+  const [approvingItem, setApprovingItem] = useState<CustomFoodRequest | null>(null);
+  const [viewingItem, setViewingItem] = useState<CustomFoodRequest | null>(null);
   const [isLinkingMode, setIsLinkingMode] = useState(false);
   const [selectedLinkFood, setSelectedLinkFood] = useState<any | null>(null);
   const [linkSearchQuery, setLinkSearchQuery] = useState('');
@@ -129,10 +134,44 @@ const PerformanceManagement: React.FC = () => {
     }
   };
 
+  const fetchCustomFoodRequests = async () => {
+    setIsLoadingCustomFoodRequests(true);
+    setCustomFoodRequestError('');
+    try {
+      const response = await api.get('/api/fridge-items/custom-food-requests');
+      setCustomFoodRequests(response.data?.data || response.data || []);
+    } catch (err) {
+      console.error('Lỗi khi tải thực phẩm người dùng nhập:', err);
+      setCustomFoodRequests([]);
+      setCustomFoodRequestError('Không tải được dữ liệu thực phẩm trong nhóm "khác". Kiểm tra đăng nhập admin hoặc backend đã restart.');
+    } finally {
+      setIsLoadingCustomFoodRequests(false);
+    }
+  };
+
   useEffect(() => {
     fetchStats();
     fetchFoods();
     fetchCategories();
+    fetchCustomFoodRequests();
+  }, []);
+
+  useEffect(() => {
+    const refreshOnFocus = () => {
+      if (!document.hidden) {
+        fetchCustomFoodRequests();
+      }
+    };
+    const intervalId = window.setInterval(fetchCustomFoodRequests, 15000);
+
+    document.addEventListener('visibilitychange', refreshOnFocus);
+    window.addEventListener('focus', fetchCustomFoodRequests);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', refreshOnFocus);
+      window.removeEventListener('focus', fetchCustomFoodRequests);
+    };
   }, []);
 
 
@@ -236,29 +275,31 @@ const PerformanceManagement: React.FC = () => {
     setItemSearch('');
   };
 
-  const handleOpenApproveModal = (item: UnidentifiedItem) => {
+  const handleOpenApproveModal = (item: CustomFoodRequest) => {
     setApprovingItem(item);
-    setApproveName(item.actualName);
-    setApproveCategory(item.type === 'meat' ? 1 : 6);
-    setApproveUnit('kg');
-    setApproveSynonyms(item.generalName);
+    setApproveName(item.customName);
+    setApproveCategory(item.categoryId);
+    setApproveUnit(item.unit || 'g');
+    setApproveSynonyms(`${item.customName},${item.placeholderFoodName}`);
   };
 
   const handleSaveApproval = async () => {
     if (!approvingItem) return;
     try {
       const payload = {
+        customName: approvingItem.customName,
+        placeholderFoodId: approvingItem.placeholderFoodId,
         name: approveName,
         categoryId: approveCategory,
         unit: approveUnit,
         synonyms: approveSynonyms,
         imageUrl: 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'
       };
-      await api.post('/api/foods', payload);
-      alert(`Đã duyệt thực phẩm "${approveName}" vào hệ thống.`);
-      setUnidentifiedItems(unidentifiedItems.filter(i => i.id !== approvingItem.id));
+      await api.post('/api/fridge-items/custom-food-requests/resolve-new', payload);
+      alert(`Đã duyệt "${approveName}" thành thực phẩm mới và cập nhật các item trong tủ lạnh.`);
       setApprovingItem(null);
       fetchFoods();
+      fetchCustomFoodRequests();
       fetchStats();
     } catch (err) {
       console.error(err);
@@ -266,34 +307,30 @@ const PerformanceManagement: React.FC = () => {
     }
   };
 
-  const handleConfirmDeleteQueue = (id: string) => {
-    setUnidentifiedItems(unidentifiedItems.filter(i => i.id !== id));
-    setConfirmDeleteId(null);
-  };
-
   const handleSaveSynonymMapping = async () => {
     if (!viewingItem || !selectedLinkFood) return;
     try {
       const food = selectedLinkFood;
       const currentVariants = food.synonyms ? food.synonyms.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0) : [];
-      if (!currentVariants.includes(viewingItem.actualName.trim())) {
-        const updatedVariants = [...currentVariants, viewingItem.actualName.trim()].join(', ');
-        const payload = {
-          name: food.name,
-          categoryId: food.categoryId || food.category?.id || 1,
-          unit: food.unit,
-          imageUrl: food.imageUrl || '',
-          synonyms: updatedVariants
-        };
-        await api.put(`/api/foods/${food.id}`, payload);
-        alert(`Đã liên kết thành công! Đã thêm "${viewingItem.actualName}" làm từ đồng nghĩa của "${food.name}".`);
+      if (!currentVariants.includes(viewingItem.customName.trim())) {
+        await api.post('/api/fridge-items/custom-food-requests/resolve-synonym', {
+          customName: viewingItem.customName,
+          placeholderFoodId: viewingItem.placeholderFoodId,
+          targetFoodId: food.id
+        });
+        alert(`Đã liên kết thành công! Đã thêm "${viewingItem.customName}" làm từ đồng nghĩa của "${food.name}" và cập nhật các item trong tủ lạnh.`);
       } else {
-        alert(`"${viewingItem.actualName}" đã tồn tại trong từ đồng nghĩa của "${food.name}".`);
+        await api.post('/api/fridge-items/custom-food-requests/resolve-synonym', {
+          customName: viewingItem.customName,
+          placeholderFoodId: viewingItem.placeholderFoodId,
+          targetFoodId: food.id
+        });
+        alert(`"${viewingItem.customName}" đã tồn tại trong từ đồng nghĩa của "${food.name}", đã cập nhật các item trong tủ lạnh.`);
       }
-      setUnidentifiedItems(unidentifiedItems.filter(i => i.id !== viewingItem.id));
       setViewingItem(null);
       setIsLinkingMode(false);
       fetchFoods();
+      fetchCustomFoodRequests();
     } catch (err) {
       console.error(err);
       alert('Liên kết từ đồng nghĩa thất bại.');
@@ -464,8 +501,8 @@ const PerformanceManagement: React.FC = () => {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="um-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', gap: '2rem' }}>
                 <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--fiza-primary)' }}>Yêu cầu định danh thực phẩm (Người dùng nhập)</h3>
-                  <p style={{ fontSize: '0.875rem', color: '#64748b' }}>Các loại thực phẩm hoặc nguyên liệu mới do người dùng gửi lên</p>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--fiza-primary)' }}>Thực phẩm trong nhóm "khác" do người dùng nhập</h3>
+                  <p style={{ fontSize: '0.875rem', color: '#64748b' }}>Các item đang nằm dưới Rau củ khác, Trái cây khác, Thịt khác, Hải sản khác, Đồ khô khác, Gia vị khác... cần admin xem xét.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', flex: 1, justifyContent: 'flex-end' }}>
                   <div className="um-search-container" style={{ maxWidth: '300px' }}>
@@ -478,77 +515,71 @@ const PerformanceManagement: React.FC = () => {
                       onChange={(e) => setUiSearchQuery(e.target.value)}
                     />
                   </div>
+                  <button
+                    type="button"
+                    onClick={fetchCustomFoodRequests}
+                    className="um-btn-primary"
+                    disabled={isLoadingCustomFoodRequests}
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    <RefreshCw size={18} />
+                    {isLoadingCustomFoodRequests ? 'Đang tải' : 'Tải lại'}
+                  </button>
                 </div>
               </div>
+
+              {customFoodRequestError && (
+                <div style={{ marginBottom: '1rem', padding: '0.85rem 1rem', borderRadius: '12px', background: '#FEF2F2', color: '#B91C1C', fontSize: '0.875rem', fontWeight: 600 }}>
+                  {customFoodRequestError}
+                </div>
+              )}
 
               <div style={{ overflowX: 'auto' }}>
                 <table className="um-table">
                   <thead>
                     <tr>
-                      <th style={{ width: '120px' }}>Phân loại</th>
-                      <th style={{ width: '150px' }}>Tên loại chung</th>
-                      <th>Cụ thể (Người dùng nhập)</th>
-                      <th>Ghi chú / Chú thích</th>
-                      <th>Người gửi</th>
-                      <th>Ngày gửi</th>
+                      <th>Cụ thể người dùng nhập</th>
+                      <th>Nhóm hiện tại</th>
+                      <th>Food placeholder</th>
+                      <th>Đơn vị</th>
+                      <th>Số lần nhập</th>
+                      <th>Lần cuối</th>
                       <th style={{ textAlign: 'center', width: '100px' }}>Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {unidentifiedItems.filter(item => 
-                      item.actualName.toLowerCase().includes(uiSearchQuery.toLowerCase()) || 
-                      item.generalName.toLowerCase().includes(uiSearchQuery.toLowerCase()) ||
-                      (item.type === 'meat' ? 'thịt' : 'nguyên liệu').includes(uiSearchQuery.toLowerCase())
+                    {isLoadingCustomFoodRequests && (
+                      <tr>
+                        <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                          Đang tải dữ liệu thực phẩm người dùng nhập...
+                        </td>
+                      </tr>
+                    )}
+                    {customFoodRequests.filter(item => 
+                      item.customName.toLowerCase().includes(uiSearchQuery.toLowerCase()) || 
+                      item.categoryName.toLowerCase().includes(uiSearchQuery.toLowerCase()) ||
+                      item.placeholderFoodName.toLowerCase().includes(uiSearchQuery.toLowerCase())
                     ).map(item => (
-                      <tr key={item.id}>
+                      <tr key={`${item.placeholderFoodId}-${item.customName}`}>
+                        <td style={{ fontWeight: 800, color: 'var(--fiza-primary)' }}>{item.customName}</td>
                         <td>
-                          {item.type === 'meat' ? (
-                            <span style={{ 
-                              padding: '0.25rem 0.75rem', 
-                              borderRadius: '9999px', 
-                              fontSize: '10px', 
-                              fontWeight: 800, 
-                              textTransform: 'uppercase',
-                              backgroundColor: '#FEF3C7',
-                              color: '#D97706'
-                            }}>
-                              Thịt
-                            </span>
-                          ) : (
-                            <span style={{ 
-                              padding: '0.25rem 0.75rem', 
-                              borderRadius: '9999px', 
-                              fontSize: '10px', 
-                              fontWeight: 800, 
-                              textTransform: 'uppercase',
-                              backgroundColor: '#F3E8FF',
-                              color: '#9333EA'
-                            }}>
-                              Nguyên liệu
-                            </span>
-                          )}
+                          <span className="um-role-badge">{item.categoryName}</span>
                         </td>
-                        <td>
-                          <span style={{ fontWeight: 700, color: '#64748b', fontSize: '0.875rem' }}>
-                            {item.generalName}
-                          </span>
-                        </td>
-                        <td style={{ fontWeight: 800, color: 'var(--fiza-primary)' }}>{item.actualName}</td>
-                        <td style={{ fontSize: '0.875rem', color: '#64748b', maxWidth: '300px' }}>{item.note}</td>
-                        <td style={{ fontSize: '0.875rem', color: '#334155', fontWeight: 600 }}>{item.submittedBy}</td>
-                        <td style={{ fontSize: '0.875rem', color: '#64748b' }}>{item.submittedAt}</td>
+                        <td style={{ fontWeight: 700, color: '#64748b', fontSize: '0.875rem' }}>{item.placeholderFoodName}</td>
+                        <td style={{ fontSize: '0.875rem', color: '#64748b' }}>{item.unit || 'g'}</td>
+                        <td style={{ fontWeight: 800, color: '#0f172a' }}>{item.requestCount}</td>
+                        <td style={{ fontSize: '0.875rem', color: '#64748b' }}>{formatDateTime(item.lastRequestedAt)}</td>
                         <td>
                           <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
                             <ActionBtn icon={<Eye size={18} />} hoverColor="var(--fiza-primary)" onClick={() => { setViewingItem(item); setIsLinkingMode(false); }} />
-                            <ActionBtn icon={<Trash2 size={18} />} hoverColor="#ef4444" onClick={() => setConfirmDeleteId(item.id)} />
                           </div>
                         </td>
                       </tr>
                     ))}
-                    {unidentifiedItems.length === 0 && (
+                    {!isLoadingCustomFoodRequests && customFoodRequests.length === 0 && (
                       <tr>
                         <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
-                          Không có yêu cầu định danh thực phẩm nào cần xử lý.
+                          Không có thực phẩm thuộc nhóm "khác" nào cần xử lý.
                         </td>
                       </tr>
                     )}
@@ -794,8 +825,8 @@ const PerformanceManagement: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '1rem', border: '1px solid #e2e8f0', fontSize: '0.875rem' }}>
                 <p style={{ color: '#64748b', marginBottom: '0.25rem' }}>Người dùng nhập:</p>
-                <p style={{ fontWeight: 800, color: '#1e293b' }}>{approvingItem.actualName} ({approvingItem.generalName})</p>
-                {approvingItem.note && <p style={{ color: '#64748b', marginTop: '0.5rem', fontStyle: 'italic' }}>Ghi chú: {approvingItem.note}</p>}
+                <p style={{ fontWeight: 800, color: '#1e293b' }}>{approvingItem.customName} ({approvingItem.placeholderFoodName})</p>
+                <p style={{ color: '#64748b', marginTop: '0.5rem' }}>Các item hiện đang trỏ tới food placeholder này sẽ được chuyển sang thực phẩm mới sau khi duyệt.</p>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -886,7 +917,7 @@ const PerformanceManagement: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '1rem', border: '1px solid #e2e8f0', fontSize: '0.875rem' }}>
                   <p style={{ color: '#64748b', marginBottom: '0.25rem' }}>Liên kết tên gọi của người dùng:</p>
-                  <p style={{ fontWeight: 800, color: '#1e293b' }}>{viewingItem.actualName} ({viewingItem.generalName})</p>
+                  <p style={{ fontWeight: 800, color: '#1e293b' }}>{viewingItem.customName} ({viewingItem.placeholderFoodName})</p>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -955,16 +986,17 @@ const PerformanceManagement: React.FC = () => {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                  <DetailItem label="Tên loại chung" value={viewingItem.generalName} isBadge />
-                  <DetailItem label="Tên cụ thể (Người dùng nhập)" value={viewingItem.actualName} />
-                  <DetailItem label="Loại" value={viewingItem.type === 'meat' ? 'Thịt' : 'Nguyên liệu/Gia vị'} />
-                  <DetailItem label="Người gửi" value={viewingItem.submittedBy} />
-                  <DetailItem label="Ngày gửi" value={viewingItem.submittedAt} />
+                  <DetailItem label="Food placeholder" value={viewingItem.placeholderFoodName} isBadge />
+                  <DetailItem label="Tên người dùng nhập" value={viewingItem.customName} />
+                  <DetailItem label="Danh mục" value={viewingItem.categoryName} />
+                  <DetailItem label="Đơn vị" value={viewingItem.unit || 'g'} />
+                  <DetailItem label="Số lần nhập" value={viewingItem.requestCount} />
+                  <DetailItem label="Lần cuối" value={formatDateTime(viewingItem.lastRequestedAt)} />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.5rem' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Ghi chú / Chú thích của người dùng</span>
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Logic xử lý</span>
                   <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '1rem', border: '1px solid #e2e8f0', fontSize: '0.875rem', color: '#475569', lineHeight: 1.5 }}>
-                    {viewingItem.note || 'Không có ghi chú.'}
+                    Nếu đây là tên gọi khác của thực phẩm đã có, hãy liên kết vào thực phẩm sẵn có để thêm đồng nghĩa và chuyển các item khỏi nhóm "{viewingItem.placeholderFoodName}". Nếu đây là thực phẩm mới, hãy duyệt thành item mới trong cơ sở dữ liệu.
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem', flexDirection: 'column' }}>
@@ -1002,31 +1034,6 @@ const PerformanceManagement: React.FC = () => {
           </Modal>
         )}
 
-        {confirmDeleteId && (
-          <Modal title="Xác nhận xóa hàng chờ" onClose={() => setConfirmDeleteId(null)} width="400px">
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#FEF2F2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
-                <Trash2 size={32} />
-              </div>
-              <p style={{ fontWeight: 600, color: '#1e293b', marginBottom: '0.5rem' }}>Xóa yêu cầu duyệt?</p>
-              <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '2rem' }}>Yêu cầu này sẽ bị loại bỏ khỏi hàng chờ duyệt.</p>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <button 
-                  onClick={() => setConfirmDeleteId(null)} 
-                  style={{ flex: 1, padding: '0.75rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600, cursor: 'pointer' }}
-                >
-                  Hủy
-                </button>
-                <button 
-                  onClick={() => handleConfirmDeleteQueue(confirmDeleteId)} 
-                  style={{ flex: 1, padding: '0.75rem', borderRadius: '9999px', background: '#EF4444', color: 'white', fontWeight: 600, border: 'none', cursor: 'pointer' }}
-                >
-                  Xóa bỏ
-                </button>
-              </div>
-            </div>
-          </Modal>
-        )}
       </AnimatePresence>
 
     </div>

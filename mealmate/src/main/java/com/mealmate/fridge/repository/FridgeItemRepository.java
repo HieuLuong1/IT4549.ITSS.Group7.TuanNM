@@ -3,6 +3,7 @@ package com.mealmate.fridge.repository;
 import com.mealmate.fridge.model.FridgeItem;
 import com.mealmate.fridge.model.FridgeItemStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -21,6 +22,18 @@ public interface FridgeItemRepository extends JpaRepository<FridgeItem, Long> {
         Long getCategoryId();
         String getCategoryName();
         Long getCount();
+    }
+
+    interface CustomFoodRequestProjection {
+        String getCustomName();
+        Long getCategoryId();
+        String getCategoryName();
+        String getUnit();
+        Long getPlaceholderFoodId();
+        String getPlaceholderFoodName();
+        Long getRequestCount();
+        LocalDateTime getFirstRequestedAt();
+        LocalDateTime getLastRequestedAt();
     }
 
     @Query(value = """
@@ -279,5 +292,59 @@ public interface FridgeItemRepository extends JpaRepository<FridgeItem, Long> {
         @Param("from") LocalDateTime from,
         @Param("to") LocalDateTime to,
         @Param("categoryId") Long categoryId
+    );
+
+    @Query(value = """
+        select
+            trim(fi.custom_name) as customName,
+            c.id as categoryId,
+            c.name as categoryName,
+            f.unit as unit,
+            f.id as placeholderFoodId,
+            f.name as placeholderFoodName,
+            count(fi.id) as requestCount,
+            min(fi.created_at) as firstRequestedAt,
+            max(fi.created_at) as lastRequestedAt
+        from fridge_items fi
+        join foods f on fi.food_id = f.id
+        left join categories c on f.category_id = c.id
+        where fi.custom_name is not null
+          and trim(fi.custom_name) <> ''
+          and lower(f.name) like '% khác'
+          and not exists (
+              select 1
+              from foods existing_food
+              where lower(existing_food.name) = lower(trim(fi.custom_name))
+                 or lower(replace(concat(',', coalesce(existing_food.synonyms, ''), ','), ' ', '')) like lower(replace(concat('%,', trim(fi.custom_name), ',%'), ' ', ''))
+          )
+          and (:categoryId is null or c.id = :categoryId)
+          and (
+                :keyword is null
+             or lower(trim(fi.custom_name)) like lower(concat('%', :keyword, '%'))
+             or lower(c.name) like lower(concat('%', :keyword, '%'))
+             or lower(f.name) like lower(concat('%', :keyword, '%'))
+          )
+        group by trim(fi.custom_name), c.id, c.name, f.unit, f.id, f.name
+        order by max(fi.created_at) desc, trim(fi.custom_name) asc
+        """, nativeQuery = true)
+    List<CustomFoodRequestProjection> findPendingCustomFoodRequests(
+        @Param("keyword") String keyword,
+        @Param("categoryId") Long categoryId
+    );
+
+    @Modifying
+    @Query(value = """
+        update fridge_items
+        set food_id = :targetFoodId,
+            custom_name = null,
+            updated_at = current_timestamp
+        where food_id = :placeholderFoodId
+          and custom_name is not null
+          and lower(trim(custom_name)) = lower(trim(:customName))
+        """, nativeQuery = true)
+    int resolveCustomFoodItems(
+        @Param("placeholderFoodId") Long placeholderFoodId,
+        @Param("customName") String customName,
+        @Param("targetFoodId") Long targetFoodId
     );
 }

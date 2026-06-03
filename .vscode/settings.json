@@ -7,5 +7,6 @@
     "java.project.resourcePaths": [
         "mealmate/src/main/resources",
         "mealmate/src/test/resources"
-    ]
+    ],
+    "java.debug.settings.onBuildFailureProceed": true
 }

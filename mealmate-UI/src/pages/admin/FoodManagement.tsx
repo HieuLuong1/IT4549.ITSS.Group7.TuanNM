@@ -42,13 +42,34 @@ export interface Food {
   isSystem: boolean;
 }
 
+interface CustomFoodRequest {
+  customName: string;
+  categoryId: number;
+  categoryName: string;
+  unit?: string;
+  placeholderFoodId: number;
+  placeholderFoodName: string;
+  requestCount: number;
+  firstRequestedAt?: string;
+  lastRequestedAt?: string;
+}
+
+type AddFoodDraft = {
+  name: string;
+  categoryId: number;
+  unit: string;
+  synonyms: string;
+} | null;
+
 const FoodManagement: React.FC = () => {
   const { logout } = useAuth();
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [foods, setFoods] = useState<Food[]>([]);
+  const [customFoodRequests, setCustomFoodRequests] = useState<CustomFoodRequest[]>([]);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingCustomRequests, setIsLoadingCustomRequests] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('Tất cả');
   
@@ -62,6 +83,7 @@ const FoodManagement: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Food | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [addFoodDraft, setAddFoodDraft] = useState<AddFoodDraft>(null);
 
   // Inline synonyms state
   const [inlineAdding, setInlineAdding] = useState(false);
@@ -98,9 +120,23 @@ const FoodManagement: React.FC = () => {
     }
   };
 
+  const fetchCustomFoodRequests = async () => {
+    setIsLoadingCustomRequests(true);
+    try {
+      const response = await api.get<CustomFoodRequest[]>('/api/fridge-items/custom-food-requests');
+      setCustomFoodRequests(response.data);
+    } catch (err) {
+      console.error(err);
+      setCustomFoodRequests([]);
+    } finally {
+      setIsLoadingCustomRequests(false);
+    }
+  };
+
   useEffect(() => {
     fetchCategories();
     fetchFoods();
+    fetchCustomFoodRequests();
   }, []);
 
   const filteredFoods = foods.filter(food => {
@@ -184,10 +220,22 @@ const FoodManagement: React.FC = () => {
       };
       setFoods([newFood, ...foods]);
       setShowAddModal(false);
+      setAddFoodDraft(null);
+      fetchCustomFoodRequests();
     } catch (err) {
       console.error(err);
       alert('Tạo thực phẩm thất bại.');
     }
+  };
+
+  const handleCreateFromCustomRequest = (request: CustomFoodRequest) => {
+    setAddFoodDraft({
+      name: request.customName,
+      categoryId: request.categoryId,
+      unit: request.unit || 'g',
+      synonyms: `${request.customName},${request.placeholderFoodName}`,
+    });
+    setShowAddModal(true);
   };
 
   const handleDelete = async (id: number) => {
@@ -257,7 +305,56 @@ const FoodManagement: React.FC = () => {
                     </select>
                   </div>
                 </div>
-                <button className="um-btn-primary" onClick={() => setShowAddModal(true)}><Plus size={20} />Thêm thực phẩm</button>
+                <button
+                  className="um-btn-primary"
+                  onClick={() => {
+                    setAddFoodDraft(null);
+                    setShowAddModal(true);
+                  }}
+                >
+                  <Plus size={20} />Thêm thực phẩm
+                </button>
+              </div>
+
+              <div style={{ margin: '0 0 1.5rem', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '16px', background: '#f8fafc' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', marginBottom: '0.85rem' }}>
+                  <div>
+                    <h2 style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--fiza-primary)', margin: 0 }}>Thực phẩm người dùng nhập</h2>
+                    <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0.25rem 0 0' }}>
+                      Các tên được nhập khi người dùng chọn nhóm thực phẩm "khác" trong tủ lạnh.
+                    </p>
+                  </div>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f766e', background: '#ccfbf1', borderRadius: '999px', padding: '0.35rem 0.75rem', whiteSpace: 'nowrap' }}>
+                    {customFoodRequests.length} chờ xử lý
+                  </span>
+                </div>
+
+                {isLoadingCustomRequests ? (
+                  <div style={{ padding: '0.75rem', color: '#64748b', fontWeight: 600 }}>Đang tải dữ liệu...</div>
+                ) : customFoodRequests.length === 0 ? (
+                  <div style={{ padding: '0.75rem', color: '#64748b', fontWeight: 600 }}>Không có thực phẩm khác cần xử lý.</div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem' }}>
+                    {customFoodRequests.slice(0, 6).map((request) => (
+                      <div key={`${request.categoryId}-${request.customName}`} style={{ background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                        <div>
+                          <div style={{ fontWeight: 900, color: '#0f172a' }}>{request.customName}</div>
+                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '0.2rem' }}>
+                            {request.categoryName} · từ "{request.placeholderFoodName}" · {request.requestCount} lần nhập
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="um-btn-primary"
+                          onClick={() => handleCreateFromCustomRequest(request)}
+                          style={{ justifyContent: 'center', padding: '0.55rem 0.8rem', fontSize: '12px' }}
+                        >
+                          <Plus size={16} /> Tạo thực phẩm
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div style={{ overflowX: 'auto' }}>
@@ -415,19 +512,19 @@ const FoodManagement: React.FC = () => {
           )}
 
           {showAddModal && (
-            <SharedModal title="Thêm thực phẩm mới" onClose={() => setShowAddModal(false)}>
+            <SharedModal title={addFoodDraft ? "Tạo thực phẩm từ người dùng nhập" : "Thêm thực phẩm mới"} onClose={() => { setShowAddModal(false); setAddFoodDraft(null); }}>
               <form onSubmit={handleAddFood} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-                 <FormGroup label="Tên thực phẩm" name="name" required />
+                 <FormGroup label="Tên thực phẩm" name="name" required defaultValue={addFoodDraft?.name || ''} />
                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Chủng loại</label>
-                   <select name="categoryId" className="um-search-input" style={{ paddingLeft: '1rem' }}>
+                   <select name="categoryId" className="um-search-input" defaultValue={addFoodDraft?.categoryId || categories[0]?.id} style={{ paddingLeft: '1rem' }}>
                      {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                    </select>
                  </div>
-                 <FormGroup label="Đơn vị (kg, g, cái...)" name="unit" required />
-                 <FormGroup label="Tên gọi khác" name="synonyms" />
+                 <FormGroup label="Đơn vị (kg, g, cái...)" name="unit" required defaultValue={addFoodDraft?.unit || ''} />
+                 <FormGroup label="Tên gọi khác" name="synonyms" defaultValue={addFoodDraft?.synonyms || ''} />
                  <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                   <button type="button" onClick={() => setShowAddModal(false)} style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600 }}>Hủy</button>
+                   <button type="button" onClick={() => { setShowAddModal(false); setAddFoodDraft(null); }} style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600 }}>Hủy</button>
                    <button type="submit" className="um-btn-primary">Tạo mới</button>
                  </div>
               </form>

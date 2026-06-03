@@ -1,5 +1,8 @@
 package com.mealmate.fridge.service;
 
+import com.mealmate.catalog.model.Food;
+import com.mealmate.catalog.repository.CategoryRepository;
+import com.mealmate.catalog.repository.FoodRepository;
 import com.mealmate.catalog.repository.RecipeIngredientRepository;
 import com.mealmate.catalog.repository.RecipeSuggestionProjection;
 import com.mealmate.fridge.mapper.FridgeItemMapper;
@@ -7,6 +10,7 @@ import com.mealmate.fridge.model.FridgeItem;
 import com.mealmate.fridge.model.FridgeItemStatus;
 import com.mealmate.fridge.model.RemoveReason;
 import com.mealmate.fridge.model.dto.CreateFridgeItemRequest;
+import com.mealmate.fridge.model.dto.CustomFoodRequestResponse;
 import com.mealmate.fridge.model.dto.FridgeOverviewResponse;
 import com.mealmate.fridge.model.dto.FridgeItemResponse;
 import com.mealmate.fridge.model.dto.ImportShoppingItemRequest;
@@ -15,6 +19,8 @@ import com.mealmate.fridge.model.dto.ImportShoppingItemsResponse;
 import com.mealmate.fridge.model.dto.RecipeSuggestionIngredientResponse;
 import com.mealmate.fridge.model.dto.RecipeSuggestionResponse;
 import com.mealmate.fridge.model.dto.RemoveFridgeItemRequest;
+import com.mealmate.fridge.model.dto.ResolveCustomFoodAsNewRequest;
+import com.mealmate.fridge.model.dto.ResolveCustomFoodAsSynonymRequest;
 import com.mealmate.fridge.model.dto.ShoppingImportCandidateResponse;
 import com.mealmate.fridge.model.dto.UpdateFridgeItemRequest;
 import com.mealmate.fridge.repository.FridgeItemProjection;
@@ -47,17 +53,23 @@ public class FridgeItemService {
     private final FridgeItemMapper fridgeItemMapper;
     private final ShoppingListItemRepository shoppingListItemRepository;
     private final RecipeIngredientRepository recipeIngredientRepository;
+    private final FoodRepository foodRepository;
+    private final CategoryRepository categoryRepository;
 
     public FridgeItemService(
             FridgeItemRepository fridgeItemRepository,
             FridgeItemMapper fridgeItemMapper,
             ShoppingListItemRepository shoppingListItemRepository,
-            RecipeIngredientRepository recipeIngredientRepository
+            RecipeIngredientRepository recipeIngredientRepository,
+            FoodRepository foodRepository,
+            CategoryRepository categoryRepository
     ) {
         this.fridgeItemRepository = fridgeItemRepository;
         this.fridgeItemMapper = fridgeItemMapper;
         this.shoppingListItemRepository = shoppingListItemRepository;
         this.recipeIngredientRepository = recipeIngredientRepository;
+        this.foodRepository = foodRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     public List<FridgeItemResponse> getStoredItems() {
@@ -267,6 +279,63 @@ public class FridgeItemService {
         return response;
     }
 
+    public List<CustomFoodRequestResponse> getPendingCustomFoodRequests(String keyword, Long categoryId) {
+        return fridgeItemRepository.findPendingCustomFoodRequests(normalizeBlank(keyword), categoryId)
+                .stream()
+                .map(this::toCustomFoodRequestResponse)
+                .toList();
+    }
+
+    @Transactional
+    public CustomFoodRequestResponse resolveCustomFoodAsSynonym(ResolveCustomFoodAsSynonymRequest request) {
+        String customName = requireNormalized(request.getCustomName(), "customName is required");
+        Food targetFood = foodRepository.findById(request.getTargetFoodId())
+                .orElseThrow(() -> new IllegalArgumentException("Target food not found"));
+
+        targetFood.setSynonyms(appendSynonym(targetFood.getSynonyms(), customName));
+        foodRepository.save(targetFood);
+
+        fridgeItemRepository.resolveCustomFoodItems(
+                request.getPlaceholderFoodId(),
+                customName,
+                targetFood.getId()
+        );
+
+        return toResolvedCustomFoodRequestResponse(customName, request.getPlaceholderFoodId(), targetFood);
+    }
+
+    @Transactional
+    public CustomFoodRequestResponse resolveCustomFoodAsNew(ResolveCustomFoodAsNewRequest request) {
+        String customName = requireNormalized(request.getCustomName(), "customName is required");
+        String foodName = requireNormalized(request.getName(), "name is required");
+
+        if (!categoryRepository.existsById(request.getCategoryId())) {
+            throw new IllegalArgumentException("Category not found");
+        }
+
+        foodRepository.findByNameIgnoreCase(foodName)
+                .ifPresent(existing -> {
+                    throw new IllegalArgumentException("Food already exists");
+                });
+
+        Food food = new Food();
+        food.setCategoryId(request.getCategoryId());
+        food.setName(foodName);
+        food.setUnit(normalizeBlank(request.getUnit()));
+        food.setSynonyms(appendSynonym(request.getSynonyms(), customName));
+        food.setImageUrl(normalizeBlank(request.getImageUrl()));
+        food.setIsSystem(true);
+
+        Food saved = foodRepository.save(food);
+        fridgeItemRepository.resolveCustomFoodItems(
+                request.getPlaceholderFoodId(),
+                customName,
+                saved.getId()
+        );
+
+        return toResolvedCustomFoodRequestResponse(customName, request.getPlaceholderFoodId(), saved);
+    }
+
     private void validateCreateRequest(CreateFridgeItemRequest request) {
         if (request.getFoodId() == null) {
             throw new IllegalArgumentException("foodId is required");
@@ -351,6 +420,41 @@ public class FridgeItemService {
         response.setQuantity(projection.getQuantity());
         response.setUnit(projection.getUnit());
         response.setNote(projection.getNote());
+
+        return response;
+    }
+
+    private CustomFoodRequestResponse toCustomFoodRequestResponse(
+            FridgeItemRepository.CustomFoodRequestProjection projection
+    ) {
+        CustomFoodRequestResponse response = new CustomFoodRequestResponse();
+
+        response.setCustomName(projection.getCustomName());
+        response.setCategoryId(projection.getCategoryId());
+        response.setCategoryName(projection.getCategoryName());
+        response.setUnit(projection.getUnit());
+        response.setPlaceholderFoodId(projection.getPlaceholderFoodId());
+        response.setPlaceholderFoodName(projection.getPlaceholderFoodName());
+        response.setRequestCount(projection.getRequestCount());
+        response.setFirstRequestedAt(projection.getFirstRequestedAt());
+        response.setLastRequestedAt(projection.getLastRequestedAt());
+
+        return response;
+    }
+
+    private CustomFoodRequestResponse toResolvedCustomFoodRequestResponse(
+            String customName,
+            Long placeholderFoodId,
+            Food resolvedFood
+    ) {
+        CustomFoodRequestResponse response = new CustomFoodRequestResponse();
+
+        response.setCustomName(customName);
+        response.setCategoryId(resolvedFood.getCategoryId());
+        response.setUnit(resolvedFood.getUnit());
+        response.setPlaceholderFoodId(placeholderFoodId);
+        response.setPlaceholderFoodName(resolvedFood.getName());
+        response.setRequestCount(0L);
 
         return response;
     }
@@ -529,6 +633,35 @@ public class FridgeItemService {
             return null;
         }
         return value.trim();
+    }
+
+    private String requireNormalized(String value, String message) {
+        String normalized = normalizeBlank(value);
+        if (normalized == null) {
+            throw new IllegalArgumentException(message);
+        }
+        return normalized;
+    }
+
+    private String appendSynonym(String existingSynonyms, String synonym) {
+        String normalizedSynonym = requireNormalized(synonym, "synonym is required");
+        List<String> synonyms = new ArrayList<>();
+
+        if (existingSynonyms != null && !existingSynonyms.trim().isEmpty()) {
+            for (String current : existingSynonyms.split(",")) {
+                String normalizedCurrent = normalizeBlank(current);
+                if (normalizedCurrent != null
+                        && synonyms.stream().noneMatch(value -> value.equalsIgnoreCase(normalizedCurrent))) {
+                    synonyms.add(normalizedCurrent);
+                }
+            }
+        }
+
+        if (synonyms.stream().noneMatch(value -> value.equalsIgnoreCase(normalizedSynonym))) {
+            synonyms.add(normalizedSynonym);
+        }
+
+        return String.join(",", synonyms);
     }
 
     private boolean isAlmostOut(BigDecimal quantity, String unit) {
