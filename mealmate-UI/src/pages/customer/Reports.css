@@ -10,14 +10,13 @@
 
 .user-reports-page {
   flex: 1;
+  /* 🎯 ĐA SỬA ĐỒNG BỘ: Cố định khoảng cách cứng 104px đằng sau Sidebar không bị giật trang */
   margin-left: 104px;
   min-height: 100vh;
   background: var(--fiza-background);
 }
 
-.user-reports-layout .sidebar:hover ~ .user-reports-page {
-  margin-left: 284px;
-}
+/* 🎯 ĐA XÓA: Bỏ hoàn toàn selector .user-reports-layout .sidebar:hover ~ .user-reports-page gây giật trang */
 
 .user-reports-page > .topbar {
   position: sticky;

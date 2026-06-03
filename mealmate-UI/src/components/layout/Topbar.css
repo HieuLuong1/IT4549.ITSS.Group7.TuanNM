@@ -17,10 +17,11 @@
   flex-direction: column;
   justify-content: flex-start;
   align-items: flex-start;
+  flex-shrink: 0;
+  min-width: fit-content;
 }
 
 .topbar-title {
-  width: 270px;
   height: 32px;
   display: flex;
   flex-direction: column;
@@ -30,7 +31,9 @@
   font-family: "Plus Jakarta Sans", "Inter", "Segoe UI", sans-serif;
   font-weight: 700;
   line-height: 32px;
-  word-wrap: break-word;
+  /* 🎯 THAY ĐỔI: Phá bỏ chiều rộng cũ và ép chữ thẳng hàng */
+  width: auto;
+  white-space: nowrap; 
 }
 
 .topbar-actions {
@@ -153,7 +156,10 @@
 }
 
 .topbar-family-button div {
-  width: 119.2px;
+  /* 🎯 THAY ĐỔI: Cho phép co giãn tự do theo độ dài chữ ADMIN */
+  width: auto;
+  min-width: 60px;
+  text-align: center;
   height: 20px;
   display: flex;
   flex-direction: column;

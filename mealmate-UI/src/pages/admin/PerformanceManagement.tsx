@@ -1,26 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, 
-  UtensilsCrossed, 
   BookOpen, 
-  Bell, 
-  Settings, 
-  Leaf,
-  BarChart3,
-  Search,
-  Plus,
-  Trash2,
-  X,
-  ChevronRight,
+  UtensilsCrossed,
+  Users, 
+  Search, 
+  Plus, 
+  Trash2, 
+  X, 
+  ChevronRight, 
   ChevronLeft,
-  LogOut,
-  Eye,
+  Eye, 
   RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-
 import { 
   BarChart, 
   Bar, 
@@ -35,6 +27,13 @@ import {
 } from 'recharts';
 import Modal from '../../components/admin/Modal';
 import api from '../../services/api';
+
+// 🎯 NHÚNG CÁC THÀNH PHẦN LAYOUT HỆ THỐNG MỚI
+import Sidebar from '../../components/layout/Sidebar';
+import Topbar from '../../components/layout/Topbar';
+
+// 🎯 IMPORT FILE CSS RIÊNG
+import './PerformanceManagement.css';
 
 export interface CustomFoodRequest {
   customName: string;
@@ -58,9 +57,6 @@ const formatDateTime = (value?: string) => {
 };
 
 const PerformanceManagement: React.FC = () => {
-  const { logout } = useAuth();
-  const navigate = useNavigate();
-  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [foods, setFoods] = useState<any[]>([]);
   const [stats, setStats] = useState<any>({
     totalUsers: 0,
@@ -84,7 +80,7 @@ const PerformanceManagement: React.FC = () => {
   
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
-  const [step, setStep] = useState(2); // Start directly at step 2 (Select food)
+  const [step, setStep] = useState(2);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [newVariants, setNewVariants] = useState<string>('');
   const [itemSearch, setItemSearch] = useState('');
@@ -100,7 +96,6 @@ const PerformanceManagement: React.FC = () => {
   const [approveCategory, setApproveCategory] = useState<number>(1);
   const [approveUnit, setApproveUnit] = useState('kg');
   const [approveSynonyms, setApproveSynonyms] = useState('');
-
 
   const fetchStats = async () => {
     try {
@@ -176,7 +171,6 @@ const PerformanceManagement: React.FC = () => {
       window.removeEventListener('focus', fetchCustomFoodRequests);
     };
   }, []);
-
 
   const handleAddInlineVariant = async (foodId: number) => {
     if (!inlineValue.trim()) return;
@@ -283,7 +277,7 @@ const PerformanceManagement: React.FC = () => {
     setApproveName(item.customName);
     setApproveCategory(item.categoryId);
     setApproveUnit(item.unit || 'g');
-    setApproveSynonyms('');
+    setApproveSynonyms(`${item.customName},${item.placeholderFoodName}`);
   };
 
   const handleSaveApproval = async () => {
@@ -314,22 +308,12 @@ const PerformanceManagement: React.FC = () => {
     if (!viewingItem || !selectedLinkFood) return;
     try {
       const food = selectedLinkFood;
-      const currentVariants = food.synonyms ? food.synonyms.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0) : [];
-      if (!currentVariants.includes(viewingItem.customName.trim())) {
-        await api.post('/api/fridge-items/custom-food-requests/resolve-synonym', {
-          customName: viewingItem.customName,
-          placeholderFoodId: viewingItem.placeholderFoodId,
-          targetFoodId: food.id
-        });
-        alert(`Đã liên kết thành công! Đã thêm "${viewingItem.customName}" làm từ đồng nghĩa của "${food.name}" và cập nhật các item trong tủ lạnh.`);
-      } else {
-        await api.post('/api/fridge-items/custom-food-requests/resolve-synonym', {
-          customName: viewingItem.customName,
-          placeholderFoodId: viewingItem.placeholderFoodId,
-          targetFoodId: food.id
-        });
-        alert(`"${viewingItem.customName}" đã tồn tại trong từ đồng nghĩa của "${food.name}", đã cập nhật các item trong tủ lạnh.`);
-      }
+      await api.post('/api/fridge-items/custom-food-requests/resolve-synonym', {
+        customName: viewingItem.customName,
+        placeholderFoodId: viewingItem.placeholderFoodId,
+        targetFoodId: food.id
+      });
+      alert(`Đã liên kết thành công! Đã thêm "${viewingItem.customName}" làm từ đồng nghĩa của "${food.name}" và cập nhật các item trong tủ lạnh.`);
       setViewingItem(null);
       setIsLinkingMode(false);
       fetchFoods();
@@ -340,8 +324,6 @@ const PerformanceManagement: React.FC = () => {
     }
   };
 
-
-  // Filter foods for synonym display
   const foodSynonyms = foods.filter(f => f.synonyms && (f.synonyms as string).trim().length > 0).map(f => ({
     id: f.id,
     originalName: f.name,
@@ -379,137 +361,63 @@ const PerformanceManagement: React.FC = () => {
 
   return (
     <div className="um-layout">
-      {/* Sidebar */}
-      <aside 
-        onMouseEnter={() => setIsSidebarHovered(true)}
-        onMouseLeave={() => setIsSidebarHovered(false)}
-        className={`um-sidebar ${isSidebarHovered ? 'expanded' : 'collapsed'}`}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', marginBottom: '3rem', padding: isSidebarHovered ? '0 1.25rem' : '0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: isSidebarHovered ? 'flex-start' : 'center' }}>
-            <div style={{ width: '48px', height: '48px', backgroundColor: 'var(--fiza-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '20px', flexShrink: 0, margin: isSidebarHovered ? '0' : '0 auto' }}>
-              <Leaf color="white" fill="white" size={28} />
-            </div>
-            <AnimatePresence>
-              {isSidebarHovered && (
-                <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--mint-green)', marginLeft: '0.75rem', whiteSpace: 'nowrap' }}>
-                  Fiza
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
+      <Sidebar />
 
-        <nav style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <SidebarLink icon={<Users size={22} />} label="Quản lý người dùng" to="/admin/users" isExpanded={isSidebarHovered} />
-          <SidebarLink icon={<UtensilsCrossed size={22} />} label="Quản lý thực phẩm" to="/admin/foods" isExpanded={isSidebarHovered} />
-          <SidebarLink icon={<BookOpen size={22} />} label="Quản lý món ăn" to="/admin/recipes" isExpanded={isSidebarHovered} />
-          <SidebarLink icon={<BarChart3 size={22} />} label="Quản lý hiệu suất" to="/admin/performance" isExpanded={isSidebarHovered} active />
-          <SidebarLink icon={<LogOut size={22} />} label="Đăng xuất" to="#" isExpanded={isSidebarHovered} onClick={logout} />
-        </nav>
+      <div className="um-main">
+        {/* 🎯 ĐÃ NHÚNG TOPBAR: Ẩn tìm kiếm thanh trên đi (showSearch={false}) và ép hiển thị ADMIN góc phải */}
+        <Topbar 
+          title="Quản lý hiệu suất" 
+          showSearch={false}
+          familyName="ADMIN"
+        />
 
-
-        <div style={{ width: '100%', paddingTop: '1.5rem', borderTop: '1px solid #f1f5f9' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 1rem', margin: '0.5rem 0.5rem 0', borderRadius: '1rem', cursor: 'pointer' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', border: '1px solid var(--fiza-primary)', flexShrink: 0, margin: isSidebarHovered ? '0' : '0 auto' }}>
-              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Admin" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            </div>
-            <AnimatePresence>
-              {isSidebarHovered && (
-                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} style={{ marginLeft: '0.75rem' }}>
-                  <p style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1e293b' }}>Admin Fiza</p>
-                  <p style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Super Admin</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <div className={`um-main ${isSidebarHovered ? 'shifted' : 'unshifted'}`}>
-        <header className="um-header">
-          <div className="um-header-left">
-            <h1 className="um-title">Quản lý hiệu suất</h1>
-            <p className="um-subtitle">Theo dõi báo cáo và tối ưu hóa hệ thống</p>
-          </div>
-          <div className="um-header-right">
-            <HeaderBtn icon={<Bell size={20} />} hasBadge />
-            <HeaderBtn icon={<Settings size={20} />} />
-          </div>
-        </header>
-
-        <div className="um-main-container" style={{ paddingBottom: '4rem' }}>
-          <main className="um-content" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div className="um-main-container pb-4">
+          <main className="um-content vertical-stack-gap">
             
             {/* Stats Summary Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
-              <div 
-                className="um-card" 
-                onClick={() => navigate('/admin/users')}
-                style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem 1.5rem', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.05)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
-              >
-                <div style={{ width: '48px', height: '48px', borderRadius: '16px', backgroundColor: '#E0F2FE', color: '#0284C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="stats-grid-4col">
+              <div className="um-card stat-item-card">
+                <div className="stat-icon-wrapper bg-sky text-sky">
                   <Users size={24} />
                 </div>
                 <div>
-                  <p style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Người dùng</p>
-                  <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{stats.totalUsers}</p>
+                  <p className="stat-card-label">Người dùng</p>
+                  <p className="stat-card-number">{stats.totalUsers}</p>
                 </div>
               </div>
-              <div 
-                className="um-card" 
-                onClick={() => navigate('/admin/users')}
-                style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem 1.5rem', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.05)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
-              >
-                <div style={{ width: '48px', height: '48px', borderRadius: '16px', backgroundColor: '#FEE2E2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Leaf size={24} />
+              <div className="um-card stat-item-card">
+                <div className="stat-icon-wrapper bg-red text-red">
+                  <RefreshCw size={24} />
                 </div>
                 <div>
-                  <p style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Gia đình</p>
-                  <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{stats.totalFamilies}</p>
+                  <p className="stat-card-label">Gia đình</p>
+                  <p className="stat-card-number">{stats.totalFamilies}</p>
                 </div>
               </div>
-              <div 
-                className="um-card" 
-                onClick={() => navigate('/admin/foods')}
-                style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem 1.5rem', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.05)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
-              >
-                <div style={{ width: '48px', height: '48px', borderRadius: '16px', backgroundColor: '#DCFCE7', color: '#22C55E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="um-card stat-item-card">
+                <div className="stat-icon-wrapper bg-green text-green">
                   <UtensilsCrossed size={24} />
                 </div>
                 <div>
-                  <p style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Thực phẩm</p>
-                  <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{stats.totalFoods}</p>
+                  <p className="stat-card-label">Thực phẩm</p>
+                  <p className="stat-card-number">{stats.totalFoods}</p>
                 </div>
               </div>
-              <div 
-                className="um-card" 
-                onClick={() => navigate('/admin/recipes')}
-                style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem 1.5rem', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.05)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
-              >
-                <div style={{ width: '48px', height: '48px', borderRadius: '16px', backgroundColor: '#F3E8FF', color: '#A855F7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="um-card stat-item-card">
+                <div className="stat-icon-wrapper bg-purple text-purple">
                   <BookOpen size={24} />
                 </div>
                 <div>
-                  <p style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Món ăn</p>
-                  <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>{stats.totalRecipes}</p>
+                  <p className="stat-card-label">Món ăn</p>
+                  <p className="stat-card-number">{stats.totalRecipes}</p>
                 </div>
               </div>
             </div>
 
             {/* Charts Section */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="um-card" style={{ height: '400px' }}>
-                <h3 style={{ marginBottom: '1.5rem', fontSize: '1rem', fontWeight: 800, color: 'var(--fiza-primary)' }}>Lượt truy cập trong tuần</h3>
+            <div className="charts-grid-2col">
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="um-card h-400">
+                <h3 className="chart-title">Lượt truy cập trong tuần</h3>
                 <ResponsiveContainer width="100%" height="85%">
                   <BarChart data={stats.userActivity}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -521,8 +429,8 @@ const PerformanceManagement: React.FC = () => {
                 </ResponsiveContainer>
               </motion.div>
 
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="um-card" style={{ height: '400px' }}>
-                <h3 style={{ marginBottom: '1.5rem', fontSize: '1rem', fontWeight: 800, color: 'var(--fiza-primary)' }}>Phân loại thực phẩm</h3>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="um-card h-400">
+                <h3 className="chart-title">Phân loại thực phẩm</h3>
                 <ResponsiveContainer width="100%" height="85%">
                   <PieChart>
                     <Pie
@@ -544,12 +452,13 @@ const PerformanceManagement: React.FC = () => {
 
             {/* Unidentified Items Section */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="um-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', gap: '2rem' }}>
+              <div className="section-toolbar-wrapper">
                 <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--fiza-primary)' }}>Thực phẩm tự nhập chờ duyệt</h3>
+                  <h3 className="section-block-title">Thực phẩm trong nhóm "khác" do người dùng nhập</h3>
+                  <p className="section-block-subtitle">Các item đang nằm dưới Rau củ khác, Trái cây khác, Thịt khác, Hải sản khác, Đồ khô khác, Gia vị khác... cần admin xem xét.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem', flex: 1, justifyContent: 'flex-end' }}>
-                  <div className="um-search-container" style={{ maxWidth: '300px' }}>
+                <div className="toolbar-search-actions-flex">
+                  <div className="um-search-container max-w-300">
                     <Search className="um-search-icon" size={18} />
                     <input 
                       type="text" 
@@ -562,9 +471,8 @@ const PerformanceManagement: React.FC = () => {
                   <button
                     type="button"
                     onClick={fetchCustomFoodRequests}
-                    className="um-btn-primary"
+                    className="um-btn-primary whitespace-nowrap"
                     disabled={isLoadingCustomFoodRequests}
-                    style={{ whiteSpace: 'nowrap' }}
                   >
                     <RefreshCw size={18} />
                     {isLoadingCustomFoodRequests ? 'Đang tải' : 'Tải lại'}
@@ -573,12 +481,12 @@ const PerformanceManagement: React.FC = () => {
               </div>
 
               {customFoodRequestError && (
-                <div style={{ marginBottom: '1rem', padding: '0.85rem 1rem', borderRadius: '12px', background: '#FEF2F2', color: '#B91C1C', fontSize: '0.875rem', fontWeight: 600 }}>
+                <div className="error-alert-banner">
                   {customFoodRequestError}
                 </div>
               )}
 
-              <div style={{ overflowX: 'auto' }}>
+              <div className="table-overflow-box">
                 <table className="um-table">
                   <thead>
                     <tr>
@@ -588,13 +496,13 @@ const PerformanceManagement: React.FC = () => {
                       <th>Đơn vị</th>
                       <th>Số lần nhập</th>
                       <th>Lần cuối</th>
-                      <th style={{ textAlign: 'center', width: '100px' }}>Hành động</th>
+                      <th className="text-center w-100">Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
                     {isLoadingCustomFoodRequests && (
                       <tr>
-                        <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                        <td colSpan={7} className="text-center p-2 text-muted">
                           Đang tải dữ liệu thực phẩm người dùng nhập...
                         </td>
                       </tr>
@@ -605,16 +513,16 @@ const PerformanceManagement: React.FC = () => {
                       item.placeholderFoodName.toLowerCase().includes(uiSearchQuery.toLowerCase())
                     ).map(item => (
                       <tr key={`${item.placeholderFoodId}-${item.customName}`}>
-                        <td style={{ fontWeight: 800, color: 'var(--fiza-primary)' }}>{item.customName}</td>
+                        <td className="custom-name-highlight">{item.customName}</td>
                         <td>
                           <span className="um-role-badge">{item.categoryName}</span>
                         </td>
-                        <td style={{ fontWeight: 700, color: '#64748b', fontSize: '0.875rem' }}>{item.placeholderFoodName}</td>
-                        <td style={{ fontSize: '0.875rem', color: '#64748b' }}>{item.unit || 'g'}</td>
-                        <td style={{ fontWeight: 800, color: '#0f172a' }}>{item.requestCount}</td>
-                        <td style={{ fontSize: '0.875rem', color: '#64748b' }}>{formatDateTime(item.lastRequestedAt)}</td>
+                        <td className="placeholder-name-bold">{item.placeholderFoodName}</td>
+                        <td className="text-muted-sm">{item.unit || 'g'}</td>
+                        <td className="count-number-text">{item.requestCount}</td>
+                        <td className="text-muted-sm">{formatDateTime(item.lastRequestedAt)}</td>
                         <td>
-                          <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+                          <div className="action-flex-center">
                             <ActionBtn icon={<Eye size={18} />} hoverColor="var(--fiza-primary)" onClick={() => { setViewingItem(item); setIsLinkingMode(false); }} />
                           </div>
                         </td>
@@ -622,7 +530,7 @@ const PerformanceManagement: React.FC = () => {
                     ))}
                     {!isLoadingCustomFoodRequests && customFoodRequests.length === 0 && (
                       <tr>
-                        <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                        <td colSpan={7} className="empty-table-cell">
                           Không có thực phẩm thuộc nhóm "khác" nào cần xử lý.
                         </td>
                       </tr>
@@ -634,23 +542,13 @@ const PerformanceManagement: React.FC = () => {
 
             {/* Synonym Management */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="um-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', gap: '2rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span style={{ 
-                    fontSize: '12px', 
-                    fontWeight: 800, 
-                    color: '#0f766e', 
-                    background: '#ccfbf1', 
-                    borderRadius: '999px', 
-                    padding: '0.35rem 0.75rem', 
-                    whiteSpace: 'nowrap' 
-                  }}>
-                    {filteredSynonyms.length}
-                  </span>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--fiza-primary)', margin: 0 }}>Tên gọi địa phương</h3>
+              <div className="section-toolbar-wrapper">
+                <div>
+                  <h3 className="section-block-title">Quản lý tên gọi địa phương</h3>
+                  <p className="section-block-subtitle">Đồng nhất tên gọi thực phẩm cho các vùng miền</p>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem', flex: 1, justifyContent: 'flex-end' }}>
-                  <div className="um-search-container" style={{ maxWidth: '300px' }}>
+                <div className="toolbar-search-actions-flex">
+                  <div className="um-search-container max-w-300">
                     <Search className="um-search-icon" size={18} />
                     <input 
                       type="text" 
@@ -671,52 +569,35 @@ const PerformanceManagement: React.FC = () => {
               </div>
 
               {isLoading ? (
-                <div style={{ padding: '4rem', textAlign: 'center', color: '#94a3b8', fontWeight: 600 }}>Đang tải danh sách tên gọi...</div>
+                <div className="loading-text-box">Đang tải danh sách tên gọi...</div>
               ) : (
-                <div style={{ overflowX: 'auto' }}>
+                <div className="table-overflow-box">
                   <table className="um-table">
                     <thead>
                       <tr>
                         <th>Tên chuẩn</th>
-                        <th style={{ width: '120px' }}>Loại</th>
+                        <th className="w-120">Loại</th>
                         <th>Các biến thể / Tên gọi khác</th>
-                        <th style={{ textAlign: 'center', width: '120px' }}>Hành động</th>
+                        <th className="text-center w-120">Hành động</th>
                       </tr>
                     </thead>
                     <tbody>
                       {displayedSynonyms.map(item => (
                         <tr key={item.id}>
-                          <td style={{ fontWeight: 800, color: 'var(--fiza-primary)' }}>{item.originalName}</td>
+                          <td className="custom-name-highlight">{item.originalName}</td>
                           <td>
-                            <span style={{ 
-                              padding: '0.25rem 0.75rem', 
-                              borderRadius: '9999px', 
-                              fontSize: '10px', 
-                              fontWeight: 800, 
-                              textTransform: 'uppercase',
-                              backgroundColor: '#E1F2EB',
-                              color: 'var(--mint-green)'
-                            }}>
+                            <span className="type-badge-green">
                               Thực phẩm
                             </span>
                           </td>
                           <td>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem', alignItems: 'center' }}>
+                            <div className="tags-flex-wrap">
                               {item.variants.map((v, idx) => (
-                                <div key={idx} style={{ 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  gap: '0.35rem', 
-                                  padding: '0.25rem 0.85rem', 
-                                  backgroundColor: '#E1F2EB', 
-                                  borderRadius: '9999px',
-                                  border: '1px solid #6DD4B4',
-                                  transition: 'all 0.2s'
-                                }}>
-                                  <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--fiza-primary)' }}>{v}</span>
+                                <div key={idx} className="variant-tag-pill">
+                                  <span className="pill-text-sm">{v}</span>
                                   <button 
                                     onClick={() => handleRemoveVariant(item.id, idx)}
-                                    style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', padding: 0 }}
+                                    className="btn-remove-tag-inline"
                                   >
                                     <X size={14} color="var(--fiza-primary)" />
                                   </button>
@@ -724,7 +605,7 @@ const PerformanceManagement: React.FC = () => {
                               ))}
                               
                               {inlineAdding === item.id ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <div className="inline-add-input-container">
                                   <input 
                                     autoFocus 
                                     value={inlineValue}
@@ -735,28 +616,19 @@ const PerformanceManagement: React.FC = () => {
                                       else handleAddInlineVariant(item.id);
                                     }}
                                     placeholder="Nhập tên gọi khác..."
-                                    style={{ 
-                                      padding: '0.25rem 0.75rem', 
-                                      borderRadius: '9999px', 
-                                      border: '1.5px solid var(--mint-green)', 
-                                      fontSize: '0.8125rem',
-                                      outline: 'none',
-                                      width: '180px',
-                                      background: 'white'
-                                    }}
+                                    className="inline-pill-text-input"
                                   />
-                                  <button onClick={() => handleAddInlineVariant(item.id)} style={{ border: 'none', background: 'var(--mint-green)', color: 'white', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 6px rgba(109, 212, 180, 0.2)' }}>
+                                  <button onClick={() => handleAddInlineVariant(item.id)} className="btn-circle-submit-pill">
                                     <Plus size={16} />
                                   </button>
-                                  <button onClick={() => { setInlineValue(''); setInlineAdding(null); }} style={{ border: 'none', background: '#f1f5f9', color: '#94a3b8', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                  <button onClick={() => { setInlineValue(''); setInlineAdding(null); }} className="btn-circle-cancel-pill">
                                     <X size={16} />
                                   </button>
                                 </div>
                               ) : (
                                 <button 
                                   onClick={() => { setInlineAdding(item.id); setInlineValue(''); }}
-                                  className="um-btn-add"
-                                  style={{ padding: '0.25rem 1rem', height: '32px' }}
+                                  className="um-btn-add h-32"
                                 >
                                   <Plus size={16} /> THÊM
                                 </button>
@@ -764,7 +636,7 @@ const PerformanceManagement: React.FC = () => {
                             </div>
                           </td>
                           <td>
-                            <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <div className="action-flex-center">
                               <ActionBtn icon={<Trash2 size={18} />} hoverColor="#ef4444" onClick={() => handleDeleteSynonymMapping(item.id)} />
                             </div>
                           </td>
@@ -772,7 +644,7 @@ const PerformanceManagement: React.FC = () => {
                       ))}
                       {filteredSynonyms.length === 0 && (
                         <tr>
-                          <td colSpan={4} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                          <td colSpan={4} className="empty-table-cell">
                             Không tìm thấy tên gọi địa phương nào.
                           </td>
                         </tr>
@@ -784,11 +656,11 @@ const PerformanceManagement: React.FC = () => {
 
               {/* Pagination */}
               {filteredSynonyms.length > 10 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3rem' }}>
-                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>
+                <div className="pagination-wrapper-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3rem' }}>
+                  <p className="pagination-info-text" style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>
                     Hiển thị {synonymStartIndex + 1} - {Math.min(synonymStartIndex + synonymItemsPerPage, filteredSynonyms.length)} trên {filteredSynonyms.length} tên gọi
                   </p>
-                  <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                  <div className="pagination-controls-flex" style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
                     <PageArrow 
                       icon={<ChevronLeft size={18} />} 
                       disabled={synonymPage === 1}
@@ -821,11 +693,11 @@ const PerformanceManagement: React.FC = () => {
       <AnimatePresence>
         {showAddModal && (
           <Modal title="Thêm từ đồng nghĩa / Tên gọi địa phương" onClose={handleCloseModal}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className="modal-vertical-stack-gap">
               
               {step === 2 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <p style={{ fontWeight: 700, color: '#475569' }}>Chọn thực phẩm cần thêm tên gọi khác:</p>
+                <div className="modal-vertical-stack-gap">
+                  <p className="select-food-prompt-text">Chọn thực phẩm cần thêm tên gọi khác:</p>
                   <div className="um-search-container">
                     <Search className="um-search-icon" size={18} />
                     <input 
@@ -836,70 +708,59 @@ const PerformanceManagement: React.FC = () => {
                       onChange={(e) => setItemSearch(e.target.value)}
                     />
                   </div>
-                  <div style={{ maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '0.5rem' }}>
+                  <div className="modal-scroll-food-list">
                     {itemsToSelect.map(item => (
                       <div 
                         key={item.id} 
                         onClick={() => { setSelectedItem(item); setStep(3); }}
-                        style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '1rem', 
-                          padding: '0.75rem 1rem', 
-                          borderRadius: '1rem', 
-                          border: '1px solid #f1f5f9',
-                          cursor: 'pointer'
-                        }}
-                        onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
-                        onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                        className="selectable-food-row-card"
                       >
-                        <div style={{ width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#f1f5f9' }}>
-                          <img src={item.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div className="food-avatar-square-40">
+                          <img src={item.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'} alt="" />
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <p style={{ fontWeight: 700, color: 'var(--fiza-primary)', fontSize: '0.9375rem' }}>{item.name}</p>
-                          <p style={{ fontSize: '11px', color: '#94a3b8' }}>Đơn vị: {item.unit}</p>
+                        <div className="flex-1">
+                          <p className="selectable-food-title">{item.name}</p>
+                          <p className="selectable-food-unit">Đơn vị: {item.unit}</p>
                         </div>
                         <ChevronRight size={18} color="#cbd5e1" />
                       </div>
                     ))}
                     {itemsToSelect.length === 0 && (
-                      <p style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>Không tìm thấy thực phẩm phù hợp.</p>
+                      <p className="text-center p-2 text-muted">Không tìm thấy thực phẩm phù hợp.</p>
                     )}
                   </div>
                 </div>
               )}
 
               {step === 3 && selectedItem && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{ width: '48px', height: '48px', borderRadius: '12px', overflow: 'hidden' }}>
-                        <img src={selectedItem.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div className="modal-vertical-stack-gap-lg">
+                  <div className="selected-food-header-row">
+                    <div className="selected-food-meta-flex">
+                      <div className="recipe-img-container">
+                        <img src={selectedItem.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'} alt="" />
                       </div>
                       <div>
-                        <p style={{ fontWeight: 800, color: 'var(--fiza-primary)' }}>{selectedItem.name}</p>
-                        <p style={{ fontSize: '11px', color: '#94a3b8' }}>Đơn vị: {selectedItem.unit}</p>
+                        <p className="placeholder-name-bold">{selectedItem.name}</p>
+                        <p className="selectable-food-unit">Đơn vị: {selectedItem.unit}</p>
                       </div>
                     </div>
-                    <button onClick={() => setStep(2)} style={{ fontSize: '12px', color: '#94a3b8', border: 'none', background: 'transparent', cursor: 'pointer' }}>Đổi mục khác</button>
+                    <button onClick={() => setStep(2)} className="btn-change-selection-link">Đổi mục khác</button>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Nhập các tên gọi khác / Từ đồng nghĩa</label>
+                  <div className="modal-textarea-stack-group">
+                    <label className="modal-input-label">Nhập các tên gọi khác / Từ đồng nghĩa</label>
                     <textarea 
                       placeholder="Cách nhau bằng dấu phẩy. VD: Thịt lợn, Heo, Lợn nái..." 
-                      className="um-textarea"
-                      style={{ height: '120px', resize: 'none' }}
+                      className="um-textarea h-120-fixed"
                       value={newVariants}
                       onChange={(e) => setNewVariants(e.target.value)}
                     />
-                    <p style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>* Lưu ý: Các tên này sẽ giúp người dùng tìm kiếm chính xác hơn khi sử dụng ứng dụng.</p>
+                    <p className="textarea-helper-note">* Lưu ý: Các tên này sẽ giúp người dùng tìm kiếm chính xác hơn khi sử dụng ứng dụng.</p>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                    <button onClick={handleCloseModal} style={{ flex: 1, padding: '0.75rem', borderRadius: '9999px', border: '1px solid #f1f5f9', background: 'white', fontWeight: 600 }}>Hủy</button>
-                    <button onClick={handleFinalAdd} className="um-btn-primary" style={{ flex: 2 }}>Hoàn tất</button>
+                  <div className="modal-buttons-flex gap-1 mt-1">
+                    <button onClick={handleCloseModal} className="btn-cancel-round flex-1">Hủy</button>
+                    <button onClick={handleFinalAdd} className="um-btn-primary flex-2">Hoàn tất</button>
                   </div>
                 </div>
               )}
@@ -909,31 +770,29 @@ const PerformanceManagement: React.FC = () => {
 
         {approvingItem && (
           <Modal title="Duyệt thực phẩm mới" onClose={() => setApprovingItem(null)}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '1rem', border: '1px solid #e2e8f0', fontSize: '0.875rem' }}>
-                <p style={{ color: '#64748b', marginBottom: '0.25rem' }}>Người dùng nhập:</p>
-                <p style={{ fontWeight: 800, color: '#1e293b' }}>{approvingItem.customName} ({approvingItem.placeholderFoodName})</p>
-                <p style={{ color: '#64748b', marginTop: '0.5rem' }}>Các item hiện đang trỏ tới food placeholder này sẽ được chuyển sang thực phẩm mới sau khi duyệt.</p>
+            <div className="modal-vertical-stack-gap-lg">
+              <div className="alert-info-container-box">
+                <p className="alert-meta-label">Người dùng nhập:</p>
+                <p className="alert-meta-value">{approvingItem.customName} ({approvingItem.placeholderFoodName})</p>
+                <p className="alert-meta-desc">Các item hiện đang trỏ tới food placeholder này sẽ được chuyển sang thực phẩm mới sau khi duyệt.</p>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Tên chuẩn hóa hệ thống</label>
+              <div className="form-input-stack">
+                <label className="modal-input-label">Tên chuẩn hóa hệ thống</label>
                 <input 
                   type="text" 
                   value={approveName} 
                   onChange={(e) => setApproveName(e.target.value)} 
-                  className="um-search-input" 
-                  style={{ paddingLeft: '1rem' }} 
+                  className="um-search-input pl-1" 
                 />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Nhóm thực phẩm</label>
+              <div className="form-input-stack">
+                <label className="modal-input-label">Nhóm thực phẩm</label>
                 <select 
                   value={approveCategory} 
                   onChange={(e) => setApproveCategory(Number(e.target.value))} 
-                  className="um-search-input" 
-                  style={{ paddingLeft: '1rem' }}
+                  className="um-search-input pl-1" 
                 >
                   {categories.map(cat => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
@@ -941,13 +800,12 @@ const PerformanceManagement: React.FC = () => {
                 </select>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Đơn vị tính</label>
+              <div className="form-input-stack">
+                <label className="modal-input-label">Đơn vị tính</label>
                 <select 
                   value={approveUnit} 
                   onChange={(e) => setApproveUnit(e.target.value)} 
-                  className="um-search-input" 
-                  style={{ paddingLeft: '1rem' }}
+                  className="um-search-input pl-1" 
                 >
                   <option value="kg">kg (Ki-lô-gam)</option>
                   <option value="g">g (Gam)</option>
@@ -963,32 +821,20 @@ const PerformanceManagement: React.FC = () => {
                 </select>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Từ đồng nghĩa / Tên gọi khác (phân cách bằng dấu phẩy)</label>
+              <div className="form-input-stack">
+                <label className="modal-input-label">Từ đồng nghĩa / Tên gọi khác (phân cách bằng dấu phẩy)</label>
                 <input 
                   type="text" 
                   value={approveSynonyms} 
                   onChange={(e) => setApproveSynonyms(e.target.value)} 
-                  className="um-search-input" 
-                  style={{ paddingLeft: '1rem' }}
+                  className="um-search-input pl-1" 
                   placeholder="VD: Lợn nái, Heo nái..." 
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                <button 
-                  onClick={() => setApprovingItem(null)} 
-                  style={{ flex: 1, padding: '0.75rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600, cursor: 'pointer' }}
-                >
-                  Hủy
-                </button>
-                <button 
-                  onClick={handleSaveApproval} 
-                  className="um-btn-primary" 
-                  style={{ flex: 2 }}
-                >
-                  Lưu & Duyệt vào danh mục
-                </button>
+              <div className="modal-buttons-flex gap-1 mt-1">
+                <button onClick={() => setApprovingItem(null)} className="btn-cancel-round flex-1">Hủy</button>
+                <button onClick={handleSaveApproval} className="um-btn-primary flex-2">Lưu & Duyệt vào danh mục</button>
               </div>
             </div>
           </Modal>
@@ -1001,78 +847,65 @@ const PerformanceManagement: React.FC = () => {
             width="500px"
           >
             {isLinkingMode ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '1rem', border: '1px solid #e2e8f0', fontSize: '0.875rem' }}>
-                  <p style={{ color: '#64748b', marginBottom: '0.25rem' }}>Liên kết tên gọi của người dùng:</p>
-                  <p style={{ fontWeight: 800, color: '#1e293b' }}>{viewingItem.customName} ({viewingItem.placeholderFoodName})</p>
+              <div className="modal-vertical-stack-gap-lg">
+                <div className="alert-info-container-box">
+                  <p className="alert-meta-label">Liên kết tên gọi của người dùng:</p>
+                  <p className="alert-meta-value">{viewingItem.customName} ({viewingItem.placeholderFoodName})</p>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Chọn thực phẩm hệ thống sẵn có để liên kết làm từ đồng nghĩa</label>
-                  <div className="um-search-container" style={{ width: '100%' }}>
-                    <Search className="um-search-icon" size={18} style={{ left: '1rem' }} />
+                <div className="form-input-stack">
+                  <label className="modal-input-label">Chọn thực phẩm hệ thống sẵn có để liên kết làm từ đồng nghĩa</label>
+                  <div className="um-search-container w-100">
+                    <Search className="um-search-icon icon-left-1" size={18} />
                     <input 
                       type="text" 
                       placeholder="Tìm thực phẩm hệ thống..." 
                       value={linkSearchQuery}
                       onChange={(e) => setLinkSearchQuery(e.target.value)}
-                      className="um-search-input"
-                      style={{ paddingLeft: '2.5rem', width: '100%' }}
+                      className="um-search-input pl-25 w-100"
                     />
                   </div>
                 </div>
 
-                <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '1rem', background: 'white' }}>
+                <div className="modal-scroll-link-list">
                   {foods
                     .filter(f => f.name.toLowerCase().includes(linkSearchQuery.toLowerCase()))
                     .map(f => (
                       <div 
                         key={f.id} 
                         onClick={() => setSelectedLinkFood(f)}
-                        style={{ 
-                          padding: '0.75rem 1rem', 
-                          cursor: 'pointer', 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center',
-                          backgroundColor: selectedLinkFood?.id === f.id ? '#E1F2EB' : 'transparent',
-                          borderBottom: '1px solid #f1f5f9'
-                        }}
+                        style={{ backgroundColor: selectedLinkFood?.id === f.id ? '#E1F2EB' : 'transparent' }}
+                        className="link-food-item-row"
                       >
                         <div>
-                          <span style={{ fontWeight: 600, color: '#1e293b' }}>{f.name}</span>
-                          <span style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '0.5rem' }}>({f.unit})</span>
+                          <span className="placeholder-name-bold">{f.name}</span>
+                          <span className="text-muted-sm ml-05">({f.unit})</span>
                         </div>
                         {selectedLinkFood?.id === f.id && (
-                          <span style={{ color: 'var(--mint-green)', fontWeight: 800, fontSize: '12px' }}>ĐÃ CHỌN</span>
+                          <span className="selected-text-green-bold">ĐÃ CHỌN</span>
                         )}
                       </div>
                     ))}
                   {foods.filter(f => f.name.toLowerCase().includes(linkSearchQuery.toLowerCase())).length === 0 && (
-                    <p style={{ padding: '1rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.875rem' }}>Không tìm thấy thực phẩm nào.</p>
+                    <p className="text-center p-1 text-muted fs-0875">Không tìm thấy thực phẩm nào.</p>
                   )}
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                  <button 
-                    onClick={() => setIsLinkingMode(false)} 
-                    style={{ flex: 1, padding: '0.75rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    Quay lại
-                  </button>
+                <div className="modal-buttons-flex gap-1 mt-1">
+                  <button onClick={() => setIsLinkingMode(false)} className="btn-cancel-round flex-1">Quay lại</button>
                   <button 
                     onClick={handleSaveSynonymMapping} 
                     disabled={!selectedLinkFood}
-                    className="um-btn-primary" 
-                    style={{ flex: 1.5, opacity: selectedLinkFood ? 1 : 0.6 }}
+                    className="um-btn-primary flex-15" 
+                    style={{ opacity: selectedLinkFood ? 1 : 0.6 }}
                   >
                     Xác nhận liên kết
                   </button>
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+              <div className="modal-vertical-stack-gap-lg">
+                <div className="modal-grid-2col gap-15">
                   <DetailItem label="Food placeholder" value={viewingItem.placeholderFoodName} isBadge />
                   <DetailItem label="Tên người dùng nhập" value={viewingItem.customName} />
                   <DetailItem label="Danh mục" value={viewingItem.categoryName} />
@@ -1080,27 +913,22 @@ const PerformanceManagement: React.FC = () => {
                   <DetailItem label="Số lần nhập" value={viewingItem.requestCount} />
                   <DetailItem label="Lần cuối" value={formatDateTime(viewingItem.lastRequestedAt)} />
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.5rem' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Logic xử lý</span>
-                  <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '1rem', border: '1px solid #e2e8f0', fontSize: '0.875rem', color: '#475569', lineHeight: 1.5 }}>
+                <div className="form-input-stack mt-05">
+                  <span className="detail-label">Logic xử lý</span>
+                  <div className="alert-desc-text-box">
                     Nếu đây là tên gọi khác của thực phẩm đã có, hãy liên kết vào thực phẩm sẵn có để thêm đồng nghĩa và chuyển các item khỏi nhóm "{viewingItem.placeholderFoodName}". Nếu đây là thực phẩm mới, hãy duyệt thành item mới trong cơ sở dữ liệu.
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem', flexDirection: 'column' }}>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button 
-                      onClick={() => setViewingItem(null)} 
-                      style={{ flex: 1, padding: '0.75rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600, cursor: 'pointer' }}
-                    >
-                      Đóng
-                    </button>
+                <div className="modal-vertical-buttons-stack mt-15">
+                  <div className="modal-buttons-flex gap-1">
+                    <button onClick={() => setViewingItem(null)} className="btn-cancel-round flex-1">Đóng</button>
                     <button 
                       onClick={() => {
                         setIsLinkingMode(true);
                         setSelectedLinkFood(null);
                         setLinkSearchQuery('');
                       }}
-                      style={{ flex: 1, padding: '0.75rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', color: '#3b82f6', fontWeight: 600, cursor: 'pointer' }}
+                      className="btn-link-existing"
                     >
                       Liên kết thực phẩm sẵn có
                     </button>
@@ -1110,8 +938,7 @@ const PerformanceManagement: React.FC = () => {
                       setViewingItem(null);
                       handleOpenApproveModal(viewingItem);
                     }}
-                    className="um-btn-primary" 
-                    style={{ width: '100%', marginTop: '0.5rem' }}
+                    className="um-btn-primary w-100 mt-05" 
                   >
                     Duyệt thực phẩm mới
                   </button>
@@ -1120,53 +947,39 @@ const PerformanceManagement: React.FC = () => {
             )}
           </Modal>
         )}
-
       </AnimatePresence>
-
     </div>
   );
 };
 
-// --- Copy helpers ---
-function SidebarLink({ icon, label, to, isExpanded, active, onClick }: any) {
-  return (
-    <NavLink to={to} onClick={onClick} className={`um-nav-item ${active ? 'active' : ''} ${isExpanded ? 'expanded' : 'collapsed'}`}>
-      <div className="um-nav-icon">{icon}</div>
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="um-nav-label">
-            {label}
-          </motion.span>
-        )}
-      </AnimatePresence>
-    </NavLink>
-  );
-}
-
-
-function HeaderBtn({ icon, hasBadge }: any) {
-  return (
-    <button style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}>
-      {icon}
-      {hasBadge && <span style={{ position: 'absolute', top: '10px', right: '10px', width: '8px', height: '8px', backgroundColor: '#ef4444', borderRadius: '50%', border: '2px solid #F0F4F2' }} />}
-    </button>
-  );
-}
+// --- Sub-Components ---
 function ActionBtn({ icon, hoverColor, onClick }: any) {
   const [hover, setHover] = useState(false);
   return (
-    <button onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} onClick={onClick} style={{ width: '32px', height: '32px', borderRadius: '50%', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', color: hover ? hoverColor : '#94a3b8', backgroundColor: hover ? 'white' : 'transparent', boxShadow: hover ? '0 4px 6px -1px rgba(0,0,0,0.1)' : 'none' }}>{icon}</button>
+    <button 
+      onMouseEnter={() => setHover(true)} 
+      onMouseLeave={() => setHover(false)} 
+      onClick={onClick} 
+      style={{ 
+        color: hover ? hoverColor : '#94a3b8', 
+        backgroundColor: hover ? 'white' : 'transparent', 
+        boxShadow: hover ? '0 4px 6px -1px rgba(0,0,0,0.1)' : 'none' 
+      }} 
+      className="action-round-btn"
+    >
+      {icon}
+    </button>
   );
 }
 
 function DetailItem({ label, value, isBadge }: any) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-      <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{label}</span>
+    <div className="detail-item-stack">
+      <span className="detail-label">{label}</span>
       {isBadge ? (
-        <span className="um-role-badge" style={{ alignSelf: 'flex-start' }}>{value}</span>
+        <span className="um-role-badge self-start">{value}</span>
       ) : (
-        <span style={{ fontWeight: 600, color: '#1e293b' }}>{value || 'N/A'}</span>
+        <span className="detail-value-bold">{value || 'N/A'}</span>
       )}
     </div>
   );
@@ -1175,8 +988,21 @@ function DetailItem({ label, value, isBadge }: any) {
 function PageNum({ children, active, onClick }: any) {
   return (
     <button 
-      onClick={onClick}
-      style={{ width: '36px', height: '36px', borderRadius: '50%', border: 'none', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.2s', backgroundColor: active ? 'var(--mint-green)' : 'transparent', color: active ? 'white' : '#475569', boxShadow: active ? '0 10px 15px -3px rgba(109, 212, 180, 0.3)' : 'none' }}>
+      onClick={onClick} 
+      style={{ 
+        width: '36px', 
+        height: '36px', 
+        borderRadius: '50%', 
+        border: 'none', 
+        fontWeight: 700, 
+        fontSize: '0.75rem', 
+        cursor: 'pointer', 
+        transition: 'all 0.2s', 
+        backgroundColor: active ? 'var(--mint-green)' : 'transparent', 
+        color: active ? 'white' : '#475569', 
+        boxShadow: active ? '0 10px 15px -3px rgba(109, 212, 180, 0.3)' : 'none' 
+      }}
+    >
       {children}
     </button>
   );
@@ -1186,8 +1012,21 @@ function PageArrow({ icon, disabled, onClick }: any) {
   return (
     <button 
       disabled={disabled} 
-      onClick={onClick}
-      style={{ width: '36px', height: '36px', borderRadius: '50%', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: disabled ? 'default' : 'pointer', color: '#94a3b8', opacity: disabled ? 0.3 : 1 }}>
+      onClick={onClick} 
+      style={{ 
+        width: '36px', 
+        height: '36px', 
+        borderRadius: '50%', 
+        border: 'none', 
+        background: 'transparent', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justify-content: 'center', 
+        cursor: disabled ? 'default' : 'pointer', 
+        color: '#94a3b8', 
+        opacity: disabled ? 0.3 : 1 
+      }}
+    >
       {icon}
     </button>
   );

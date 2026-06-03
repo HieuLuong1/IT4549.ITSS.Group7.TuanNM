@@ -1,0 +1,418 @@
+/* =========================================================================
+   🎯 KHỐI BỌC LAYOUT CHÍNH: ĐỒNG BỘ 100% THEO TỶ LỆ FILE MYFRIDGE
+   ========================================================================= */
+.um-main {
+  flex: 1;
+  margin-left: 104px;              /* Cố định khoảng cách lề trái theo Sidebar y hệt MyFridge */
+  min-height: 100vh;
+  background: var(--fiza-background);
+  display: flex;
+  flex-direction: column;
+}
+
+.um-main-container {
+  padding-top: 32px;
+  padding-left: 32px;
+  padding-right: 32px;             /* Khoảng đệm bao quanh tỷ lệ 32px cân đối mọi cấu trúc máy tính */
+  padding-bottom: 4rem;
+  background: var(--fiza-background);
+  box-sizing: border-box;          /* Chặn phình khung khi co giãn ngang */
+}
+
+.um-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;                     /* Tự động co giãn rộng hết cỡ theo tỷ lệ màn hình */
+  box-sizing: border-box;
+}
+
+.um-table {
+  width: 100%;                     /* Ép bảng luôn co giãn theo dòng chảy của trang */
+  border-collapse: collapse;
+}
+
+/* =========================================================================
+   📦 GIỮ NGUYÊN VẸN CÁC CLASS STYLE TIỆN ÍCH SẴN CÓ CỦA BẠN (KHÔNG THAY ĐỔI)
+   ========================================================================= */
+
+/* --- Các class tiện ích hỗ trợ kích thước và bố cục --- */
+.w-80 { width: 80px; }
+.w-120 { width: 120px; }
+.pl-1 { padding-left: 1rem; }
+.pt-05 { padding-top: 0.5rem; }
+.mt-1 { margin-top: 1rem; }
+.mt-2 { margin-top: 2rem; }
+.mb-05 { margin-bottom: 0.5rem; }
+.grid-span-2 { grid-column: span 2; }
+.flex-1 { flex: 1; }
+.whitespace-nowrap { white-space: nowrap; }
+.text-center { text-align: center; }
+
+/* --- Các bộ lọc (Filters) trên Toolbar --- */
+.filter-select-badge {
+  padding: 0 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.category-dropdown-select {
+  background: transparent;
+  border: none;
+  color: var(--fiza-primary);
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+}
+
+/* --- Khu vực Panel chứa thực phẩm do người dùng nhập --- */
+.custom-requests-panel {
+  margin: 0 0 1.5rem;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.custom-requests-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 0.85rem;
+}
+
+.custom-requests-title {
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--fiza-primary);
+  margin: 0;
+}
+
+.custom-requests-subtitle {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0.25rem 0 0;
+}
+
+.custom-requests-count-badge {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f766e;
+  background: #ccfbf1;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  white-space: nowrap;
+}
+
+.panel-loading-text {
+  padding: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.custom-requests-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+.custom-request-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.custom-request-item-name {
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.custom-request-item-meta {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 0.2rem;
+}
+
+.create-from-request-btn {
+  justify-content: center;
+  padding: 0.55rem 0.8rem;
+  font-size: 12px;
+}
+
+/* --- Cấu trúc dữ liệu trong Bảng Hệ Thống --- */
+.table-overflow-box {
+  overflow-x: auto;
+}
+
+.food-id-cell {
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.food-profile-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.food-img-square {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.food-img-square img, .modal-profile-img-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.food-name-text {
+  font-weight: 700;
+}
+
+.flex-row-gap-qtr {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.unit-badge-gray {
+  font-size: 12px;
+  padding: 2px 8px;
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.synonyms-list-text {
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.action-buttons-container {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* --- Điều hướng phân trang --- */
+.pagination-wrapper-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2rem;
+}
+
+.pagination-info-text {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.pagination-controls-flex {
+  display: flex;
+  gap: 0.25rem;
+}
+
+/* --- Khối Cấu trúc Giao diện các Modal --- */
+.modal-flex-layout {
+  display: flex;
+  gap: 2.5rem;
+}
+
+.modal-profile-img-box {
+  width: 150px;
+  height: 150px;
+  border-radius: 32px;
+  overflow: hidden;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+}
+
+.modal-form-grid-fields, .modal-grid-2col {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.form-input-stack, .form-select-group-stack, .detail-item-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label-sm {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.modal-footer-buttons-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.btn-modal-cancel {
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* --- Cụm Từ đồng nghĩa / Tags trong Modal --- */
+.tags-container-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  background: #f8fafc;
+  padding: 1.25rem;
+  border-radius: 1.5rem;
+  border: 1px solid #e2e8f0;
+  align-items: center;
+}
+
+.regional-tag-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.85rem;
+  background-color: #E1F2EB;
+  border-radius: 9999px;
+  border: 1px solid #6DD4B4;
+}
+
+.pill-text-sm {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fiza-primary);
+}
+
+.btn-remove-tag-pill {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  padding: 0;
+}
+
+.modal-inline-input-field {
+  width: 150px;
+  height: 32px;
+  padding-left: 0.75rem;
+  font-size: 12px;
+  border: 1.5px solid var(--mint-green);
+  background: white;
+}
+
+.modal-add-tag-trigger-btn {
+  height: 32px;
+  padding: 0 1.25rem;
+}
+
+/* --- Khối linh kiện bổ trợ chung --- */
+.detail-label-uppercase {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.detail-value-text {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.table-action-round-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.table-action-round-btn:hover {
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+.pagination-number-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-number-btn.active {
+  background: var(--mint-green);
+  color: white;
+}
+
+.pagination-arrow-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #94a3b8;
+}
+
+.pagination-arrow-btn:disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+
+/* --- Khối Hộp Xác nhận Xóa --- */
+.delete-alert-icon-box {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: #FEF2F2;
+  color: #EF4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+}
+
+.delete-title-bold {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.delete-subtitle-muted {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-bottom: 2rem;
+}
+
+.modal-buttons-row-gap {
+  display: flex;
+  gap: 1rem;
+}
+
+.btn-execute-delete-action {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 9999px;
+  background: #EF4444;
+  color: white;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}

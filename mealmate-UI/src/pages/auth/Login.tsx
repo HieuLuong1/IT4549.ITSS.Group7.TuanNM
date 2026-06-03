@@ -73,46 +73,51 @@ const Login: React.FC = () => {
       // 2. KỸ THUẬT NẠP TRƯỚC (PRE-FETCH): Gọi ngay các API phụ để kéo thông tin chi tiết
       if (currentToken) {
         try {
-          // A. Tải thông tin tên nhóm gia đình hiện tại
-          const resGroup = await api.get('/api/v1/users/familys/current', {
-            headers: { 'Authorization': `Bearer ${currentToken}` }
-          });
-          const groupData = resGroup.data.success ? resGroup.data.data : resGroup.data;
-          if (groupData?.name) {
-            localStorage.setItem("currentFamilyName", String(groupData.name).trim());
-          }
-
-          // B. Tải danh sách thành viên đầy đủ trường để bóc tách thông tin cá nhân của chính mình
-          const resMembers = await api.get('/api/v1/users/users/family/members', {
-            headers: { 'Authorization': `Bearer ${currentToken}` }
-          });
-          const dbMembers = resMembers.data.success ? resMembers.data.data : resMembers.data;
-          
-          if (Array.isArray(dbMembers)) {
-            // Định dạng và lưu bộ nhớ đệm danh sách thành viên phục vụ hệ thống
-            const formattedMembers = dbMembers.map((m: any) => {
-              const rName = String(m.roleName || m.role?.name || m.role).toUpperCase();
-              const isOwner = rName.includes("BOSS") || rName.includes("CHỦ NHÀ") || rName.includes("ADMIN") || rName.includes("HOUSEKEEPER");
-              return {
-                id: m.id,
-                fullName: m.fullName || m.full_name || "Thành viên ẩn danh",
-                roleName: isOwner ? "Chủ nhà" : "Thành viên",
-                email: m.email || "Chưa cập nhật",
-                phone: m.phone || m.phoneNumber || "Chưa cập nhật",
-                gender: m.gender || "OTHER",
-                avatarUrl: m.avatarUrl || m.avatar_url   
-              };
+          // 🎯 PHÒNG VỆ CỰC MẠNH: Chỉ gọi API gia đình nếu tài khoản KHÔNG PHẢI là ADMIN hệ thống
+          if (response.role !== 'ADMIN') {
+            
+            // A. Tải thông tin tên nhóm gia đình hiện tại
+            const resGroup = await api.get('/api/v1/users/familys/current', {
+              headers: { 'Authorization': `Bearer ${currentToken}` }
             });
-            localStorage.setItem("familyMembersCache", JSON.stringify(formattedMembers));
-
-            // Tìm kiếm chính xác bản ghi của bản thân trong danh sách theo userId nhận về lúc login
-            const mySelf = formattedMembers.find((m: any) => Number(m.id) === Number(response.userId));
-            if (mySelf) {
-              detailedPhone = mySelf.phone;
-              detailedGender = mySelf.gender;
-              detailedRoleName = mySelf.roleName;
-              detailedAvatar = mySelf.avatarUrl || detailedAvatar; // Đồng bộ avatarUrl chuẩn chỉ
+            const groupData = resGroup.data.success ? resGroup.data.data : resGroup.data;
+            if (groupData?.name) {
+              localStorage.setItem("currentFamilyName", String(groupData.name).trim());
             }
+
+            // B. Tải danh sách thành viên đầy đủ trường để bóc tách thông tin cá nhân của chính mình
+            const resMembers = await api.get('/api/v1/users/users/family/members', {
+              headers: { 'Authorization': `Bearer ${currentToken}` }
+            });
+            const dbMembers = resMembers.data.success ? resMembers.data.data : resMembers.data;
+            
+            if (Array.isArray(dbMembers)) {
+              const formattedMembers = dbMembers.map((m: any) => {
+                const rName = String(m.roleName || m.role?.name || m.role).toUpperCase();
+                return {
+                  id: m.id,
+                  fullName: m.fullName || m.full_name || "Thành viên ẩn danh",
+                  roleName: rName, // 🎯 GIỮ NGUYÊN GỐC: Trả về ADMIN/BOSS/CUSTOMER gốc từ DB để tránh lệch DTO
+                  email: m.email || "Chưa cập nhật",
+                  phone: m.phone || m.phoneNumber || "Chưa cập nhật",
+                  gender: m.gender || "OTHER",
+                  avatarUrl: m.avatarUrl || m.avatar_url   
+                };
+              });
+              localStorage.setItem("familyMembersCache", JSON.stringify(formattedMembers));
+
+              const mySelf = formattedMembers.find((m: any) => Number(m.id) === Number(response.userId));
+              if (mySelf) {
+                detailedPhone = mySelf.phone;
+                detailedGender = mySelf.gender;
+                detailedRoleName = mySelf.roleName;
+                detailedAvatar = mySelf.avatarUrl || detailedAvatar;
+              }
+            }
+          } else {
+            // 🎯 NẾU LÀ ADMIN: Gán thẳng text cứng hệ thống, không gọi API tránh nổ lỗi 500 trên Spring Boot
+            detailedRoleName = "ADMIN";
+            localStorage.setItem("currentFamilyName", "ADMIN");
           }
         } catch (extraErr) {
           console.warn("⚠️ Không thể tải trước dữ liệu chi tiết, sử dụng cấu trúc mặc định phòng thủ:", extraErr);
