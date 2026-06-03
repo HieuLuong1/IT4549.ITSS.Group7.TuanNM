@@ -81,8 +81,11 @@ const Login: React.FC = () => {
               headers: { 'Authorization': `Bearer ${currentToken}` }
             });
             const groupData = resGroup.data.success ? resGroup.data.data : resGroup.data;
-            if (groupData?.name) {
-              localStorage.setItem("currentFamilyName", String(groupData.name).trim());
+            if (groupData) {
+              localStorage.setItem("currentFamily", JSON.stringify(groupData));
+              if (groupData.name) {
+                localStorage.setItem("currentFamilyName", String(groupData.name).trim());
+              }
             }
 
             // B. Tải danh sách thành viên đầy đủ trường để bóc tách thông tin cá nhân của chính mình

@@ -14,9 +14,11 @@ interface ProfileModalProps {
   familyName?: string;
   memberData?: any;
   isMe?: boolean;
+  isAdminView?: boolean;
+  onUpdateUser?: (updatedUser: any) => void;
 }
 
-const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, familyName, memberData, isMe = false }) => {
+const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, familyName, memberData, isMe = false, isAdminView = false, onUpdateUser }) => {
   const navigate = useNavigate();
   const authContext = useAuth();
   const userFromContext = authContext?.user;
@@ -41,6 +43,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, familyName
   const [editFullName, setEditFullName] = useState<string>("");
   const [editPhone, setEditPhone] = useState<string>("");
   const [editGender, setEditGender] = useState<string>("OTHER");
+  const [editRole, setEditRole] = useState<string>("CUSTOMER");
   
   // State phục vụ luồng kiểm tra trùng khớp mật khẩu mới (NEW)
   const [editPassword, setEditPassword] = useState<string>(""); 
@@ -54,6 +57,12 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, familyName
       setEditFullName(displayUser?.fullName || displayUser?.full_name || displayUser?.name || "");
       setEditPhone(displayUser?.phone || displayUser?.phoneNumber || "");
       setEditGender(String(displayUser?.gender || "OTHER").toUpperCase());
+      
+      const roleObj = displayUser?.role;
+      const roleName = (typeof roleObj === "object" && roleObj !== null ? roleObj.name : roleObj) 
+                        || displayUser?.roleName 
+                        || "CUSTOMER";
+      setEditRole(String(roleName).toUpperCase().includes("ADMIN") ? "ADMIN" : "CUSTOMER");
       
       // Reset sạch form mật khẩu ẩn về rỗng khi mở modal
       setEditPassword(""); 
@@ -71,19 +80,56 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, familyName
   const roleName = (typeof roleObj === "object" && roleObj !== null ? roleObj.name : roleObj) 
                     || displayUser?.roleName 
                     || "";
-  const isHousekeeperRole = String(roleName).toUpperCase().includes("ADMIN") || 
-                            String(roleName).toUpperCase().includes("HOUSEKEEPER") ||
-                            String(roleName).toUpperCase().includes("BOSS") ||
-                            String(roleName).toUpperCase().includes("CHỦ NHÀ");
+  const activeRoleName = isEditing ? editRole : roleName;
+  const upperRole = String(activeRoleName).toUpperCase();
+
+  // Xác định vai trò chính xác
+  let isSystemAdmin = false;
+  let isHousekeeper = false;
+
+  const familyObj = displayUser?.family;
   
-  // --- GIỮ LÀM GỐC VÀ CHỈ BỔ SUNG ĐIỀU KIỆN ADMIN HỆ THỐNG ---
-  let roleLabel = isHousekeeperRole ? "Chủ nhà" : "Thành viên";
+  if (upperRole.includes("ADMIN") && !familyObj) {
+    isSystemAdmin = true;
+  } else if (
+    upperRole.includes("BOSS") || 
+    upperRole.includes("HOUSEKEEPER") || 
+    upperRole.includes("CHỦ NHÀ") ||
+    upperRole.includes("NGƯỜI NỘI TRỢ") ||
+    (upperRole.includes("ADMIN") && familyObj) // Nếu là ADMIN và có gia đình thì chính là Người nội trợ được quản lý bởi admin view
+  ) {
+    isHousekeeper = true;
+  } else if (familyObj) {
+    const hId = familyObj.housekeeperId;
+    const uId = Number(displayUser.id || displayUser.userId);
+    if (hId && Number(hId) === uId) {
+      isHousekeeper = true;
+    }
+  } else {
+    // Luồng dự phòng kiểm tra qua local storage nếu là chính mình (isMe)
+    const currentFamilyStr = localStorage.getItem("currentFamily");
+    if (currentFamilyStr) {
+      try {
+        const currentFamily = JSON.parse(currentFamilyStr);
+        const hId = currentFamily.housekeeperId;
+        const uId = Number(displayUser.id || displayUser.userId);
+        if (hId && Number(hId) === uId) {
+          isHousekeeper = true;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  }
+
+  let roleLabel = "Thành viên";
   let displayFamilyText = familyName || "Gia đình Fiza";
 
-  // 🎯 BỔ SUNG ĐÚNG ROLE ADMIN VÀ CHỮ ADMIN CHO PHẦN GIA ĐÌNH
-  if (String(roleName).toUpperCase().includes("ADMIN")) {
+  if (isSystemAdmin) {
     roleLabel = "Quản trị viên hệ thống";
     displayFamilyText = "ADMIN";
+  } else if (isHousekeeper) {
+    roleLabel = "Người nội trợ";
   }
 
   const handleLogoutClick = () => {
@@ -130,46 +176,70 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, familyName
     setIsSubmitting(true);
 
     try {
-      // 🎯 CHIẾN THUẬT DỰ PHÒNG KÉP: Bắn cả CamelCase lẫn SnakeCase để triệt tiêu lỗi lệch DTO ở Backend
-      const payload: any = {
-        fullName: editFullName.trim(),
-        full_name: editFullName.trim(),     // Dự phòng nếu Backend dùng snake_case
-        phone: editPhone.trim(),
-        phoneNumber: editPhone.trim(),      // Dự phòng nếu Backend dùng phoneNumber
-        phone_number: editPhone.trim(),     // Dự phòng nếu Backend dùng phone_number
-        gender: editGender
-      };
+      let res;
+      if (isAdminView) {
+        const payload = {
+          fullName: editFullName.trim(),
+          email: displayUser.email,
+          phone: editPhone.trim(),
+          gender: editGender,
+          role: {
+            id: editRole === 'ADMIN' ? 1 : 2,
+            name: editRole
+          }
+        };
+        res = await api.put(`/api/v1/users/users/${displayUser.id}`, payload, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      } else {
+        // 🎯 CHIẾN THUẬT DỰ PHÒNG KÉP: Bắn cả CamelCase lẫn SnakeCase để triệt tiêu lỗi lệch DTO ở Backend
+        const payload: any = {
+          fullName: editFullName.trim(),
+          full_name: editFullName.trim(),     // Dự phòng nếu Backend dùng snake_case
+          phone: editPhone.trim(),
+          phoneNumber: editPhone.trim(),      // Dự phòng nếu Backend dùng phoneNumber
+          phone_number: editPhone.trim(),     // Dự phòng nếu Backend dùng phone_number
+          gender: editGender
+        };
 
-      // 🎯 Chỉ đính kèm password nếu có nội dung nhập mới hợp lệ
-      if (hasPasswordInput) {
-        payload.password = editPassword.trim();
+        // 🎯 Chỉ đính kèm password nếu có nội dung nhập mới hợp lệ
+        if (hasPasswordInput) {
+          payload.password = editPassword.trim();
+        }
+
+        console.log("👉 [PUT PROFILE DEBUG] Gửi dữ liệu cập nhật lên Server:", payload);
+
+        res = await api.put("/api/v1/users/users/profile", payload, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
       }
-
-      console.log("👉 [PUT PROFILE DEBUG] Gửi dữ liệu cập nhật lên Server:", payload);
-
-      const res = await api.put("/api/v1/users/users/profile", payload, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
 
       if (res.data && res.data.success) {
         alert("🎉 Cập nhật thông tin tài khoản thành công!");
         setIsEditing(false);
 
-        // Đồng bộ ngay dữ liệu mới vào bộ nhớ trình duyệt để các trang khác nhận diện luôn
-        if (userFromLocalStorage) {
-          const updatedUser = { 
-            ...userFromLocalStorage, 
-            fullName: editFullName.trim(), 
-            full_name: editFullName.trim(), 
-            phone: editPhone.trim(), 
-            phoneNumber: editPhone.trim(),
-            gender: editGender 
-          };
-          localStorage.setItem("authUser", JSON.stringify(updatedUser));
-        }
+        if (isAdminView) {
+          if (onUpdateUser) {
+            onUpdateUser(res.data.data);
+          }
+          onClose();
+        } else {
+          // Đồng bộ ngay dữ liệu mới vào bộ nhớ trình duyệt để các trang khác nhận diện luôn
+          if (userFromLocalStorage) {
+            const updatedUser = { 
+              ...userFromLocalStorage, 
+              fullName: editFullName.trim(), 
+              full_name: editFullName.trim(), 
+              phone: editPhone.trim(), 
+              phoneNumber: editPhone.trim(),
+              gender: editGender 
+            };
+            localStorage.setItem("authUser", JSON.stringify(updatedUser));
+          }
 
-        // Tải lại trang nhẹ nhàng để cập nhật toàn diện
-        window.location.reload();
+          // Tải lại trang nhẹ nhàng để cập nhật toàn diện
+          window.location.reload();
+        }
       } else {
         alert(`Thất bại: ${res.data.message || "Không thể lưu thông tin"}`);
       }
@@ -236,11 +306,22 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, familyName
                 )}
               </div>
 
-              {/* Vai trò: KHÓA CHẶT */}
+              {/* Vai trò: KHÓA CHẶT TRỪ ADMIN VIEW */}
               <div className="profile-modal-info-col">
                 <span className="profile-modal-info-label">Vai trò</span>
                 {isEditing ? (
-                  <input type="text" className="profile-modal-input-disabled" value={roleLabel} disabled />
+                  isAdminView ? (
+                    <select 
+                      className="profile-modal-select-editing" 
+                      value={editRole}
+                      onChange={(e) => setEditRole(e.target.value)}
+                    >
+                      <option value="ADMIN">Người nội trợ</option>
+                      <option value="CUSTOMER">Thành viên</option>
+                    </select>
+                  ) : (
+                    <input type="text" className="profile-modal-input-disabled" value={roleLabel} disabled />
+                  )
                 ) : (
                   <span className="profile-modal-info-value">{roleLabel}</span>
                 )}
@@ -348,23 +429,25 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, familyName
             )}
 
             <div className="profile-modal-actions">
-              {isMe && (
+              {(isMe || isAdminView) && (
                 <>
                   {!isEditing ? (
                     <>
-                      <button 
-                        type="button" 
-                        className="profile-modal-btn-close" 
-                        onClick={handleLogoutClick}
-                        style={{ 
-                          borderColor: '#FEE2E2', 
-                          color: '#EF4444', 
-                          backgroundColor: 'rgba(239, 68, 68, 0.05)',
-                          fontWeight: '600'
-                        }}
-                      >
-                        Đăng xuất
-                      </button>
+                      {isMe && (
+                        <button 
+                          type="button" 
+                          className="profile-modal-btn-close" 
+                          onClick={handleLogoutClick}
+                          style={{ 
+                            borderColor: '#FEE2E2', 
+                            color: '#EF4444', 
+                            backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                            fontWeight: '600'
+                          }}
+                        >
+                          Đăng xuất
+                        </button>
+                      )}
                       <button 
                         type="button" 
                         className="profile-modal-btn-edit"

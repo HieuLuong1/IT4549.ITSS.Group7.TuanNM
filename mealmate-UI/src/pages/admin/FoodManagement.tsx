@@ -287,9 +287,9 @@ const FoodManagement: React.FC = () => {
               <div className="custom-requests-panel">
                 <div className="custom-requests-header">
                   <div>
-                    <h2 className="custom-requests-title">Thực phẩm người dùng nhập</h2>
+                    <h2 className="custom-requests-title">Thực phẩm tự nhập</h2>
                     <p className="custom-requests-subtitle">
-                      Các tên được nhập khi người dùng chọn nhóm thực phẩm "khác" trong tủ lạnh.
+                      Thực phẩm do người dùng tự thêm vào tủ lạnh.
                     </p>
                   </div>
                   <span className="custom-requests-count-badge">

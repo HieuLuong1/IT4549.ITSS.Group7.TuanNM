@@ -47,30 +47,55 @@ const Sidebar: React.FC = () => {
   const isAdmin = checkIsAdmin(baseAuthUser);
 
   const getRoleLabel = (userObj: any) => {
-  if (!userObj) return "Thành viên gia đình";
-  
-  // Bốc chuỗi tên vai trò từ hệ thống dữ liệu (hỗ trợ cả Object role hoặc chuỗi roleName)
-  const roleObj = userObj.role;
-  const roleName = (typeof roleObj === "object" && roleObj !== null ? roleObj.name : roleObj) 
-                   || userObj.roleName 
-                   || "";
+    if (!userObj) return "Thành viên";
+    
+    // Bốc chuỗi tên vai trò từ hệ thống dữ liệu (hỗ trợ cả Object role hoặc chuỗi roleName)
+    const roleObj = userObj.role;
+    const roleName = (typeof roleObj === "object" && roleObj !== null ? roleObj.name : roleObj) 
+                     || userObj.roleName 
+                     || "";
 
-  const upperRole = String(roleName).toUpperCase();
+    const upperRole = String(roleName).toUpperCase();
 
-  // Ép hiển thị chuẩn tên vai trò theo 3 nhóm hệ thống
-  if (upperRole.includes("ADMIN")) {
-    return "Quản trị viên hệ thống";
-  }
-  if (upperRole.includes("BOSS")) {
-    return "Người nội trợ";
-  }
-  if (upperRole.includes("CUSTOMER")) {
-    return "Thành viên gia đình";
-  }
+    // 1. Quản trị viên hệ thống
+    const currentFamilyStr = localStorage.getItem("currentFamily");
+    let hasFamily = userObj.family;
+    if (!hasFamily && currentFamilyStr) {
+      try {
+        hasFamily = JSON.parse(currentFamilyStr);
+      } catch (e) {}
+    }
+    if (upperRole.includes("ADMIN") && !hasFamily) {
+      return "Quản trị viên hệ thống";
+    }
 
-  // Dự phòng trường hợp dữ liệu thô từ DB trả về chuỗi text trực tiếp
-  return roleName || "Thành viên gia đình";
-};
+    // 2. Chủ nhà (Người nội trợ)
+    let isHousekeeper = false;
+    if (userObj.family) {
+      const hId = userObj.family.housekeeperId;
+      const currentUserId = Number(userObj.id || userObj.userId);
+      if (hId && Number(hId) === currentUserId) {
+        isHousekeeper = true;
+      }
+    } else if (currentFamilyStr) {
+      try {
+        const currentFamily = JSON.parse(currentFamilyStr);
+        const hId = currentFamily.housekeeperId;
+        const currentUserId = Number(userObj.id || userObj.userId);
+        if (hId && Number(hId) === currentUserId) {
+          isHousekeeper = true;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    if (upperRole.includes("BOSS") || upperRole.includes("HOUSEKEEPER") || isHousekeeper) {
+      return "Người nội trợ";
+    }
+
+    return "Thành viên";
+  };
 
   let refinedUserData = null;
   if (baseAuthUser) {
@@ -89,6 +114,17 @@ const Sidebar: React.FC = () => {
       }
     }
 
+    // Lấy thông tin gia đình hiện tại từ localStorage
+    let currentFamily = null;
+    const currentFamilyStr = localStorage.getItem("currentFamily");
+    if (currentFamilyStr) {
+      try {
+        currentFamily = JSON.parse(currentFamilyStr);
+      } catch (e) {
+        console.error("Lỗi parse currentFamily tại Sidebar:", e);
+      }
+    }
+
     if (foundFullProfile) {
       refinedUserData = {
         id: foundFullProfile.id,
@@ -97,7 +133,8 @@ const Sidebar: React.FC = () => {
         email: foundFullProfile.email,
         phone: foundFullProfile.phone,
         gender: foundFullProfile.gender,
-        avatarUrl: foundFullProfile.avatarUrl
+        avatarUrl: foundFullProfile.avatarUrl,
+        family: currentFamily
       };
     } else {
       refinedUserData = {
@@ -107,7 +144,8 @@ const Sidebar: React.FC = () => {
         email: baseAuthUser.email || "Chưa cập nhật",
         phone: baseAuthUser.phone || "Chưa cập nhật",
         gender: baseAuthUser.gender || "OTHER",
-        avatarUrl: baseAuthUser.avatarUrl || undefined
+        avatarUrl: baseAuthUser.avatarUrl || undefined,
+        family: currentFamily
       };
     }
   }

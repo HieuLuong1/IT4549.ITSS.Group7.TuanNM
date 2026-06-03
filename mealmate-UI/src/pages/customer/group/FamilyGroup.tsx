@@ -89,6 +89,7 @@ const FamilyGroup: React.FC = () => {
         console.log("🔍 [DEBUG] groupData.id:", groupData?.id);
         
         if (groupData) {
+          localStorage.setItem("currentFamily", JSON.stringify(groupData));
           const cleanName = String(groupData.name || "Gia đình Fiza").trim();
           const familyIdFromDb = groupData.id;
           
@@ -143,7 +144,7 @@ const FamilyGroup: React.FC = () => {
             return {
               id: m.id,
               fullName: m.fullName || m.full_name || "Thành viên ẩn danh",
-              roleName: isOwner ? "Chủ nhà" : "Thành viên",
+              roleName: isOwner ? "Người nội trợ" : "Thành viên",
               avatarClass: avatarColors[index % avatarColors.length],
               email: m.email || "Chưa cập nhật",
               phone: m.phone || m.phoneNumber || "Chưa cập nhật",
@@ -364,8 +365,8 @@ const FamilyGroup: React.FC = () => {
                           <div className="member-name-box"><div className="member-name">{member.fullName}</div></div>
                         </div>
                         <div className="td-role">
-                          <div className={member.roleName === "Chủ nhà" ? "role-badge-admin" : "role-badge-member"}>
-                            <div className={member.roleName === "Chủ nhà" ? "role-text-admin" : "role-text-member"}>{member.roleName}</div>
+                          <div className={member.roleName === "Người nội trợ" ? "role-badge-admin" : "role-badge-member"}>
+                            <div className={member.roleName === "Người nội trợ" ? "role-text-admin" : "role-text-member"}>{member.roleName}</div>
                           </div>
                         </div>
                         <div className="td-actions">

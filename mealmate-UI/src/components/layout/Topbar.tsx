@@ -52,10 +52,13 @@ const Topbar: React.FC<TopbarProps> = ({
     })
     .then(response => {
       if (response.data) {
-        if (response.data.success && response.data.data && response.data.data.name) {
-          setLocalFamilyName(response.data.data.name);
-        } else if (response.data.name) {
-          setLocalFamilyName(response.data.name);
+        const familyData = response.data.success ? response.data.data : response.data;
+        if (familyData) {
+          localStorage.setItem("currentFamily", JSON.stringify(familyData));
+          if (familyData.name) {
+            setLocalFamilyName(familyData.name);
+            localStorage.setItem("currentFamilyName", familyData.name.trim());
+          }
         }
       }
     })

@@ -25,6 +25,7 @@ import {
   Pie,
   Cell
 } from 'recharts';
+import { Link } from 'react-router-dom';
 import Modal from '../../components/admin/Modal';
 import api from '../../services/api';
 
@@ -376,7 +377,7 @@ const PerformanceManagement: React.FC = () => {
             
             {/* Stats Summary Cards */}
             <div className="stats-grid-4col">
-              <div className="um-card stat-item-card">
+              <Link to="/admin/users" className="um-card stat-item-card" style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
                 <div className="stat-icon-wrapper bg-sky text-sky">
                   <Users size={24} />
                 </div>
@@ -384,8 +385,8 @@ const PerformanceManagement: React.FC = () => {
                   <p className="stat-card-label">Người dùng</p>
                   <p className="stat-card-number">{stats.totalUsers}</p>
                 </div>
-              </div>
-              <div className="um-card stat-item-card">
+              </Link>
+              <Link to="/admin/users" className="um-card stat-item-card" style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
                 <div className="stat-icon-wrapper bg-red text-red">
                   <RefreshCw size={24} />
                 </div>
@@ -393,8 +394,8 @@ const PerformanceManagement: React.FC = () => {
                   <p className="stat-card-label">Gia đình</p>
                   <p className="stat-card-number">{stats.totalFamilies}</p>
                 </div>
-              </div>
-              <div className="um-card stat-item-card">
+              </Link>
+              <Link to="/admin/foods" className="um-card stat-item-card" style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
                 <div className="stat-icon-wrapper bg-green text-green">
                   <UtensilsCrossed size={24} />
                 </div>
@@ -402,8 +403,8 @@ const PerformanceManagement: React.FC = () => {
                   <p className="stat-card-label">Thực phẩm</p>
                   <p className="stat-card-number">{stats.totalFoods}</p>
                 </div>
-              </div>
-              <div className="um-card stat-item-card">
+              </Link>
+              <Link to="/admin/recipes" className="um-card stat-item-card" style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
                 <div className="stat-icon-wrapper bg-purple text-purple">
                   <BookOpen size={24} />
                 </div>
@@ -411,13 +412,13 @@ const PerformanceManagement: React.FC = () => {
                   <p className="stat-card-label">Món ăn</p>
                   <p className="stat-card-number">{stats.totalRecipes}</p>
                 </div>
-              </div>
+              </Link>
             </div>
 
             {/* Charts Section */}
             <div className="charts-grid-2col">
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="um-card h-400">
-                <h3 className="chart-title">Lượt truy cập trong tuần</h3>
+                <h3 className="chart-title">Truy cập tuần</h3>
                 <ResponsiveContainer width="100%" height="85%">
                   <BarChart data={stats.userActivity}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -430,7 +431,7 @@ const PerformanceManagement: React.FC = () => {
               </motion.div>
 
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="um-card h-400">
-                <h3 className="chart-title">Phân loại thực phẩm</h3>
+                <h3 className="chart-title">Cơ cấu thực phẩm</h3>
                 <ResponsiveContainer width="100%" height="85%">
                   <PieChart>
                     <Pie
@@ -454,8 +455,8 @@ const PerformanceManagement: React.FC = () => {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="um-card">
               <div className="section-toolbar-wrapper">
                 <div>
-                  <h3 className="section-block-title">Thực phẩm trong nhóm "khác" do người dùng nhập</h3>
-                  <p className="section-block-subtitle">Các item đang nằm dưới Rau củ khác, Trái cây khác, Thịt khác, Hải sản khác, Đồ khô khác, Gia vị khác... cần admin xem xét.</p>
+                  <h3 className="section-block-title">Thực phẩm tự nhập</h3>
+                  <p className="section-block-subtitle">Xem xét chuẩn hóa thực phẩm do người dùng thêm.</p>
                 </div>
                 <div className="toolbar-search-actions-flex">
                   <div className="um-search-container max-w-300">
@@ -544,8 +545,8 @@ const PerformanceManagement: React.FC = () => {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="um-card">
               <div className="section-toolbar-wrapper">
                 <div>
-                  <h3 className="section-block-title">Quản lý tên gọi địa phương</h3>
-                  <p className="section-block-subtitle">Đồng nhất tên gọi thực phẩm cho các vùng miền</p>
+                  <h3 className="section-block-title">Tên gọi địa phương</h3>
+                  <p className="section-block-subtitle">Đồng nhất tên gọi thực phẩm vùng miền.</p>
                 </div>
                 <div className="toolbar-search-actions-flex">
                   <div className="um-search-container max-w-300">
@@ -938,7 +939,7 @@ const PerformanceManagement: React.FC = () => {
                       setViewingItem(null);
                       handleOpenApproveModal(viewingItem);
                     }}
-                    className="um-btn-primary w-100 mt-05" 
+                    className="um-btn-primary mt-05" 
                   >
                     Duyệt thực phẩm mới
                   </button>
@@ -1021,7 +1022,7 @@ function PageArrow({ icon, disabled, onClick }: any) {
         background: 'transparent', 
         display: 'flex', 
         alignItems: 'center', 
-        justify-content: 'center', 
+        justifyContent: 'center', 
         cursor: disabled ? 'default' : 'pointer', 
         color: '#94a3b8', 
         opacity: disabled ? 0.3 : 1 

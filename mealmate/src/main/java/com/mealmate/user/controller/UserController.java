@@ -41,6 +41,9 @@ public class UserController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<User>> create(@RequestBody User entity) {
+        if (entity.getPasswordHash() != null && !entity.getPasswordHash().isEmpty()) {
+            entity.setPasswordHash(passwordEncoder.encode(entity.getPasswordHash()));
+        }
         return ResponseEntity.ok(new ApiResponse<>(true, "Created", service.save(entity)));
     }
 
@@ -62,10 +65,14 @@ public class UserController {
     // =========================================================================
     @GetMapping("/family/{familyId}/members")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getMembersByFamilyId(@PathVariable Long familyId) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getMembersByFamilyId(@PathVariable Long familyId) {
         try {
+            // Lấy thông tin gia đình để xác định ai là người nội trợ
+            Family family = familyService.findByFamilyId(familyId);
+            Long housekeeperId = (family != null) ? family.getHousekeeperId() : null;
+
             List<Object[]> rawRows = userRepository.findRawMembersByFamilyId(familyId);
-            List<Map<String, Object>> result = rawRows.stream().map(row -> {
+            List<Map<String, Object>> members = rawRows.stream().map(row -> {
                 Map<String, Object> map = new java.util.HashMap<>();
                 map.put("id", row[0] != null ? ((Number) row[0]).longValue() : 0L);
                 map.put("email", row[1] != null ? row[1].toString() : "");
@@ -76,6 +83,11 @@ public class UserController {
                 map.put("roleName", row[6] != null ? row[6].toString() : "CUSTOMER");
                 return map;
             }).collect(Collectors.toList());
+
+            Map<String, Object> result = new java.util.HashMap<>();
+            result.put("members", members);
+            result.put("housekeeperId", housekeeperId);
+
             return ResponseEntity.ok(new ApiResponse<>(true, "Success", result));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(new ApiResponse<>(false, "Lỗi: " + e.getMessage(), null));

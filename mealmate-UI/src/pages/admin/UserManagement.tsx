@@ -22,6 +22,7 @@ import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import Sidebar from '../../components/layout/Sidebar';
 import Topbar from '../../components/layout/Topbar';
+import ProfileModal from '../../components/layout/ProfileModal';
 
 import './UserManagement.css';
 
@@ -60,7 +61,7 @@ interface FamilyMember {
 }
 
 const UserManagement: React.FC = () => {
-  const { logout } = useAuth();
+  const { logout, user: loggedInAdmin } = useAuth();
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -82,6 +83,7 @@ const UserManagement: React.FC = () => {
   // Family members modal state
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [familyHousekeeperId, setFamilyHousekeeperId] = useState<number | null>(null);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
   const openFamilyModal = async (family: Family) => {
@@ -89,10 +91,13 @@ const UserManagement: React.FC = () => {
     setLoadingMembers(true);
     try {
       const res = await api.get(`/api/v1/users/users/family/${family.id}/members`);
-      setFamilyMembers(res.data?.data || []);
+      const data = res.data?.data;
+      setFamilyMembers(data?.members || []);
+      setFamilyHousekeeperId(data?.housekeeperId ?? null);
     } catch (e) {
       console.error(e);
       setFamilyMembers([]);
+      setFamilyHousekeeperId(null);
     } finally {
       setLoadingMembers(false);
     }
@@ -104,9 +109,19 @@ const UserManagement: React.FC = () => {
     try {
       const response = await api.get('/api/v1/users/users');
       if (response.data?.success) {
-        setUsers(response.data.data);
+        const allUsers = response.data.data || [];
+        const filtered = allUsers.filter((u: any) => 
+          u.email !== 'admin@mealmate.local' && 
+          u.email !== loggedInAdmin?.email
+        );
+        setUsers(filtered);
       } else {
-        setUsers(response.data || []);
+        const allUsers = response.data || [];
+        const filtered = allUsers.filter((u: any) => 
+          u.email !== 'admin@mealmate.local' && 
+          u.email !== loggedInAdmin?.email
+        );
+        setUsers(filtered);
       }
     } catch (err) {
       console.error(err);
@@ -124,7 +139,10 @@ const UserManagement: React.FC = () => {
     const matchesSearch = (user.fullName || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
                           (user.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                           user.id.toString().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === 'Tất cả' || user.role?.name === roleFilter;
+    const isHousekeeper = user.role?.name === 'ADMIN' || (user.family && user.id === user.family.housekeeperId);
+    const matchesRole = roleFilter === 'Tất cả' || 
+                        (roleFilter === 'ADMIN' && isHousekeeper) ||
+                        (roleFilter === 'CUSTOMER' && !isHousekeeper);
     return matchesSearch && matchesRole;
   });
 
@@ -184,7 +202,7 @@ const UserManagement: React.FC = () => {
       email: formData.get('email') as string,
       phone: formData.get('phone') as string,
       gender: formData.get('gender') as string,
-      passwordHash: 'dummy_hash',
+      passwordHash: formData.get('password') as string,
       role: {
         id: roleName === 'ADMIN' ? 1 : 2,
         name: roleName
@@ -205,64 +223,7 @@ const UserManagement: React.FC = () => {
 
   return (
     <div className="um-layout">
-      {/* Sidebar - Consistent with other Admin pages */}
-      <aside 
-        onMouseEnter={() => setIsSidebarHovered(true)}
-        onMouseLeave={() => setIsSidebarHovered(false)}
-        className={`um-sidebar ${isSidebarHovered ? "expanded" : "collapsed"}`}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', marginBottom: '3rem', padding: isSidebarHovered ? '0 1.25rem' : '0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: isSidebarHovered ? 'flex-start' : 'center' }}>
-            <div style={{ width: '48px', height: '48px', backgroundColor: 'var(--fiza-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '20px', flexShrink: 0, margin: isSidebarHovered ? '0' : '0 auto' }}>
-              <Leaf color="white" fill="white" size={28} />
-            </div>
-            <AnimatePresence>
-              {isSidebarHovered && (
-                <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--mint-green)', marginLeft: '0.75rem', whiteSpace: 'nowrap' }}>
-                  Fiza
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
 
-        <nav style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <SidebarLink icon={<Users size={22} />} label="Quản lý người dùng" to="/admin/users" isExpanded={isSidebarHovered} active />
-          <SidebarLink icon={<UtensilsCrossed size={22} />} label="Quản lý thực phẩm" to="/admin/foods" isExpanded={isSidebarHovered} />
-          <SidebarLink icon={<BookOpen size={22} />} label="Quản lý món ăn" to="/admin/recipes" isExpanded={isSidebarHovered} />
-          <SidebarLink icon={<BarChart3 size={22} />} label="Quản lý hiệu suất" to="/admin/performance" isExpanded={isSidebarHovered} />
-          <SidebarLink icon={<LogOut size={22} />} label="Đăng xuất" to="#" isExpanded={isSidebarHovered} onClick={logout} />
-        </nav>
-
-        <div style={{ width: '100%', paddingTop: '1.5rem', borderTop: '1px solid #f1f5f9' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 1rem', margin: '0.5rem 0.5rem 0', borderRadius: '1rem', cursor: 'pointer' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', border: '1px solid var(--fiza-primary)', flexShrink: 0, margin: isSidebarHovered ? '0' : '0 auto' }}>
-              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Admin" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            </div>
-            <AnimatePresence>
-              {isSidebarHovered && (
-                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} style={{ marginLeft: '0.75rem' }}>
-                  <p style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1e293b' }}>Admin Fiza</p>
-                  <p style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Super Admin</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <div className={`um-main ${isSidebarHovered ? 'shifted' : 'unshifted'}`}>
-        <header className="um-header">
-          <div className="um-header-left">
-            <h1 className="um-title">Quản lý người dùng</h1>
-            <p className="um-subtitle">Quản trị danh sách tài khoản toàn hệ thống</p>
-          </div>
-          <div className="um-header-right">
-            <HeaderBtn icon={<Bell size={20} />} hasBadge />
-            <HeaderBtn icon={<Settings size={20} />} />
-          </div>
-        </header>
       <Sidebar />
 
       <div className="um-main">
@@ -368,10 +329,9 @@ const UserManagement: React.FC = () => {
                             )}
                           </td>
                           <td>
-                            <div style={{ display: 'flex', justifyContent: 'center' }}>
                             <div className="text-center-flex">
                               <div className="um-role-badge">
-                                {user.role?.name === 'ADMIN' ? 'Người nội trợ' : 'Thành viên'}
+                                {user.role?.name === 'ADMIN' || (user.family && user.id === user.family.housekeeperId) ? 'Người nội trợ' : 'Thành viên'}
                               </div>
                             </div>
                           </td>
@@ -441,6 +401,7 @@ const UserManagement: React.FC = () => {
                   <FormGroup label="Họ tên" name="name" placeholder="VD: Nguyễn Văn A" required />
                   <FormGroup label="Số điện thoại" name="phone" placeholder="090..." required />
                   <FormGroup label="Email" name="email" type="email" placeholder="email@example.com" required />
+                  <FormGroup label="Mật khẩu" name="password" type="password" placeholder="Nhập mật khẩu..." required />
                   <div className="modal-select-wrapper">
                     <label className="modal-input-label">Vai trò</label>
                     <select name="role" className="um-search-input pl-1">
@@ -511,13 +472,6 @@ const UserManagement: React.FC = () => {
                     />
                   </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                  <button type="button" onClick={() => { setShowAddModal(false); setAvatarPreview(null); }} style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600, cursor: 'pointer' }}>Hủy</button>
-                  <div className="modal-select-wrapper">
-                    <label className="modal-input-label">Ảnh đại diện</label>
-                    <input type="file" name="avatar" className="um-search-input pt-05 pl-1" accept="image/*" />
-                  </div>
-                </div>
                 <div className="modal-footer-actions">
                   <button type="button" onClick={() => setShowAddModal(false)} className="btn-cancel-round">Hủy</button>
                   <button type="submit" className="um-btn-primary">Lưu người dùng</button>
@@ -526,88 +480,18 @@ const UserManagement: React.FC = () => {
             </SharedModal>
           )}
 
-          {viewUser && editData && (
-            <SharedModal title={isEditing ? "Chỉnh sửa người dùng" : "Chi tiết người dùng"} onClose={() => { setViewUser(null); setIsEditing(false); }}>
-              <div style={{ display: 'flex', gap: '2rem' }}>
-                <div style={{ width: '120px', height: '120px', borderRadius: '24px', overflow: 'hidden', backgroundColor: '#F1FAF6', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #e2e8f0' }}>
-                  {viewUser.avatarUrl ? (
-                    <img src={viewUser.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <UserCircle2 size={64} color="#6DD4B4" />
-                  )}
-              <div className="detail-modal-layout">
-                <div className="detail-avatar-container">
-                  <img src={viewUser.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${viewUser.fullName}`} alt="" />
-                </div>
-                <div className="detail-fields-grid">
-                  <DetailItem label="Mã người dùng" value={viewUser.id} readOnly />
-                  {isEditing ? (
-                    <>
-                      <FormGroup 
-                        label="Họ tên" 
-                        value={editData.fullName} 
-                        onChange={(e: any) => setEditData({ ...editData, fullName: e.target.value })} 
-                      />
-                      <div className="modal-select-wrapper">
-                        <label className="modal-input-label">Vai trò</label>
-                        <select 
-                          className="um-search-input pl-1" 
-                          value={editData.role?.name}
-                          onChange={(e) => setEditData({ 
-                            ...editData, 
-                            role: { id: e.target.value === 'ADMIN' ? 1 : 2, name: e.target.value } 
-                          })}
-                        >
-                          <option value="ADMIN">Người nội trợ</option>
-                          <option value="CUSTOMER">Thành viên</option>
-                        </select>
-                      </div>
-                      <div className="modal-select-wrapper">
-                        <label className="modal-input-label">Giới tính</label>
-                        <select 
-                          className="um-search-input pl-1" 
-                          value={editData.gender}
-                          onChange={(e) => setEditData({ ...editData, gender: e.target.value as any })}
-                        >
-                          <option value="MALE">Nam</option>
-                          <option value="FEMALE">Nữ</option>
-                          <option value="OTHER">Khác</option>
-                        </select>
-                      </div>
-                      <FormGroup 
-                        label="Số điện thoại" 
-                        value={editData.phone} 
-                        onChange={(e: any) => setEditData({ ...editData, phone: e.target.value })} 
-                      />
-                      <FormGroup 
-                        label="Email" 
-                        value={editData.email} 
-                        onChange={(e: any) => setEditData({ ...editData, email: e.target.value })} 
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <DetailItem label="Họ tên" value={viewUser.fullName} />
-                      <DetailItem label="Vai trò" value={viewUser.role?.name === 'ADMIN' ? 'Người nội trợ' : 'Thành viên'} isBadge />
-                      <DetailItem label="Giới tính" value={viewUser.gender === 'MALE' ? 'Nam' : viewUser.gender === 'FEMALE' ? 'Nữ' : 'Khác'} />
-                      <DetailItem label="Số điện thoại" value={viewUser.phone} />
-                      <DetailItem label="Email" value={viewUser.email} />
-                      <DetailItem label="Gia đình" value={viewUser.family?.name || 'Không có'} />
-                    </>
-                  )}
-                </div>
-              </div>
-              <div className="modal-footer-actions mt-2">
-                {isEditing ? (
-                  <>
-                    <button onClick={() => setIsEditing(false)} className="btn-cancel-round">Hủy</button>
-                    <button onClick={handleSaveEdit} className="um-btn-primary">Lưu thay đổi</button>
-                  </>
-                ) : (
-                  <button onClick={() => setIsEditing(true)} className="um-btn-primary">Chỉnh sửa thông tin</button>
-                )}
-              </div>
-            </SharedModal>
+          {viewUser && (
+            <ProfileModal
+              isOpen={!!viewUser}
+              onClose={() => setViewUser(null)}
+              memberData={viewUser}
+              familyName={viewUser.family?.name || 'Không có'}
+              isMe={false}
+              isAdminView={true}
+              onUpdateUser={(updatedUser) => {
+                setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+              }}
+            />
           )}
 
           {deleteConfirm && (
@@ -630,7 +514,7 @@ const UserManagement: React.FC = () => {
           {selectedFamily && (
             <SharedModal
               title=""
-              onClose={() => { setSelectedFamily(null); setFamilyMembers([]); }}
+              onClose={() => { setSelectedFamily(null); setFamilyMembers([]); setFamilyHousekeeperId(null); }}
               width="760px"
             >
               {/* Custom header */}
@@ -676,6 +560,7 @@ const UserManagement: React.FC = () => {
                           key={member.id}
                           style={{ cursor: 'pointer', transition: 'background 0.15s' }}
                           onClick={() => {
+                            const isHousekeeper = familyHousekeeperId !== null && member.id === familyHousekeeperId;
                             const asUser: User = {
                               id: member.id,
                               fullName: member.fullName,
@@ -683,13 +568,14 @@ const UserManagement: React.FC = () => {
                               phone: member.phone,
                               gender: member.gender as any,
                               avatarUrl: member.avatarUrl,
-                              role: { id: member.roleName === 'ADMIN' ? 1 : 2, name: member.roleName || 'CUSTOMER' },
+                              role: { id: isHousekeeper ? 1 : 2, name: isHousekeeper ? 'ADMIN' : 'CUSTOMER' },
                               family: selectedFamily,
                             };
                             setViewUser(asUser);
                             setEditData(asUser);
                             setIsEditing(false);
                             setSelectedFamily(null);
+                            setFamilyHousekeeperId(null);
                           }}
                           onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
                           onMouseLeave={e => (e.currentTarget.style.background = '')}
@@ -712,7 +598,7 @@ const UserManagement: React.FC = () => {
                           <td>
                             <div style={{ display: 'flex', justifyContent: 'center' }}>
                               <div className="um-role-badge">
-                                {member.roleName === 'ADMIN' ? 'Người nội trợ' : 'Thành viên'}
+                                {familyHousekeeperId !== null && member.id === familyHousekeeperId ? 'Người nội trợ' : 'Thành viên'}
                               </div>
                             </div>
                           </td>
