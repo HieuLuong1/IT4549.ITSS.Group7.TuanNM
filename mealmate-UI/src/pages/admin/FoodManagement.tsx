@@ -308,7 +308,7 @@ const FoodManagement: React.FC = () => {
                         <div>
                           <div className="custom-request-item-name">{request.customName}</div>
                           <div className="custom-request-item-meta">
-                            {request.categoryName} · từ "{request.placeholderFoodName}" · {request.requestCount} lần nhập
+                            {request.categoryName} · từ "{request.placeholderFoodName}"
                           </div>
                         </div>
                         <button

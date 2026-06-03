@@ -57,20 +57,13 @@ const Sidebar: React.FC = () => {
 
     const upperRole = String(roleName).toUpperCase();
 
-    // 1. Quản trị viên hệ thống
-    const currentFamilyStr = localStorage.getItem("currentFamily");
-    let hasFamily = userObj.family;
-    if (!hasFamily && currentFamilyStr) {
-      try {
-        hasFamily = JSON.parse(currentFamilyStr);
-      } catch (e) {}
-    }
-    if (upperRole.includes("ADMIN") && !hasFamily) {
+    if (upperRole.includes("ADMIN")) {
       return "Quản trị viên hệ thống";
     }
 
     // 2. Chủ nhà (Người nội trợ)
     let isHousekeeper = false;
+    const currentFamilyStr = localStorage.getItem("currentFamily");
     if (userObj.family) {
       const hId = userObj.family.housekeeperId;
       const currentUserId = Number(userObj.id || userObj.userId);
@@ -134,7 +127,7 @@ const Sidebar: React.FC = () => {
         phone: foundFullProfile.phone,
         gender: foundFullProfile.gender,
         avatarUrl: foundFullProfile.avatarUrl,
-        family: currentFamily
+        family: isAdmin ? null : currentFamily
       };
     } else {
       refinedUserData = {
@@ -145,7 +138,7 @@ const Sidebar: React.FC = () => {
         phone: baseAuthUser.phone || "Chưa cập nhật",
         gender: baseAuthUser.gender || "OTHER",
         avatarUrl: baseAuthUser.avatarUrl || undefined,
-        family: currentFamily
+        family: isAdmin ? null : currentFamily
       };
     }
   }

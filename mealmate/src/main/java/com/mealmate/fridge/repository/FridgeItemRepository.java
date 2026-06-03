@@ -348,6 +348,7 @@ public interface FridgeItemRepository extends JpaRepository<FridgeItem, Long> {
         @Param("targetFoodId") Long targetFoodId
     );
 
+
     @Query(value = """
         SELECT c.name AS name, COUNT(fi.id) AS value
         FROM categories c

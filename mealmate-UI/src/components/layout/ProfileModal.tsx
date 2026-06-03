@@ -89,14 +89,13 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, familyName
 
   const familyObj = displayUser?.family;
   
-  if (upperRole.includes("ADMIN") && !familyObj) {
+  if (upperRole.includes("ADMIN")) {
     isSystemAdmin = true;
   } else if (
     upperRole.includes("BOSS") || 
     upperRole.includes("HOUSEKEEPER") || 
     upperRole.includes("CHỦ NHÀ") ||
-    upperRole.includes("NGƯỜI NỘI TRỢ") ||
-    (upperRole.includes("ADMIN") && familyObj) // Nếu là ADMIN và có gia đình thì chính là Người nội trợ được quản lý bởi admin view
+    upperRole.includes("NGƯỜI NỘI TRỢ")
   ) {
     isHousekeeper = true;
   } else if (familyObj) {
@@ -328,29 +327,33 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, familyName
               </div>
 
               {/* Gia đình: KHÓA CHẶT */}
-              <div className="profile-modal-info-col">
-                <span className="profile-modal-info-label">Gia đình</span>
-                {isEditing ? (
-                  <input type="text" className="profile-modal-input-disabled" value={displayFamilyText} disabled />
-                ) : (
-                  <span className="profile-modal-info-value">{displayFamilyText}</span>
-                )}
-              </div>
+              {!isSystemAdmin && (
+                <div className="profile-modal-info-col">
+                  <span className="profile-modal-info-label">Gia đình</span>
+                  {isEditing ? (
+                    <input type="text" className="profile-modal-input-disabled" value={displayFamilyText} disabled />
+                  ) : (
+                    <span className="profile-modal-info-value">{displayFamilyText}</span>
+                  )}
+                </div>
+              )}
 
               {/* Số điện thoại */}
-              <div className="profile-modal-info-col">
-                <span className="profile-modal-info-label">Số điện thoại</span>
-                {isEditing ? (
-                  <input 
-                    type="text" 
-                    className="profile-modal-input-editing" 
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value)}
-                  />
-                ) : (
-                  <span className="profile-modal-info-value">{editPhone || "Chưa cập nhật"}</span>
-                )}
-              </div>
+              {!isSystemAdmin && (
+                <div className="profile-modal-info-col">
+                  <span className="profile-modal-info-label">Số điện thoại</span>
+                  {isEditing ? (
+                    <input 
+                      type="text" 
+                      className="profile-modal-input-editing" 
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                    />
+                  ) : (
+                    <span className="profile-modal-info-value">{editPhone || "Chưa cập nhật"}</span>
+                  )}
+                </div>
+              )}
 
               {/* Giới tính - Dropdown */}
               <div className="profile-modal-info-col">

@@ -336,6 +336,7 @@ public class FridgeItemService {
         return toResolvedCustomFoodRequestResponse(customName, request.getPlaceholderFoodId(), saved);
     }
 
+
     private void validateCreateRequest(CreateFridgeItemRequest request) {
         if (request.getFoodId() == null) {
             throw new IllegalArgumentException("foodId is required");

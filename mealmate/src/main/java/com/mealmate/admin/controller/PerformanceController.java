@@ -58,9 +58,9 @@ public class PerformanceController {
         LocalDate monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         
         List<Map<String, Object>> userActivity = new ArrayList<>();
-        String[] days = {"Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"};
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM");
         
-        for (int i = 0; i < days.length; i++) {
+        for (int i = 0; i < 7; i++) {
             LocalDate date = monday.plusDays(i);
             LocalDateTime startOfDay = date.atStartOfDay();
             LocalDateTime endOfDay = date.plusDays(1).atStartOfDay();
@@ -68,7 +68,7 @@ public class PerformanceController {
             long count = userActivityTracker.countVisitsBetween(startOfDay, endOfDay);
             
             Map<String, Object> dayMap = new HashMap<>();
-            dayMap.put("name", days[i]);
+            dayMap.put("name", date.format(formatter));
             dayMap.put("users", count);
             userActivity.add(dayMap);
         }

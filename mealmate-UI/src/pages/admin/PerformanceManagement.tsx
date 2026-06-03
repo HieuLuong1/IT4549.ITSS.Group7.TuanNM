@@ -78,6 +78,7 @@ const PerformanceManagement: React.FC = () => {
   const [inlineAdding, setInlineAdding] = useState<number | null>(null);
   const [inlineValue, setInlineValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string>('');
   
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -106,6 +107,10 @@ const PerformanceManagement: React.FC = () => {
       } else {
         setStats(response.data || {});
       }
+      const now = new Date();
+      const timeString = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const dateString = now.toLocaleDateString('vi-VN');
+      setLastUpdated(`${timeString} ${dateString}`);
     } catch (err) {
       console.error('Lỗi khi tải thống kê:', err);
     }
@@ -159,17 +164,21 @@ const PerformanceManagement: React.FC = () => {
     const refreshOnFocus = () => {
       if (!document.hidden) {
         fetchCustomFoodRequests();
+        fetchStats();
       }
     };
-    const intervalId = window.setInterval(fetchCustomFoodRequests, 15000);
+    const intervalId = window.setInterval(() => {
+      fetchCustomFoodRequests();
+      fetchStats();
+    }, 15000);
 
     document.addEventListener('visibilitychange', refreshOnFocus);
-    window.addEventListener('focus', fetchCustomFoodRequests);
+    window.addEventListener('focus', refreshOnFocus);
 
     return () => {
       window.clearInterval(intervalId);
       document.removeEventListener('visibilitychange', refreshOnFocus);
-      window.removeEventListener('focus', fetchCustomFoodRequests);
+      window.removeEventListener('focus', refreshOnFocus);
     };
   }, []);
 
@@ -418,7 +427,12 @@ const PerformanceManagement: React.FC = () => {
             {/* Charts Section */}
             <div className="charts-grid-2col">
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="um-card h-400">
-                <h3 className="chart-title">Truy cập tuần</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h3 className="chart-title" style={{ margin: 0 }}>Truy cập tuần</h3>
+                  <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Cập nhật: {lastUpdated || 'Đang tải...'}
+                  </span>
+                </div>
                 <ResponsiveContainer width="100%" height="85%">
                   <BarChart data={stats.userActivity}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -491,19 +505,17 @@ const PerformanceManagement: React.FC = () => {
                 <table className="um-table">
                   <thead>
                     <tr>
-                      <th>Cụ thể người dùng nhập</th>
-                      <th>Nhóm hiện tại</th>
-                      <th>Food placeholder</th>
+                      <th>Tên tự nhập</th>
+                      <th>Danh mục</th>
+                      <th>Thực phẩm mặc định</th>
                       <th>Đơn vị</th>
-                      <th>Số lần nhập</th>
-                      <th>Lần cuối</th>
                       <th className="text-center w-100">Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
                     {isLoadingCustomFoodRequests && (
                       <tr>
-                        <td colSpan={7} className="text-center p-2 text-muted">
+                        <td colSpan={5} className="text-center p-2 text-muted">
                           Đang tải dữ liệu thực phẩm người dùng nhập...
                         </td>
                       </tr>
@@ -520,8 +532,6 @@ const PerformanceManagement: React.FC = () => {
                         </td>
                         <td className="placeholder-name-bold">{item.placeholderFoodName}</td>
                         <td className="text-muted-sm">{item.unit || 'g'}</td>
-                        <td className="count-number-text">{item.requestCount}</td>
-                        <td className="text-muted-sm">{formatDateTime(item.lastRequestedAt)}</td>
                         <td>
                           <div className="action-flex-center">
                             <ActionBtn icon={<Eye size={18} />} hoverColor="var(--fiza-primary)" onClick={() => { setViewingItem(item); setIsLinkingMode(false); }} />
@@ -531,7 +541,7 @@ const PerformanceManagement: React.FC = () => {
                     ))}
                     {!isLoadingCustomFoodRequests && customFoodRequests.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="empty-table-cell">
+                        <td colSpan={5} className="empty-table-cell">
                           Không có thực phẩm thuộc nhóm "khác" nào cần xử lý.
                         </td>
                       </tr>
@@ -907,12 +917,10 @@ const PerformanceManagement: React.FC = () => {
             ) : (
               <div className="modal-vertical-stack-gap-lg">
                 <div className="modal-grid-2col gap-15">
-                  <DetailItem label="Food placeholder" value={viewingItem.placeholderFoodName} isBadge />
-                  <DetailItem label="Tên người dùng nhập" value={viewingItem.customName} />
+                  <DetailItem label="Thực phẩm mặc định" value={viewingItem.placeholderFoodName} isBadge />
+                  <DetailItem label="Tên tự nhập" value={viewingItem.customName} />
                   <DetailItem label="Danh mục" value={viewingItem.categoryName} />
                   <DetailItem label="Đơn vị" value={viewingItem.unit || 'g'} />
-                  <DetailItem label="Số lần nhập" value={viewingItem.requestCount} />
-                  <DetailItem label="Lần cuối" value={formatDateTime(viewingItem.lastRequestedAt)} />
                 </div>
                 <div className="form-input-stack mt-05">
                   <span className="detail-label">Logic xử lý</span>
