@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, 
-  UtensilsCrossed, 
-  BookOpen, 
   Bell, 
   Settings, 
   Search, 
@@ -10,17 +7,13 @@ import {
   Eye, 
   Trash2, 
   ChevronLeft, 
-  ChevronRight,
-  Leaf,
-  BarChart3,
-  LogOut
+  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { NavLink } from 'react-router-dom';
 import SharedModal from '../../components/admin/Modal';
 import api from '../../services/api';
-import { useAuth } from '../../context/AuthContext';
 
+import Sidebar from '../../components/layout/Sidebar';
 
 interface Role {
   id: number;
@@ -40,10 +33,7 @@ export interface User {
 }
 
 const UserManagement: React.FC = () => {
-  const { logout } = useAuth();
-  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
-
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -148,7 +138,7 @@ const UserManagement: React.FC = () => {
       email: formData.get('email') as string,
       phone: formData.get('phone') as string,
       gender: formData.get('gender') as string,
-      passwordHash: 'dummy_hash', // Mật khẩu tạm thời cho admin tạo
+      passwordHash: 'dummy_hash',
       role: {
         id: roleName === 'ADMIN' ? 1 : 2,
         name: roleName
@@ -168,83 +158,11 @@ const UserManagement: React.FC = () => {
 
   return (
     <div className="um-layout">
-      {/* Sidebar - Consistent with RecipeManagement */}
-      <aside 
-        onMouseEnter={() => setIsSidebarHovered(true)}
-        onMouseLeave={() => setIsSidebarHovered(false)}
-        className={`um-sidebar ${isSidebarHovered ? 'expanded' : 'collapsed'}`}
-      >
-        {/* Branding */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', marginBottom: '3rem', padding: isSidebarHovered ? '0 1.25rem' : '0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: isSidebarHovered ? 'flex-start' : 'center' }}>
-            <div style={{ 
-              width: '48px', 
-              height: '48px', 
-              backgroundColor: 'var(--fiza-secondary)', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              borderRadius: '20px',
-              flexShrink: 0,
-              margin: isSidebarHovered ? '0' : '0 auto'
-            }}>
-              <Leaf color="white" fill="white" size={28} />
-            </div>
-            <AnimatePresence>
-              {isSidebarHovered && (
-                <motion.span 
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  style={{ 
-                    fontWeight: 900, 
-                    fontSize: '1.5rem', 
-                    color: 'var(--mint-green)', 
-                    marginLeft: '0.75rem',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  Fiza
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
+      {/* 🎯 ĐÃ THAY ĐỔI: Nhúng thanh Sidebar mới, xóa bỏ hoàn toàn mã sidebar cũ cồng kềnh */}
+      <Sidebar />
 
-        {/* Navigation */}
-        <nav style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <SidebarLink icon={<Users size={22} />} label="Quản lý người dùng" to="/admin/users" isExpanded={isSidebarHovered} active />
-          <SidebarLink icon={<UtensilsCrossed size={22} />} label="Quản lý thực phẩm" to="/admin/foods" isExpanded={isSidebarHovered} />
-          <SidebarLink icon={<BookOpen size={22} />} label="Quản lý món ăn" to="/admin/recipes" isExpanded={isSidebarHovered} />
-          <SidebarLink icon={<BarChart3 size={22} />} label="Quản lý hiệu suất" to="/admin/performance" isExpanded={isSidebarHovered} />
-          <SidebarLink icon={<LogOut size={22} />} label="Đăng xuất" to="#" isExpanded={isSidebarHovered} onClick={logout} />
-        </nav>
-
-
-        {/* Profile */}
-        <div style={{ width: '100%', paddingTop: '1.5rem', borderTop: '1px solid #f1f5f9' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 1rem', margin: '0.5rem 0.5rem 0', borderRadius: '1rem', cursor: 'pointer' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', border: '1px solid var(--fiza-primary)', flexShrink: 0, margin: isSidebarHovered ? '0' : '0 auto' }}>
-              <img 
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" 
-                alt="Admin" 
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            </div>
-            <AnimatePresence>
-              {isSidebarHovered && (
-                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} style={{ marginLeft: '0.75rem' }}>
-                  <p style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1e293b' }}>Admin Fiza</p>
-                  <p style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Super Admin</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <div className={`um-main ${isSidebarHovered ? 'shifted' : 'unshifted'}`}>
+      {/* Main Content - Giữ nguyên các class bọc nội dung cốt lõi của bạn */}
+      <div className="um-main">
         <header className="um-header">
           <div className="um-header-left">
             <h1 className="um-title">Quản lý người dùng</h1>
@@ -258,136 +176,141 @@ const UserManagement: React.FC = () => {
 
         <div className="um-main-container">
           <main className="um-content">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="um-card">
-              {/* Toolbar Section */}
-              <div className="um-toolbar-sticky">
-                <div className="um-toolbar-controls">
-                  <div className="um-search-container">
-                    <Search className="um-search-icon" size={18} />
-                    <input 
-                      className="um-search-input" 
-                      placeholder="Tìm kiếm theo tên, email..." 
-                      value={searchQuery}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        setCurrentPage(1); // Reset to page 1 on search
-                      }}
-                    />
+            {errorMessage && <p style={{ color: '#ef4444', fontWeight: 600, marginBottom: '1rem' }}>{errorMessage}</p>}
+            {isLoading ? (
+              <p style={{ textAlign: 'center', color: '#64748b', padding: '2rem' }}>Đang tải danh sách dữ liệu...</p>
+            ) : (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="um-card">
+                {/* Toolbar Section */}
+                <div className="um-toolbar-sticky">
+                  <div className="um-toolbar-controls">
+                    <div className="um-search-container">
+                      <Search className="um-search-icon" size={18} />
+                      <input 
+                        className="um-search-input" 
+                        placeholder="Tìm kiếm theo tên, email..." 
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      />
+                    </div>
+                    <div className="um-role-badge" style={{ padding: '0.5rem 1.25rem', flexShrink: 0 }}>
+                      <span style={{ color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', fontSize: '10px', marginRight: '0.5rem', whiteSpace: 'nowrap' }}>Vai trò:</span>
+                      <select 
+                        style={{ background: 'transparent', border: 'none', color: 'var(--fiza-primary)', fontWeight: 700, fontSize: '0.875rem', outline: 'none', cursor: 'pointer' }}
+                        value={roleFilter}
+                        onChange={(e) => {
+                          setRoleFilter(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <option>Tất cả</option>
+                        <option value="ADMIN">Người nội trợ</option>
+                        <option value="CUSTOMER">Thành viên</option>
+                      </select>
+                    </div>
                   </div>
-                  <div className="um-role-badge" style={{ padding: '0.5rem 1.25rem', flexShrink: 0 }}>
-                    <span style={{ color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', fontSize: '10px', marginRight: '0.5rem', whiteSpace: 'nowrap' }}>Vai trò:</span>
-                    <select 
-                      style={{ background: 'transparent', border: 'none', color: 'var(--fiza-primary)', fontWeight: 700, fontSize: '0.875rem', outline: 'none', cursor: 'pointer' }}
-                      value={roleFilter}
-                      onChange={(e) => {
-                        setRoleFilter(e.target.value);
-                        setCurrentPage(1); // Reset to page 1 on filter
-                      }}
-                    >
-                      <option>Tất cả</option>
-                      <option value="ADMIN">Người nội trợ</option>
-                      <option value="CUSTOMER">Thành viên</option>
-                    </select>
-                  </div>
+                  <button className="um-btn-primary" style={{ flexShrink: 0 }} onClick={() => setShowAddModal(true)}>
+                    <Plus size={20} />
+                    Thêm người dùng
+                  </button>
                 </div>
-                <button className="um-btn-primary" style={{ flexShrink: 0 }} onClick={() => setShowAddModal(true)}>
-                  <Plus size={20} />
-                  Thêm người dùng
-                </button>
-              </div>
 
-              <div style={{ overflowX: 'auto' }}>
-                <table className="um-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '80px' }}>ID</th>
-                      <th>Họ tên</th>
-                      <th>Số điện thoại</th>
-                      <th>Email</th>
-                      <th style={{ textAlign: 'center' }}>Vai trò</th>
-                      <th style={{ textAlign: 'center', width: '120px' }}>Hành động</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentUsers.map(user => (
-                      <tr key={user.id}>
-                        <td style={{ fontWeight: 700, color: '#94a3b8', fontSize: '0.875rem' }}>{user.id}</td>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden' }}>
-                              <img 
-                                src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.fullName}`} 
-                                alt="" 
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="um-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '80px' }}>ID</th>
+                        <th>Họ tên</th>
+                        <th>Số điện thoại</th>
+                        <th>Email</th>
+                        <th style={{ textAlign: 'center' }}>Vai trò</th>
+                        <th style={{ textAlign: 'center', width: '120px' }}>Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentUsers.map(user => (
+                        <tr key={user.id}>
+                          <td style={{ fontWeight: 700, color: '#94a3b8', fontSize: '0.875rem' }}>{user.id}</td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden' }}>
+                                <img 
+                                  src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.fullName}`} 
+                                  alt="" 
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              </div>
+                              <span style={{ fontWeight: 700, color: '#1e293b' }}>{user.fullName}</span>
+                            </div>
+                          </td>
+                          <td style={{ fontSize: '0.875rem', color: '#64748b' }}>{user.phone || 'N/A'}</td>
+                          <td style={{ fontSize: '0.875rem', color: '#64748b' }}>{user.email}</td>
+                          <td>
+                            <div style={{ display: 'flex', justifyContent: 'center' }}>
+                              <div className="um-role-badge">
+                                {user.role?.name === 'ADMIN' ? 'Người nội trợ (Admin)' : 'Thành viên'}
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+                              <ActionBtn 
+                                icon={<Eye size={18} />} 
+                                hoverColor="var(--fiza-primary)" 
+                                onClick={() => handleEditClick(user)}
+                              />
+                              <ActionBtn 
+                                icon={<Trash2 size={18} />} 
+                                hoverColor="#ef4444" 
+                                onClick={() => setDeleteConfirm(user.id)}
                               />
                             </div>
-                            <span style={{ fontWeight: 700, color: '#1e293b' }}>{user.fullName}</span>
-                          </div>
-                        </td>
-                        <td style={{ fontSize: '0.875rem', color: '#64748b' }}>{user.phone || 'N/A'}</td>
-                        <td style={{ fontSize: '0.875rem', color: '#64748b' }}>{user.email}</td>
-                        <td>
-                          <div style={{ display: 'flex', justifyContent: 'center' }}>
-                            <div className="um-role-badge">
-                              {user.role?.name === 'ADMIN' ? 'Người nội trợ (Admin)' : 'Thành viên'}
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
-                            <ActionBtn 
-                              icon={<Eye size={18} />} 
-                              hoverColor="var(--fiza-primary)" 
-                              onClick={() => handleEditClick(user)}
-                            />
-                            <ActionBtn 
-                              icon={<Trash2 size={18} />} 
-                              hoverColor="#ef4444" 
-                              onClick={() => setDeleteConfirm(user.id)}
-                            />
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {currentUsers.length === 0 && (
-                      <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
-                          Không tìm thấy người dùng phù hợp
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3rem' }}>
-                <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>
-                  Hiển thị {startIndex + 1} - {Math.min(startIndex + itemsPerPage, totalItems)} trên {totalItems} người dùng
-                </p>
-                <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-                  <PageArrow 
-                    icon={<ChevronLeft size={18} />} 
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  />
-                  {[...Array(totalPages)].map((_, i) => (
-                    <PageNum 
-                      key={i + 1} 
-                      active={currentPage === i + 1}
-                      onClick={() => setCurrentPage(i + 1)}
-                    >
-                      {i + 1}
-                    </PageNum>
-                  ))}
-                  <PageArrow 
-                    icon={<ChevronRight size={18} />} 
-                    disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  />
+                          </td>
+                        </tr>
+                      ))}
+                      {currentUsers.length === 0 && (
+                        <tr>
+                          <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                            Không tìm thấy người dùng phù hợp
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
-              </div>
-            </motion.div>
+
+                {/* Pagination */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3rem' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>
+                    Hiển thị {startIndex + 1} - {Math.min(startIndex + itemsPerPage, totalItems)} trên {totalItems} người dùng
+                  </p>
+                  <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                    <PageArrow 
+                      icon={<ChevronLeft size={18} />} 
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    />
+                    {[...Array(totalPages)].map((_, i) => (
+                      <PageNum 
+                        key={i + 1} 
+                        active={currentPage === i + 1}
+                        onClick={() => setCurrentPage(i + 1)}
+                      >
+                        {i + 1}
+                      </PageNum>
+                    ))}
+                    <PageArrow 
+                      icon={<ChevronRight size={18} />} 
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            )}
           </main>
         </div>
 
@@ -542,7 +465,7 @@ const UserManagement: React.FC = () => {
   );
 };
 
-// --- Sidebar Helpers ---
+// --- Sub-Components & Helpers ---
 function FormGroup({ label, ...props }: any) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -562,34 +485,6 @@ function DetailItem({ label, value, isBadge }: any) {
         <span style={{ fontWeight: 600, color: '#1e293b' }}>{value || 'N/A'}</span>
       )}
     </div>
-  );
-}
-
-function SidebarLink({ icon, label, to, isExpanded, active, onClick }: any) {
-  return (
-    <NavLink 
-      to={to} 
-      onClick={onClick}
-      className={`um-nav-item ${active ? 'active' : ''} ${isExpanded ? 'expanded' : 'collapsed'}`}
-    >
-
-      <div className="um-nav-icon">
-        {icon}
-      </div>
-
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.span 
-            initial={{ opacity: 0, x: -10 }} 
-            animate={{ opacity: 1, x: 0 }} 
-            exit={{ opacity: 0, x: -10 }}
-            className="um-nav-label"
-          >
-            {label}
-          </motion.span>
-        )}
-      </AnimatePresence>
-    </NavLink>
   );
 }
 

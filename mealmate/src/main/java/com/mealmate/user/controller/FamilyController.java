@@ -25,7 +25,7 @@ public class FamilyController {
     private final FamilyService service;
     private final FamilyMapper familyMapper;
     private final UserService userService; 
-    private final UserRepository userRepository; // 🎯 Inject trực tiếp Repo để triệt tiêu lỗi Hibernate Proxy
+    private final UserRepository userRepository;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<Family>>> getAll() {
@@ -44,7 +44,6 @@ public class FamilyController {
             return ResponseEntity.status(401).body(new ApiResponse<>(false, "Chưa đăng nhập", null));
         }
         
-        // 🎯 GIẢI PHÁP: Tìm đối tượng sạch thông qua Email từ Token để tránh lỗi Lazy Loading Proxy
         String currentEmail = authentication.getName();
         System.out.println("🔍 [DEBUG Backend] getCurrentFamily() - currentEmail: " + currentEmail);
         
