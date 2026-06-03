@@ -1,5 +1,6 @@
 package com.mealmate.catalog.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.mealmate.common.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -17,10 +18,12 @@ public class RecipeIngredient extends BaseEntity {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recipe_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Recipe recipe; // Thuộc món ăn nào
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "food_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Food food; // Nguyên liệu (thực phẩm)
 
     @Column(nullable = false)

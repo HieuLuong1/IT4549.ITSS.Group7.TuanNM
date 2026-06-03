@@ -58,8 +58,31 @@ public class UserController {
     }
 
     // =========================================================================
-    // 🎯 API LẤY DANH SÁCH THÀNH VIÊN TRONG GIA ĐÌNH ĐỘNG THEO TOKEN
+    // 🎯 ADMIN: Lấy danh sách thành viên của một gia đình theo familyId
     // =========================================================================
+    @GetMapping("/family/{familyId}/members")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getMembersByFamilyId(@PathVariable Long familyId) {
+        try {
+            List<Object[]> rawRows = userRepository.findRawMembersByFamilyId(familyId);
+            List<Map<String, Object>> result = rawRows.stream().map(row -> {
+                Map<String, Object> map = new java.util.HashMap<>();
+                map.put("id", row[0] != null ? ((Number) row[0]).longValue() : 0L);
+                map.put("email", row[1] != null ? row[1].toString() : "");
+                map.put("fullName", row[2] != null ? row[2].toString() : "Thành viên ẩn danh");
+                map.put("phone", row[3] != null ? row[3].toString() : null);
+                map.put("gender", row[4] != null ? row[4].toString() : "OTHER");
+                map.put("avatarUrl", row[5] != null ? row[5].toString() : null);
+                map.put("roleName", row[6] != null ? row[6].toString() : "CUSTOMER");
+                return map;
+            }).collect(Collectors.toList());
+            return ResponseEntity.ok(new ApiResponse<>(true, "Success", result));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(new ApiResponse<>(false, "Lỗi: " + e.getMessage(), null));
+        }
+    }
+
+
     @GetMapping("/family/members")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getFamilyMembers() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

@@ -57,6 +57,7 @@ public class RecipeService {
     public List<RecipeIngredient> saveIngredients(Long recipeId, List<RecipeIngredient> ingredients) {
         Recipe recipe = findById(recipeId);
         ingredientRepository.deleteByRecipeId(recipeId);
+        ingredientRepository.flush();
         for (RecipeIngredient ing : ingredients) {
             ing.setRecipe(recipe);
         }

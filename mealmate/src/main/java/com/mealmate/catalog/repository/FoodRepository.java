@@ -57,4 +57,14 @@ public interface FoodRepository extends JpaRepository<Food, Long> {
             @Param("keyword") String keyword,
             @Param("categoryId") Long categoryId
     );
+
+    @Query(value = """
+        SELECT c.name AS name, COUNT(f.id) AS value
+        FROM categories c
+        JOIN foods f ON f.category_id = c.id
+        GROUP BY c.id, c.name
+        HAVING COUNT(f.id) > 0
+        ORDER BY value DESC
+        """, nativeQuery = true)
+    List<java.util.Map<String, Object>> countFoodsByCategory();
 }

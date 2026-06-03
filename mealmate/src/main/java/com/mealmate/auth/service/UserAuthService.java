@@ -7,7 +7,8 @@ import com.mealmate.auth.model.Role;
 import com.mealmate.user.model.User;
 import com.mealmate.user.model.Family;
 import com.mealmate.user.repository.UserRepository;
-import com.mealmate.user.repository.FamilyRepository; // 1. Tiêm thêm Repository để thao tác bảng gia đình
+import com.mealmate.user.repository.FamilyRepository;
+import com.mealmate.auth.tracker.UserActivityTracker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -24,9 +25,10 @@ import java.util.Map;
 public class UserAuthService {
 
     private final UserRepository userRepository;
-    private final FamilyRepository familyRepository; // 2. Khai báo Bean repository gia đình
+    private final FamilyRepository familyRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final UserActivityTracker userActivityTracker;
 
     /**
      * Register a new user.
@@ -83,6 +85,9 @@ public class UserAuthService {
         savedUser.setFamilyId(newFamily.getId());
         userRepository.save(savedUser); // Ghi đè cập nhật lại cột family_id trong DB
 
+        // Save access log
+        userActivityTracker.recordVisit();
+
         log.info("User registered and created family successfully: {}", savedUser.getEmail());
 
         // Tạo custom claims sinh JWT Token luôn để sau khi đăng ký thành công, Frontend lưu token vào thẳng app chạy luôn
@@ -126,6 +131,9 @@ public class UserAuthService {
         claims.put("role", user.getRole() != null ? user.getRole().getName() : "CUSTOMER");
 
         String token = jwtService.generateToken(claims, user.getEmail());
+
+        // Save access log
+        userActivityTracker.recordVisit();
 
         log.info("User logged in successfully: {}", user.getEmail());
 

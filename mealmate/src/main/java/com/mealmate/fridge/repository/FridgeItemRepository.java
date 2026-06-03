@@ -347,4 +347,16 @@ public interface FridgeItemRepository extends JpaRepository<FridgeItem, Long> {
         @Param("customName") String customName,
         @Param("targetFoodId") Long targetFoodId
     );
+
+    @Query(value = """
+        SELECT c.name AS name, COUNT(fi.id) AS value
+        FROM categories c
+        JOIN foods f ON f.category_id = c.id
+        JOIN fridge_items fi ON fi.food_id = f.id
+        WHERE fi.status = 'STORED'
+        GROUP BY c.id, c.name
+        HAVING COUNT(fi.id) > 0
+        ORDER BY value DESC
+        """, nativeQuery = true)
+    List<java.util.Map<String, Object>> countFridgeItemsByCategory();
 }
