@@ -2,13 +2,9 @@ import React, { useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import "./Sidebar.css";
 
-// 🎯 GIỮ NGUYÊN: Import useAuth hệ thống để bốc thông tin đăng nhập thực tế
 import { useAuth } from "@/context/AuthContext"; 
-
-// 🎯 GIỮ NGUYÊN: Import Component ProfileModal chuẩn của bạn
 import ProfileModal from "./ProfileModal";
 
-// --- Hệ thống Icon dành cho Người dùng cuối (CUSTOMER) ---
 import iconGroup from "@/assets/icon/Icon-group.svg";
 import fridgeMenuIcon from "@/assets/icon/Icon-fridge.svg";
 import iconLogo from "@/assets/icon/Icon-logo.svg";
@@ -17,30 +13,15 @@ import iconSchedule from "@/assets/icon/Icon-schedule.svg";
 import iconStatistic from "@/assets/icon/Icon-statistic.svg";
 import iconShopping from "@/assets/icon/Icon-shopping.svg";
 
-// --- Hệ thống Icon dành cho Quản trị viên (ADMIN) ---
-import { 
-  Users, 
-  UtensilsCrossed, 
-  BookOpen, 
-  BarChart3, 
-  LogOut 
-} from "lucide-react";
-
-// Avatar mặc định phòng trường hợp tài khoản chưa cài ảnh
 import defaultAvatar from "@/assets/avatar/26.svg";
 
 const Sidebar: React.FC = () => {
   const location = useLocation();
-  const { logout } = useAuth();
-  
-  // State kiểm soát việc hiển thị Modal thông tin cá nhân
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
   
-  // Lấy dữ liệu từ Context
   const authContext = useAuth();
   const userFromContext = authContext?.user;
 
-  // Phòng vệ chống lệch máy: Bốc thêm từ LocalStorage
   let userFromLocalStorage = null;
   const authUserString = localStorage.getItem("authUser");
   if (authUserString) {
@@ -51,36 +32,47 @@ const Sidebar: React.FC = () => {
     }
   }
 
-  // Gốc dữ liệu đăng nhập cơ bản
   const baseAuthUser = userFromContext || userFromLocalStorage;
 
-  // =========================================================================
-  // 🛡️ PHÂN QUYỀN: CHỈ CẦN LÀ ADMIN THÌ MỚI LÀ TRUE, CÒN LẠI LÀ CUSTOMER HẾT
-  // =========================================================================
   const checkIsAdmin = (userObj: any): boolean => {
     if (!userObj) return false;
     const roleObj = userObj.role;
-    // Bốc chuỗi tên quyền (hỗ trợ cả dạng object { name: '...' } hoặc dạng string '...')
     const roleName = (typeof roleObj === "object" && roleObj !== null ? roleObj.name : roleObj) 
                      || userObj.roleName 
                      || "";
 
-    // Chỉ giữ lại điều kiện duy nhất: chứa từ khóa "ADMIN"
     return String(roleName).toUpperCase().includes("ADMIN");
   };
 
   const isAdmin = checkIsAdmin(baseAuthUser);
 
-  // Hiển thị text vai trò vùng chân Sidebar (Nếu là ADMIN thì ghi Người nội trợ/Admin, ngược lại ghi Thành viên)
   const getRoleLabel = (userObj: any) => {
-    return checkIsAdmin(userObj) ? "Người nội trợ (Admin)" : "Thành viên";
-  };
+  if (!userObj) return "Thành viên gia đình";
+  
+  // Bốc chuỗi tên vai trò từ hệ thống dữ liệu (hỗ trợ cả Object role hoặc chuỗi roleName)
+  const roleObj = userObj.role;
+  const roleName = (typeof roleObj === "object" && roleObj !== null ? roleObj.name : roleObj) 
+                   || userObj.roleName 
+                   || "";
 
-  // =========================================================================
-  // 🎯 TÍNH TOÁN REAL-TIME DỮ LIỆU PROFILE MODAL
-  // =========================================================================
+  const upperRole = String(roleName).toUpperCase();
+
+  // Ép hiển thị chuẩn tên vai trò theo 3 nhóm hệ thống
+  if (upperRole.includes("ADMIN")) {
+    return "Quản trị viên hệ thống";
+  }
+  if (upperRole.includes("BOSS")) {
+    return "Người nội trợ";
+  }
+  if (upperRole.includes("CUSTOMER")) {
+    return "Thành viên gia đình";
+  }
+
+  // Dự phòng trường hợp dữ liệu thô từ DB trả về chuỗi text trực tiếp
+  return roleName || "Thành viên gia đình";
+};
+
   let refinedUserData = null;
-
   if (baseAuthUser) {
     const currentUserId = Number(baseAuthUser.id || baseAuthUser.userId);
     const cachedMembersString = localStorage.getItem("familyMembersCache");
@@ -136,16 +128,13 @@ const Sidebar: React.FC = () => {
 
       <nav className="sidebar-nav">
         {isAdmin ? (
-          // =========================================================================
-          // 🛡️ GIAO DIỆN CHỈ DÀNH CHO ADMIN
-          // =========================================================================
           <>
             <Link 
               className={`sidebar-menu-item ${location.pathname === "/admin/users" ? "active" : ""}`} 
               to="/admin/users"
             >
               <span className="sidebar-icon-wrap">
-                <Users size={20} className="sidebar-menu-icon-lucide" />
+                <img src={iconGroup} alt="Quản lý người dùng" className="sidebar-menu-icon" />
               </span>
               <span className="sidebar-menu-text">Quản lý người dùng</span>
             </Link>
@@ -154,8 +143,9 @@ const Sidebar: React.FC = () => {
               className={`sidebar-menu-item ${location.pathname === "/admin/foods" ? "active" : ""}`} 
               to="/admin/foods"
             >
+              {/* 🎯 ĐÃ ĐỒNG BỘ: Sử dụng thẻ img chứa fridgeMenuIcon hình tủ lạnh ổn định */}
               <span className="sidebar-icon-wrap">
-                <UtensilsCrossed size={20} className="sidebar-menu-icon-lucide" />
+                <img src={fridgeMenuIcon} alt="Quản lý thực phẩm" className="sidebar-menu-icon" />
               </span>
               <span className="sidebar-menu-text">Quản lý thực phẩm</span>
             </Link>
@@ -165,7 +155,7 @@ const Sidebar: React.FC = () => {
               to="/admin/recipes"
             >
               <span className="sidebar-icon-wrap">
-                <BookOpen size={20} className="sidebar-menu-icon-lucide" />
+                <img src={iconRecipe} alt="Quản lý món ăn" className="sidebar-menu-icon" />
               </span>
               <span className="sidebar-menu-text">Quản lý món ăn</span>
             </Link>
@@ -175,29 +165,12 @@ const Sidebar: React.FC = () => {
               to="/admin/performance"
             >
               <span className="sidebar-icon-wrap">
-                <BarChart3 size={20} className="sidebar-menu-icon-lucide" />
+                <img src={iconStatistic} alt="Quản lý hiệu suất" className="sidebar-menu-icon" />
               </span>
               <span className="sidebar-menu-text">Quản lý hiệu suất</span>
             </Link>
-
-            <Link 
-              className="sidebar-menu-item logout-item" 
-              to="#"
-              onClick={(e) => {
-                e.preventDefault();
-                logout();
-              }}
-            >
-              <span className="sidebar-icon-wrap">
-                <LogOut size={20} className="sidebar-menu-icon-lucide" color="#ef4444" />
-              </span>
-              <span className="sidebar-menu-text" style={{ color: '#ef4444' }}>Đăng xuất</span>
-            </Link>
           </>
         ) : (
-          // =========================================================================
-          // 🏠 GIAO DIỆN CUSTOMER (Bao gồm tất cả các chức danh còn lại)
-          // =========================================================================
           <>
             <Link 
               className={`sidebar-menu-item ${location.pathname === "/family" ? "active" : ""}`} 
@@ -262,7 +235,6 @@ const Sidebar: React.FC = () => {
         )}
       </nav>
 
-      {/* Vùng Profile ở chân Sidebar */}
       <div 
         className="sidebar-profile-section"
         onClick={() => setIsProfileModalOpen(true)}

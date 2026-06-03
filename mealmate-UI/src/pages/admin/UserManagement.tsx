@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Bell, 
-  Settings, 
-  Search, 
   Plus, 
   Eye, 
   Trash2, 
@@ -12,8 +9,10 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import SharedModal from '../../components/admin/Modal';
 import api from '../../services/api';
-
 import Sidebar from '../../components/layout/Sidebar';
+import Topbar from '../../components/layout/Topbar';
+
+import './UserManagement.css';
 
 interface Role {
   id: number;
@@ -39,11 +38,9 @@ const UserManagement: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('Tất cả');
   
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
   
-  // Modals state
   const [showAddModal, setShowAddModal] = useState(false);
   const [viewUser, setViewUser] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -72,7 +69,6 @@ const UserManagement: React.FC = () => {
     fetchUsers();
   }, []);
 
-  // Filter Logic
   const filteredUsers = users.filter(user => {
     const matchesSearch = (user.fullName || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
                           (user.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -81,7 +77,6 @@ const UserManagement: React.FC = () => {
     return matchesSearch && matchesRole;
   });
 
-  // Pagination Logic
   const totalItems = filteredUsers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -158,48 +153,35 @@ const UserManagement: React.FC = () => {
 
   return (
     <div className="um-layout">
-      {/* 🎯 ĐÃ THAY ĐỔI: Nhúng thanh Sidebar mới, xóa bỏ hoàn toàn mã sidebar cũ cồng kềnh */}
       <Sidebar />
 
-      {/* Main Content - Giữ nguyên các class bọc nội dung cốt lõi của bạn */}
       <div className="um-main">
-        <header className="um-header">
-          <div className="um-header-left">
-            <h1 className="um-title">Quản lý người dùng</h1>
-            <p className="um-subtitle">Quản trị danh sách tài khoản toàn hệ thống</p>
-          </div>
-          <div className="um-header-right">
-            <HeaderBtn icon={<Bell size={20} />} hasBadge />
-            <HeaderBtn icon={<Settings size={20} />} />
-          </div>
-        </header>
+        {/* 🎯 SỬA ĐỔI: Bật tìm kiếm thông tin người dùng và ép tên hiển thị góc phải là ADMIN */}
+        <Topbar 
+          title="Quản lý người dùng" 
+          searchPlaceholder="Tìm kiếm thông tin người dùng..."
+          searchValue={searchQuery}
+          onSearchChange={(val) => {
+            setSearchQuery(val);
+            setCurrentPage(1);
+          }}
+          showSearch={true}
+          familyName="ADMIN"
+        />
 
         <div className="um-main-container">
           <main className="um-content">
-            {errorMessage && <p style={{ color: '#ef4444', fontWeight: 600, marginBottom: '1rem' }}>{errorMessage}</p>}
+            {errorMessage && <p className="error-message-text">{errorMessage}</p>}
             {isLoading ? (
-              <p style={{ textAlign: 'center', color: '#64748b', padding: '2rem' }}>Đang tải danh sách dữ liệu...</p>
+              <p className="loading-display-text">Đang tải danh sách dữ liệu...</p>
             ) : (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="um-card">
-                {/* Toolbar Section */}
                 <div className="um-toolbar-sticky">
                   <div className="um-toolbar-controls">
-                    <div className="um-search-container">
-                      <Search className="um-search-icon" size={18} />
-                      <input 
-                        className="um-search-input" 
-                        placeholder="Tìm kiếm theo tên, email..." 
-                        value={searchQuery}
-                        onChange={(e) => {
-                          setSearchQuery(e.target.value);
-                          setCurrentPage(1);
-                        }}
-                      />
-                    </div>
-                    <div className="um-role-badge" style={{ padding: '0.5rem 1.25rem', flexShrink: 0 }}>
-                      <span style={{ color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', fontSize: '10px', marginRight: '0.5rem', whiteSpace: 'nowrap' }}>Vai trò:</span>
+                    <div className="um-role-badge filter-role-box">
+                      <span className="filter-role-label">Vai trò:</span>
                       <select 
-                        style={{ background: 'transparent', border: 'none', color: 'var(--fiza-primary)', fontWeight: 700, fontSize: '0.875rem', outline: 'none', cursor: 'pointer' }}
+                        className="filter-role-select"
                         value={roleFilter}
                         onChange={(e) => {
                           setRoleFilter(e.target.value);
@@ -212,51 +194,50 @@ const UserManagement: React.FC = () => {
                       </select>
                     </div>
                   </div>
-                  <button className="um-btn-primary" style={{ flexShrink: 0 }} onClick={() => setShowAddModal(true)}>
+                  <button className="um-btn-primary un-shrinkable" onClick={() => setShowAddModal(true)}>
                     <Plus size={20} />
                     Thêm người dùng
                   </button>
                 </div>
 
-                <div style={{ overflowX: 'auto' }}>
+                <div className="table-overflow-box">
                   <table className="um-table">
                     <thead>
                       <tr>
-                        <th style={{ width: '80px' }}>ID</th>
+                        <th className="w-80">ID</th>
                         <th>Họ tên</th>
                         <th>Số điện thoại</th>
                         <th>Email</th>
-                        <th style={{ textAlign: 'center' }}>Vai trò</th>
-                        <th style={{ textAlign: 'center', width: '120px' }}>Hành động</th>
+                        <th className="text-center">Vai trò</th>
+                        <th className="text-center w-120">Hành động</th>
                       </tr>
                     </thead>
                     <tbody>
                       {currentUsers.map(user => (
                         <tr key={user.id}>
-                          <td style={{ fontWeight: 700, color: '#94a3b8', fontSize: '0.875rem' }}>{user.id}</td>
+                          <td className="user-id-cell">{user.id}</td>
                           <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                              <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden' }}>
+                            <div className="user-profile-flex">
+                              <div className="user-avatar-circle">
                                 <img 
                                   src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.fullName}`} 
                                   alt="" 
-                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 />
                               </div>
-                              <span style={{ fontWeight: 700, color: '#1e293b' }}>{user.fullName}</span>
+                              <span className="user-fullname-text">{user.fullName}</span>
                             </div>
                           </td>
-                          <td style={{ fontSize: '0.875rem', color: '#64748b' }}>{user.phone || 'N/A'}</td>
-                          <td style={{ fontSize: '0.875rem', color: '#64748b' }}>{user.email}</td>
+                          <td className="user-contact-text">{user.phone || 'N/A'}</td>
+                          <td className="user-contact-text">{user.email}</td>
                           <td>
-                            <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <div className="text-center-flex">
                               <div className="um-role-badge">
                                 {user.role?.name === 'ADMIN' ? 'Người nội trợ (Admin)' : 'Thành viên'}
                               </div>
                             </div>
                           </td>
                           <td>
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+                            <div className="user-actions-row">
                               <ActionBtn 
                                 icon={<Eye size={18} />} 
                                 hoverColor="var(--fiza-primary)" 
@@ -273,7 +254,7 @@ const UserManagement: React.FC = () => {
                       ))}
                       {currentUsers.length === 0 && (
                         <tr>
-                          <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                          <td colSpan={6} className="empty-user-row">
                             Không tìm thấy người dùng phù hợp
                           </td>
                         </tr>
@@ -282,12 +263,11 @@ const UserManagement: React.FC = () => {
                   </table>
                 </div>
 
-                {/* Pagination */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3rem' }}>
-                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>
+                <div className="pagination-container-row">
+                  <p className="pagination-bottom-info">
                     Hiển thị {startIndex + 1} - {Math.min(startIndex + itemsPerPage, totalItems)} trên {totalItems} người dùng
                   </p>
-                  <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                  <div className="pagination-buttons-wrap">
                     <PageArrow 
                       icon={<ChevronLeft size={18} />} 
                       disabled={currentPage === 1}
@@ -314,37 +294,36 @@ const UserManagement: React.FC = () => {
           </main>
         </div>
 
-        {/* MODALS */}
         <AnimatePresence mode="wait">
           {showAddModal && (
             <SharedModal title="Thêm người dùng mới" onClose={() => setShowAddModal(false)}>
-              <form onSubmit={handleAddUser} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <form onSubmit={handleAddUser} className="modal-form-flex">
+                <div className="modal-grid-inputs">
                   <FormGroup label="Họ tên" name="name" placeholder="VD: Nguyễn Văn A" required />
                   <FormGroup label="Số điện thoại" name="phone" placeholder="090..." required />
                   <FormGroup label="Email" name="email" type="email" placeholder="email@example.com" required />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Vai trò</label>
-                    <select name="role" className="um-search-input" style={{ paddingLeft: '1rem' }}>
+                  <div className="modal-select-wrapper">
+                    <label className="modal-input-label">Vai trò</label>
+                    <select name="role" className="um-search-input pl-1">
                       <option value="ADMIN">Người nội trợ</option>
                       <option value="CUSTOMER">Thành viên</option>
                     </select>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Giới tính</label>
-                    <select name="gender" className="um-search-input" style={{ paddingLeft: '1rem' }}>
+                  <div className="modal-select-wrapper">
+                    <label className="modal-input-label">Giới tính</label>
+                    <select name="gender" className="um-search-input pl-1">
                       <option value="MALE">Nam</option>
                       <option value="FEMALE">Nữ</option>
                       <option value="OTHER">Khác</option>
                     </select>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Ảnh đại diện</label>
-                    <input type="file" name="avatar" className="um-search-input" style={{ paddingLeft: '1rem', paddingTop: '0.5rem' }} accept="image/*" />
+                  <div className="modal-select-wrapper">
+                    <label className="modal-input-label">Ảnh đại diện</label>
+                    <input type="file" name="avatar" className="um-search-input pt-05 pl-1" accept="image/*" />
                   </div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                  <button type="button" onClick={() => setShowAddModal(false)} style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600, cursor: 'pointer' }}>Hủy</button>
+                <div className="modal-footer-actions">
+                  <button type="button" onClick={() => setShowAddModal(false)} className="btn-cancel-round">Hủy</button>
                   <button type="submit" className="um-btn-primary">Lưu người dùng</button>
                 </div>
               </form>
@@ -353,11 +332,11 @@ const UserManagement: React.FC = () => {
 
           {viewUser && editData && (
             <SharedModal title={isEditing ? "Chỉnh sửa người dùng" : "Chi tiết người dùng"} onClose={() => { setViewUser(null); setIsEditing(false); }}>
-              <div style={{ display: 'flex', gap: '2rem' }}>
-                <div style={{ width: '120px', height: '120px', borderRadius: '24px', overflow: 'hidden', backgroundColor: '#F1FAF6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <img src={viewUser.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${viewUser.fullName}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <div className="detail-modal-layout">
+                <div className="detail-avatar-container">
+                  <img src={viewUser.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${viewUser.fullName}`} alt="" />
                 </div>
-                <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="detail-fields-grid">
                   <DetailItem label="Mã người dùng" value={viewUser.id} readOnly />
                   {isEditing ? (
                     <>
@@ -366,11 +345,10 @@ const UserManagement: React.FC = () => {
                         value={editData.fullName} 
                         onChange={(e: any) => setEditData({ ...editData, fullName: e.target.value })} 
                       />
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Vai trò</label>
+                      <div className="modal-select-wrapper">
+                        <label className="modal-input-label">Vai trò</label>
                         <select 
-                          className="um-search-input" 
-                          style={{ paddingLeft: '1rem' }}
+                          className="um-search-input pl-1" 
                           value={editData.role?.name}
                           onChange={(e) => setEditData({ 
                             ...editData, 
@@ -381,11 +359,10 @@ const UserManagement: React.FC = () => {
                           <option value="CUSTOMER">Thành viên</option>
                         </select>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Giới tính</label>
+                      <div className="modal-select-wrapper">
+                        <label className="modal-input-label">Giới tính</label>
                         <select 
-                          className="um-search-input" 
-                          style={{ paddingLeft: '1rem' }}
+                          className="um-search-input pl-1" 
                           value={editData.gender}
                           onChange={(e) => setEditData({ ...editData, gender: e.target.value as any })}
                         >
@@ -416,29 +393,14 @@ const UserManagement: React.FC = () => {
                   )}
                 </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
+              <div className="modal-footer-actions mt-2">
                 {isEditing ? (
                   <>
-                    <button 
-                      onClick={() => setIsEditing(false)} 
-                      style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600, cursor: 'pointer' }}
-                    >
-                      Hủy
-                    </button>
-                    <button 
-                      onClick={handleSaveEdit} 
-                      className="um-btn-primary"
-                    >
-                      Lưu thay đổi
-                    </button>
+                    <button onClick={() => setIsEditing(false)} className="btn-cancel-round">Hủy</button>
+                    <button onClick={handleSaveEdit} className="um-btn-primary">Lưu thay đổi</button>
                   </>
                 ) : (
-                  <button 
-                    onClick={() => setIsEditing(true)} 
-                    className="um-btn-primary"
-                  >
-                    Chỉnh sửa thông tin
-                  </button>
+                  <button onClick={() => setIsEditing(true)} className="um-btn-primary">Chỉnh sửa thông tin</button>
                 )}
               </div>
             </SharedModal>
@@ -446,15 +408,15 @@ const UserManagement: React.FC = () => {
 
           {deleteConfirm && (
             <SharedModal title="Xác nhận xóa" onClose={() => setDeleteConfirm(null)} width="400px">
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#FEF2F2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+              <div className="text-center">
+                <div className="delete-warning-icon">
                   <Trash2 size={32} />
                 </div>
-                <p style={{ fontWeight: 600, color: '#1e293b', marginBottom: '0.5rem' }}>Bạn có chắc chắn muốn xóa?</p>
-                <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '2rem' }}>Hành động này không thể hoàn tác.</p>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: '0.75rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600, cursor: 'pointer' }}>Hủy</button>
-                  <button onClick={() => handleDelete(deleteConfirm)} style={{ flex: 1, padding: '0.75rem', borderRadius: '9999px', background: '#EF4444', color: 'white', fontWeight: 600, border: 'none', cursor: 'pointer' }}>Xóa ngay</button>
+                <p className="delete-title-text">Bạn có chắc chắn muốn xóa?</p>
+                <p className="delete-subtitle-text">Hành động này không thể hoàn tác.</p>
+                <div className="modal-buttons-flex gap-1">
+                  <button onClick={() => setDeleteConfirm(null)} className="btn-cancel-round flex-1">Hủy</button>
+                  <button onClick={() => handleDelete(deleteConfirm)} className="btn-execute-delete">Xóa ngay</button>
                 </div>
               </div>
             </SharedModal>
@@ -465,35 +427,25 @@ const UserManagement: React.FC = () => {
   );
 };
 
-// --- Sub-Components & Helpers ---
 function FormGroup({ label, ...props }: any) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>{label}</label>
-      <input {...props} className="um-search-input" style={{ paddingLeft: '1rem' }} />
+    <div className="input-field-stack">
+      <label className="modal-input-label">{label}</label>
+      <input {...props} className="um-search-input pl-1" />
     </div>
   );
 }
 
 function DetailItem({ label, value, isBadge }: any) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-      <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{label}</span>
+    <div className="detail-item-stack">
+      <span className="detail-label-sm">{label}</span>
       {isBadge ? (
-        <span className="um-role-badge" style={{ alignSelf: 'flex-start' }}>{value}</span>
+        <span className="um-role-badge self-start">{value}</span>
       ) : (
-        <span style={{ fontWeight: 600, color: '#1e293b' }}>{value || 'N/A'}</span>
+        <span className="detail-value-bold">{value || 'N/A'}</span>
       )}
     </div>
-  );
-}
-
-function HeaderBtn({ icon, hasBadge }: any) {
-  return (
-    <button style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative', transition: 'box-shadow 0.2s' }}>
-      {icon}
-      {hasBadge && <span style={{ position: 'absolute', top: '10px', right: '10px', width: '8px', height: '8px', backgroundColor: '#ef4444', borderRadius: '50%', border: '2px solid #F0F4F2' }} />}
-    </button>
   );
 }
 
@@ -504,7 +456,12 @@ function ActionBtn({ icon, hoverColor, onClick }: any) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onClick={onClick}
-      style={{ width: '32px', height: '32px', borderRadius: '50%', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', color: hover ? hoverColor : '#94a3b8', backgroundColor: hover ? 'white' : 'transparent', boxShadow: hover ? '0 4px 6px -1px rgba(0,0,0,0.1)' : 'none' }}
+      style={{ 
+        color: hover ? hoverColor : '#94a3b8', 
+        backgroundColor: hover ? 'white' : 'transparent', 
+        boxShadow: hover ? '0 4px 6px -1px rgba(0,0,0,0.1)' : 'none' 
+      }}
+      className="table-action-round-btn"
     >
       {icon}
     </button>
@@ -514,8 +471,9 @@ function ActionBtn({ icon, hoverColor, onClick }: any) {
 function PageNum({ children, active, onClick }: any) {
   return (
     <button 
-      onClick={onClick}
-      style={{ width: '36px', height: '36px', borderRadius: '50%', border: 'none', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.2s', backgroundColor: active ? 'var(--mint-green)' : 'transparent', color: active ? 'white' : '#475569', boxShadow: active ? '0 10px 15px -3px rgba(109, 212, 180, 0.3)' : 'none' }}>
+      onClick={onClick} 
+      className={`pagination-number-btn ${active ? 'active' : ''}`}
+    >
       {children}
     </button>
   );
@@ -523,12 +481,7 @@ function PageNum({ children, active, onClick }: any) {
 
 function PageArrow({ icon, disabled, onClick }: any) {
   return (
-    <button 
-      disabled={disabled} 
-      onClick={onClick}
-      style={{ width: '36px', height: '36px', borderRadius: '50%', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: disabled ? 'default' : 'pointer', color: '#94a3b8', opacity: disabled ? 0.3 : 1 }}>
-      {icon}
-    </button>
+    <button disabled={disabled} onClick={onClick} className="pagination-arrow-round-btn">{icon}</button>
   );
 }
 

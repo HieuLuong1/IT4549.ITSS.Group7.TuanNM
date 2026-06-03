@@ -1,28 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, 
-  UtensilsCrossed, 
-  BookOpen, 
-  Bell, 
-  Settings, 
-  Search, 
   Plus, 
   Eye, 
   Trash2, 
   ChevronLeft, 
   ChevronRight,
-  Leaf,
-  BarChart3,
-  Scale,
-  X,
-  LogOut
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { NavLink } from 'react-router-dom';
 import SharedModal from '../../components/admin/Modal';
 import api from '../../services/api';
-import { useAuth } from '../../context/AuthContext';
 
+// 🎯 NHÚNG CÁC THÀNH PHẦN LAYOUT HỆ THỐNG
+import Sidebar from '../../components/layout/Sidebar';
+import Topbar from '../../components/layout/Topbar';
+
+// IMPORT FILE CSS RIÊNG
+import './FoodManagement.css';
 
 interface Category {
   id: number;
@@ -37,7 +31,7 @@ export interface Food {
   categoryName: string;
   name: string;
   unit: string;
-  synonyms: string[]; // Frontend maps it as string[]
+  synonyms: string[];
   imageUrl?: string;
   isSystem: boolean;
 }
@@ -62,11 +56,8 @@ type AddFoodDraft = {
 } | null;
 
 const FoodManagement: React.FC = () => {
-  const { logout } = useAuth();
-  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [foods, setFoods] = useState<Food[]>([]);
   const [customFoodRequests, setCustomFoodRequests] = useState<CustomFoodRequest[]>([]);
-
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingCustomRequests, setIsLoadingCustomRequests] = useState(false);
@@ -251,53 +242,29 @@ const FoodManagement: React.FC = () => {
 
   return (
     <div className="um-layout">
-      <aside 
-        onMouseEnter={() => setIsSidebarHovered(true)}
-        onMouseLeave={() => setIsSidebarHovered(false)}
-        className={`um-sidebar ${isSidebarHovered ? 'expanded' : 'collapsed'}`}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', marginBottom: '3rem', padding: isSidebarHovered ? '0 1.25rem' : '0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: isSidebarHovered ? 'flex-start' : 'center' }}>
-            <div style={{ width: '48px', height: '48px', backgroundColor: 'var(--fiza-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '20px', flexShrink: 0, margin: isSidebarHovered ? '0' : '0 auto' }}>
-              <Leaf color="white" fill="white" size={28} />
-            </div>
-            <AnimatePresence>{isSidebarHovered && <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--mint-green)', marginLeft: '0.75rem', whiteSpace: 'nowrap' }}>Fiza</motion.span>}</AnimatePresence>
-          </div>
-        </div>
+      <Sidebar />
 
-        <nav style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <SidebarLink icon={<Users size={22} />} label="Quản lý người dùng" to="/admin/users" isExpanded={isSidebarHovered} />
-          <SidebarLink icon={<UtensilsCrossed size={22} />} label="Quản lý thực phẩm" to="/admin/foods" isExpanded={isSidebarHovered} active />
-          <SidebarLink icon={<BookOpen size={22} />} label="Quản lý món ăn" to="/admin/recipes" isExpanded={isSidebarHovered} />
-          <SidebarLink icon={<BarChart3 size={22} />} label="Quản lý hiệu suất" to="/admin/performance" isExpanded={isSidebarHovered} />
-          <SidebarLink icon={<LogOut size={22} />} label="Đăng xuất" to="#" isExpanded={isSidebarHovered} onClick={logout} />
-        </nav>
-
-      </aside>
-
-      <div className={`um-main ${isSidebarHovered ? 'shifted' : 'unshifted'}`}>
-        <header className="um-header">
-          <div className="um-header-left">
-            <h1 className="um-title">Quản lý thực phẩm</h1>
-            <p className="um-subtitle">Danh mục nguyên liệu và thực phẩm hệ thống</p>
-          </div>
-          <div className="um-header-right">
-            <HeaderBtn icon={<Bell size={20} />} hasBadge />
-            <HeaderBtn icon={<Settings size={20} />} />
-          </div>
-        </header>
+      <div className="um-main">
+        {/* 🎯 ĐÃ NHÚNG TOPBAR: Sửa placeholder tìm kiếm thực phẩm và ép ô xanh hiển thị ADMIN */}
+        <Topbar 
+          title="Quản lý thực phẩm" 
+          searchPlaceholder="Tìm kiếm thực phẩm"
+          searchValue={searchQuery}
+          onSearchChange={(val) => {
+            setSearchQuery(val);
+            setCurrentPage(1);
+          }}
+          showSearch={true}
+          familyName="ADMIN"
+        />
 
         <div className="um-main-container">
           <main className="um-content">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="um-card">
               <div className="um-toolbar-sticky">
                 <div className="um-toolbar-controls">
-                  <div className="um-search-container">
-                    <Search className="um-search-icon" size={18} />
-                    <input className="um-search-input" placeholder="Tìm tên hoặc tên gọi khác..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} />
-                  </div>
-                  <div className="um-role-badge">
-                    <select value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }} style={{ background: 'transparent', border: 'none', color: 'var(--fiza-primary)', fontWeight: 700, outline: 'none', cursor: 'pointer' }}>
+                  <div className="um-role-badge filter-select-badge">
+                    <select value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }} className="category-dropdown-select">
                       <option>Tất cả</option>
                       {categories.map(cat => (
                         <option key={cat.id} value={cat.name}>{cat.name}</option>
@@ -306,7 +273,7 @@ const FoodManagement: React.FC = () => {
                   </div>
                 </div>
                 <button
-                  className="um-btn-primary"
+                  className="um-btn-primary whitespace-nowrap"
                   onClick={() => {
                     setAddFoodDraft(null);
                     setShowAddModal(true);
@@ -316,38 +283,38 @@ const FoodManagement: React.FC = () => {
                 </button>
               </div>
 
-              <div style={{ margin: '0 0 1.5rem', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '16px', background: '#f8fafc' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', marginBottom: '0.85rem' }}>
+              {/* Custom Food Section Wrapper */}
+              <div className="custom-requests-panel">
+                <div className="custom-requests-header">
                   <div>
-                    <h2 style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--fiza-primary)', margin: 0 }}>Thực phẩm người dùng nhập</h2>
-                    <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0.25rem 0 0' }}>
+                    <h2 className="custom-requests-title">Thực phẩm người dùng nhập</h2>
+                    <p className="custom-requests-subtitle">
                       Các tên được nhập khi người dùng chọn nhóm thực phẩm "khác" trong tủ lạnh.
                     </p>
                   </div>
-                  <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f766e', background: '#ccfbf1', borderRadius: '999px', padding: '0.35rem 0.75rem', whiteSpace: 'nowrap' }}>
+                  <span className="custom-requests-count-badge">
                     {customFoodRequests.length} chờ xử lý
                   </span>
                 </div>
 
                 {isLoadingCustomRequests ? (
-                  <div style={{ padding: '0.75rem', color: '#64748b', fontWeight: 600 }}>Đang tải dữ liệu...</div>
+                  <div className="panel-loading-text">Đang tải dữ liệu...</div>
                 ) : customFoodRequests.length === 0 ? (
-                  <div style={{ padding: '0.75rem', color: '#64748b', fontWeight: 600 }}>Không có thực phẩm khác cần xử lý.</div>
+                  <div className="panel-loading-text">Không có thực phẩm khác cần xử lý.</div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem' }}>
+                  <div className="custom-requests-grid">
                     {customFoodRequests.slice(0, 6).map((request) => (
-                      <div key={`${request.categoryId}-${request.customName}`} style={{ background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                      <div key={`${request.categoryId}-${request.customName}`} className="custom-request-card">
                         <div>
-                          <div style={{ fontWeight: 900, color: '#0f172a' }}>{request.customName}</div>
-                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '0.2rem' }}>
+                          <div className="custom-request-item-name">{request.customName}</div>
+                          <div className="custom-request-item-meta">
                             {request.categoryName} · từ "{request.placeholderFoodName}" · {request.requestCount} lần nhập
                           </div>
                         </div>
                         <button
                           type="button"
-                          className="um-btn-primary"
+                          className="um-btn-primary create-from-request-btn"
                           onClick={() => handleCreateFromCustomRequest(request)}
-                          style={{ justifyContent: 'center', padding: '0.55rem 0.8rem', fontSize: '12px' }}
                         >
                           <Plus size={16} /> Tạo thực phẩm
                         </button>
@@ -357,51 +324,60 @@ const FoodManagement: React.FC = () => {
                 )}
               </div>
 
-              <div style={{ overflowX: 'auto' }}>
+              <div className="table-overflow-box">
                 <table className="um-table">
                   <thead>
                     <tr>
-                      <th style={{ width: '80px' }}>ID</th>
+                      <th className="w-80">ID</th>
                       <th>Thực phẩm</th>
                       <th>Nhóm</th>
                       <th>Đơn vị</th>
                       <th>Tên gọi khác</th>
-                      <th style={{ textAlign: 'center' }}>Thao tác</th>
+                      <th className="text-center w-120">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
                     {currentFoods.map(food => (
                       <tr key={food.id}>
-                        <td style={{ fontWeight: 700, color: '#94a3b8' }}>{food.id}</td>
-                        <td style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                          <div style={{ width: '40px', height: '40px', borderRadius: '10px', overflow: 'hidden' }}>
-                            <img src={food.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <td className="food-id-cell">{food.id}</td>
+                        <td>
+                          <div className="food-profile-wrapper">
+                            <div className="food-img-square">
+                              <img src={food.imageUrl} alt="" />
+                            </div>
+                            <span className="food-name-text">{food.name}</span>
                           </div>
-                          <span style={{ fontWeight: 700 }}>{food.name}</span>
                         </td>
                         <td><span className="um-role-badge">{food.categoryName}</span></td>
                         <td>
-                          <div style={{ display: 'flex', gap: '0.25rem' }}>
-                            <span style={{ fontSize: '12px', padding: '2px 8px', background: '#f1f5f9', borderRadius: '4px' }}>{food.unit}</span>
+                          <div className="flex-row-gap-qtr">
+                            <span className="unit-badge-gray">{food.unit}</span>
                           </div>
                         </td>
-                        <td style={{ color: '#64748b', fontSize: '0.875rem' }}>{food.synonyms.join(', ')}</td>
+                        <td className="synonyms-list-text">{food.synonyms.join(', ')}</td>
                         <td>
-                          <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+                          <div className="action-buttons-container">
                             <ActionBtn icon={<Eye size={18} />} hoverColor="var(--fiza-primary)" onClick={() => handleEditClick(food)} />
                             <ActionBtn icon={<Trash2 size={18} />} hoverColor="#ef4444" onClick={() => setDeleteConfirm(food.id)} />
                           </div>
                         </td>
                       </tr>
                     ))}
+                    {currentFoods.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="text-center p-8 text-gray-400">
+                          Không tìm thấy thực phẩm phù hợp
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
 
               {/* Pagination */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2rem' }}>
-                <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8' }}>Hiển thị {startIndex+1}-{Math.min(startIndex+itemsPerPage, totalItems)} / {totalItems}</p>
-                <div style={{ display: 'flex', gap: '0.25rem' }}>
+              <div className="pagination-wrapper-row">
+                <p className="pagination-info-text">Hiển thị {startIndex+1}-{Math.min(startIndex+itemsPerPage, totalItems)} / {totalItems}</p>
+                <div className="pagination-controls-flex">
                   <PageArrow icon={<ChevronLeft size={18} />} disabled={currentPage === 1} onClick={() => setCurrentPage(c => c - 1)} />
                   {[...Array(totalPages)].map((_, i) => <PageNum key={i+1} active={currentPage === i+1} onClick={() => setCurrentPage(i+1)}>{i+1}</PageNum>)}
                   <PageArrow icon={<ChevronRight size={18} />} disabled={currentPage === totalPages} onClick={() => setCurrentPage(c => c + 1)} />
@@ -411,52 +387,51 @@ const FoodManagement: React.FC = () => {
           </main>
         </div>
 
-        {/* Modal Chi tiết / Cập nhật */}
+        {/* Modals */}
         <AnimatePresence>
           {(viewFood && editData) && (
             <SharedModal title={isEditing ? "Cập nhật thực phẩm" : "Thông tin thực phẩm"} onClose={() => setViewFood(null)}>
-              <div style={{ display: 'flex', gap: '2.5rem' }}>
-                <div style={{ width: '150px', height: '150px', borderRadius: '32px', overflow: 'hidden', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }}>
-                  <img src={viewFood.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <div className="modal-flex-layout">
+                <div className="modal-profile-img-box">
+                  <img src={viewFood.imageUrl} alt="" />
                 </div>
-                <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                <div className="modal-form-grid-fields">
                   <DetailItem label="Mã thực phẩm" value={viewFood.id} />
                   {isEditing ? (
                     <>
                       <FormGroup label="Tên thực phẩm" value={editData.name} onChange={(e: any) => setEditData({...editData, name: e.target.value})} />
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Chủng loại</label>
+                      <div className="form-select-group-stack">
+                        <label className="form-label-sm">Chủng loại</label>
                         <select 
-                          className="um-search-input" 
+                          className="um-search-input pl-1" 
                           value={editData.categoryId} 
                           onChange={(e) => setEditData({...editData, categoryId: Number(e.target.value)})}
-                          style={{ paddingLeft: '1rem' }}
                         >
                           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                       </div>
-                      <div style={{ gridColumn: 'span 2' }}>
+                      <div className="grid-span-2">
                         <FormGroup label="Đơn vị" value={editData.unit} onChange={(e: any) => setEditData({...editData, unit: e.target.value})} />
                       </div>
-                      <div style={{ gridColumn: 'span 2' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                          <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Tên gọi khác / Từ đồng nghĩa</label>
+                      <div className="grid-span-2">
+                        <div className="mb-05">
+                          <label className="form-label-sm">Tên gọi khác / Từ đồng nghĩa</label>
                         </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem', background: '#f8fafc', padding: '1.25rem', borderRadius: '1.5rem', border: '1px solid #e2e8f0', alignItems: 'center' }}>
+                        <div className="tags-container-box">
                           {editData.synonyms.map((s, idx) => (
-                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.25rem 0.85rem', backgroundColor: '#E1F2EB', borderRadius: '9999px', border: '1px solid #6DD4B4' }}>
-                              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--fiza-primary)' }}>{s}</span>
+                            <div key={idx} className="regional-tag-pill">
+                              <span className="pill-text-sm">{s}</span>
                               <button 
                                 type="button"
                                 onClick={() => setEditData({...editData, synonyms: editData.synonyms.filter((_, i) => i !== idx)})}
-                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', padding: 0 }}
+                                className="btn-remove-tag-pill"
                               >
                                 <X size={14} color="var(--fiza-primary)" />
                               </button>
                             </div>
                           ))}
                           {inlineAdding ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div className="inline-add-input-wrapper">
                               <input 
                                 autoFocus
                                 value={inlineValue}
@@ -467,8 +442,7 @@ const FoodManagement: React.FC = () => {
                                   else handleInlineAddSynonym();
                                 }}
                                 placeholder="Nhập tên..."
-                                className="um-search-input"
-                                style={{ width: '150px', height: '32px', paddingLeft: '0.75rem', fontSize: '12px', border: '1.5px solid var(--mint-green)', background: 'white' }}
+                                className="um-search-input modal-inline-input-field"
                               />
                             </div>
                           ) : (
@@ -478,8 +452,7 @@ const FoodManagement: React.FC = () => {
                                 setInlineAdding(true);
                                 setInlineValue('');
                               }}
-                              className="um-btn-add"
-                              style={{ height: '32px', padding: '0 1.25rem' }}
+                              className="um-btn-add modal-add-tag-trigger-btn"
                             >
                               <Plus size={16} /> THÊM TÊN GỌI
                             </button>
@@ -491,17 +464,17 @@ const FoodManagement: React.FC = () => {
                     <>
                       <DetailItem label="Tên thực phẩm" value={viewFood.name} />
                       <DetailItem label="Đơn vị đo" value={viewFood.unit} />
-                      <div style={{ gridColumn: 'span 2' }}>
+                      <div className="grid-span-2">
                         <DetailItem label="Tên gọi khác" value={viewFood.synonyms.join(', ') || 'Chưa có'} />
                       </div>
                     </>
                   )}
                 </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
+              <div className="modal-footer-buttons-row">
                 {isEditing ? (
                   <>
-                    <button onClick={() => setIsEditing(false)} style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600 }}>Hủy</button>
+                    <button onClick={() => setIsEditing(false)} className="btn-modal-cancel">Hủy</button>
                     <button onClick={handleSaveEdit} className="um-btn-primary">Lưu thay đổi</button>
                   </>
                 ) : (
@@ -513,18 +486,18 @@ const FoodManagement: React.FC = () => {
 
           {showAddModal && (
             <SharedModal title={addFoodDraft ? "Tạo thực phẩm từ người dùng nhập" : "Thêm thực phẩm mới"} onClose={() => { setShowAddModal(false); setAddFoodDraft(null); }}>
-              <form onSubmit={handleAddFood} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+              <form onSubmit={handleAddFood} className="modal-grid-2col">
                  <FormGroup label="Tên thực phẩm" name="name" required defaultValue={addFoodDraft?.name || ''} />
-                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                   <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Chủng loại</label>
-                   <select name="categoryId" className="um-search-input" defaultValue={addFoodDraft?.categoryId || categories[0]?.id} style={{ paddingLeft: '1rem' }}>
+                 <div className="form-select-group-stack">
+                   <label className="form-label-sm">Chủng loại</label>
+                   <select name="categoryId" className="um-search-input pl-1" defaultValue={addFoodDraft?.categoryId || categories[0]?.id}>
                      {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                    </select>
                  </div>
                  <FormGroup label="Đơn vị (kg, g, cái...)" name="unit" required defaultValue={addFoodDraft?.unit || ''} />
                  <FormGroup label="Tên gọi khác" name="synonyms" defaultValue={addFoodDraft?.synonyms || ''} />
-                 <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                   <button type="button" onClick={() => { setShowAddModal(false); setAddFoodDraft(null); }} style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600 }}>Hủy</button>
+                 <div className="modal-footer-buttons-row grid-span-2 mt-1">
+                   <button type="button" onClick={() => { setShowAddModal(false); setAddFoodDraft(null); }} className="btn-modal-cancel">Hủy</button>
                    <button type="submit" className="um-btn-primary">Tạo mới</button>
                  </div>
               </form>
@@ -533,15 +506,15 @@ const FoodManagement: React.FC = () => {
 
           {deleteConfirm && (
             <SharedModal title="Xác nhận xóa" onClose={() => setDeleteConfirm(null)} width="400px">
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#FEF2F2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+              <div className="text-center">
+                <div className="delete-alert-icon-box">
                   <Trash2 size={32} />
                 </div>
-                <p style={{ fontWeight: 600, color: '#1e293b', marginBottom: '0.5rem' }}>Xóa thực phẩm?</p>
-                <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '2rem' }}>Hành động này không thể hoàn tác và có thể lỗi nếu đang được sử dụng.</p>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: '0.75rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600, cursor: 'pointer' }}>Hủy</button>
-                  <button onClick={() => handleDelete(deleteConfirm)} style={{ flex: 1, padding: '0.75rem', borderRadius: '9999px', background: '#EF4444', color: 'white', fontWeight: 600, border: 'none', cursor: 'pointer' }}>Xóa ngay</button>
+                <p className="delete-title-bold">Xóa thực phẩm?</p>
+                <p className="delete-subtitle-muted">Hành động này không thể hoàn tác và có thể lỗi nếu đang được sử dụng.</p>
+                <div className="modal-buttons-row-gap">
+                  <button onClick={() => setDeleteConfirm(null)} className="btn-modal-cancel flex-1">Hủy</button>
+                  <button onClick={() => handleDelete(deleteConfirm)} className="btn-execute-delete-action">Xóa ngay</button>
                 </div>
               </div>
             </SharedModal>
@@ -552,55 +525,55 @@ const FoodManagement: React.FC = () => {
   );
 };
 
-// --- Standard Helpers ---
-function SidebarLink({ icon, label, to, isExpanded, active, onClick }: any) {
-  return (
-    <NavLink to={to} onClick={onClick} className={`um-nav-item ${active ? 'active' : ''} ${isExpanded ? 'expanded' : 'collapsed'}`}>
-      <div className="um-nav-icon">{icon}</div>
-      {isExpanded && <span className="um-nav-label">{label}</span>}
-    </NavLink>
-  );
-}
-
-
+// --- Form Sub-Components ---
 function FormGroup({ label, ...props }: any) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>{label}</label>
-      <input {...props} className="um-search-input" style={{ paddingLeft: '1rem' }} />
+    <div className="form-input-stack">
+      <label className="form-label-sm">{label}</label>
+      <input {...props} className="um-search-input pl-1" />
     </div>
   );
 }
 
+// --- Detail Row Mapping Components ---
 function DetailItem({ label, value }: any) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-      <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{label}</span>
-      <span style={{ fontWeight: 600, color: '#1e293b' }}>{value}</span>
+    <div className="detail-item-stack">
+      <span className="detail-label-uppercase">{label}</span>
+      <span className="detail-value-text">{value}</span>
     </div>
   );
 }
 
-function HeaderBtn({ icon, hasBadge }: any) {
+function PageNum({ children, active, onClick }: any) {
   return (
-    <button style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-      {icon}
-      {hasBadge && <span style={{ position: 'absolute', top: '10px', right: '10px', width: '8px', height: '8px', background: '#ef4444', borderRadius: '50%' }} />}
+    <button 
+      onClick={onClick} 
+      className={`pagination-number-btn ${active ? 'active' : ''}`}
+    >
+      {children}
     </button>
   );
 }
 
+function PageArrow({ icon, disabled, onClick }: any) {
+  return (
+    <button disabled={disabled} onClick={onClick} className="pagination-arrow-btn">{icon}</button>
+  );
+}
 function ActionBtn({ icon, hoverColor, onClick }: any) {
   const [h, setH] = useState(false);
-  return <button onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onClick={onClick} style={{ width: '32px', height: '32px', borderRadius: '50%', border: 'none', background: h ? 'white' : 'transparent', color: h ? hoverColor : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</button>;
-}
-
-function PageNum({ children, active, onClick }: any) {
-  return <button onClick={onClick} style={{ width: '32px', height: '32px', borderRadius: '50%', border: 'none', background: active ? 'var(--mint-green)' : 'transparent', color: active ? 'white' : '#475569', fontWeight: 700 }}>{children}</button>;
-}
-
-function PageArrow({ icon, disabled, onClick }: any) {
-  return <button disabled={disabled} onClick={onClick} style={{ border: 'none', background: 'transparent', opacity: disabled ? 0.3 : 1 }}>{icon}</button>;
+  return (
+    <button 
+      onMouseEnter={() => setH(true)} 
+      onMouseLeave={() => setH(false)} 
+      onClick={onClick} 
+      style={{ background: h ? 'white' : 'transparent', color: h ? hoverColor : '#94a3b8' }}
+      className="table-action-round-btn"
+    >
+      {icon}
+    </button>
+  );
 }
 
 export default FoodManagement;

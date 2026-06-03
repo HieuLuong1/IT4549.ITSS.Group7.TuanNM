@@ -1,0 +1,368 @@
+/* =========================================================================
+   🎯 KHỐI BỌC LAYOUT CHÍNH: ĐỒNG BỘ 100% THEO TỶ LỆ FILE MYFRIDGE
+   ========================================================================= */
+
+.um-main {
+  flex: 1;
+  margin-left: 104px;              /* Cố định khoảng cách lề trái theo Sidebar y hệt MyFridge */
+  min-height: 100vh;
+  background: var(--fiza-background);
+  display: flex;
+  flex-direction: column;
+}
+
+.um-main-container {
+  padding-top: 32px;
+  padding-left: 32px;
+  padding-right: 32px;             /* Khoảng đệm bao quanh tỷ lệ 32px cân đối mọi góc máy */
+  padding-bottom: 4rem;
+  background: var(--fiza-background);
+  box-sizing: border-box;          /* Chặn phình khung khi co giãn màn hình */
+}
+
+.um-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;                     /* Tự động giãn rộng hết cỡ theo tỷ lệ máy tính */
+  box-sizing: border-box;
+}
+
+.um-table {
+  width: 100%;                     /* Ép bảng luôn co giãn theo dòng chảy ngang của trang */
+  border-collapse: collapse;
+}
+
+
+/* =========================================================================
+   📦 GIỮ NGUYÊN VẸN CÁC CLASS STYLE SẴN CÓ CỦA BẠN (KHÔNG THAY ĐỔI)
+   ========================================================================= */
+
+/* --- Khối Tiện ích Layout nhanh --- */
+.w-80 { width: 80px; }
+.w-120 { width: 120px; }
+.pl-1 { padding-left: 1rem; }
+.pt-05 { padding-top: 0.5rem; }
+.mt-2 { margin-top: 2rem; }
+.gap-1 { gap: 1rem; }
+.flex-1 { flex: 1; }
+.self-start { align-self: flex-start; }
+.text-center { text-align: center; }
+
+/* --- Giao diện Khối chính & Thông báo lỗi --- */
+.error-message-text {
+  color: #ef4444;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.loading-display-text {
+  text-align: center;
+  color: #64748b;
+  padding: 2rem;
+}
+
+.un-shrinkable {
+  flex-shrink: 0;
+}
+
+.filter-role-box {
+  padding: 0.5rem 1.25rem;
+  flex-shrink: 0;
+}
+
+.filter-role-label {
+  color: #94a3b8;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 10px;
+  margin-right: 0.5rem;
+  white-space: nowrap;
+}
+
+.filter-role-select {
+  background: transparent;
+  border: none;
+  color: var(--fiza-primary);
+  font-weight: 700;
+  font-size: 0.875rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.table-overflow-box {
+  overflow-x: auto;
+}
+
+/* --- Tế bào Dữ liệu Table cells --- */
+.user-id-cell {
+  font-weight: 700;
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+.user-profile-flex {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-avatar-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.user-avatar-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-fullname-text {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.user-contact-text {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.text-center-flex {
+  display: flex;
+  justify-content: center;
+}
+
+.user-actions-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.empty-user-row {
+  text-align: center;
+  padding: 3rem;
+  color: #94a3b8;
+}
+
+/* --- Khối Điều hướng phân trang --- */
+.pagination-container-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 3rem;
+}
+
+.pagination-bottom-info {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.pagination-buttons-wrap {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+/* --- Form bổ sung & Modal Layout --- */
+.modal-form-flex {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.modal-grid-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.modal-select-wrapper, .input-field-stack, .detail-item-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modal-input-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.modal-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.btn-cancel-round {
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* --- Modal Chi tiết người dùng --- */
+.detail-modal-layout {
+  display: flex;
+  gap: 2rem;
+}
+
+.detail-avatar-container {
+  width: 120px;
+  height: 120px;
+  border-radius: 24px;
+  overflow: hidden;
+  background-color: #F1FAF6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detail-avatar-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-fields-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.detail-label-sm {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.detail-value-bold {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* --- Toàn bộ Nút bấm tròn (Buttons) bổ trợ --- */
+.header-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: box-shadow 0.2s;
+}
+
+.header-badge-dot {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  border: 2px solid #F0F4F2;
+}
+
+.table-action-round-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-number-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  font-weight: 700;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: transparent;
+  color: #475569;
+}
+
+.pagination-number-btn.active {
+  background-color: var(--mint-green);
+  color: white;
+  box-shadow: 0 10px 15px -3px rgba(109, 212, 180, 0.3);
+}
+
+.pagination-arrow-round-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  transition: opacity 0.2s;
+}
+
+.pagination-arrow-round-btn:disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+
+/* --- Hộp Cảnh báo Xóa người dùng --- */
+.delete-warning-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: #FEF2F2;
+  color: #EF4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+}
+
+.delete-title-text {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.delete-subtitle-text {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-bottom: 2rem;
+}
+
+.modal-buttons-flex {
+  display: flex;
+}
+
+.btn-execute-delete {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 9999px;
+  background: #EF4444;
+  color: white;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
