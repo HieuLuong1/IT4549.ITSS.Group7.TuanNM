@@ -32,6 +32,7 @@ export interface Recipe {
   preferredMealTime: 'BREAKFAST' | 'LUNCH' | 'DINNER';
   imageUrl?: string;
   ingredients: Ingredient[];
+  regionalNames?: string[];
 }
 
 const RecipeManagement: React.FC = () => {
@@ -130,7 +131,8 @@ const RecipeManagement: React.FC = () => {
 
       const updatedRecipe = {
         ...recipe,
-        ingredients: mappedIngredients
+        ingredients: mappedIngredients,
+        regionalNames: recipe.regionalNames || []
       };
       setViewRecipe(updatedRecipe);
       setEditData(JSON.parse(JSON.stringify(updatedRecipe)));
@@ -347,13 +349,6 @@ const RecipeManagement: React.FC = () => {
                         <tr key={recipe.id}>
                           <td className="recipe-id-cell">#{recipe.id}</td>
                           <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                              <div style={{ width: '48px', height: '48px', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#F1FAF6', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0', flexShrink: 0 }}>
-                                {recipe.imageUrl ? (
-                                  <img src={recipe.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                ) : (
-                                  <UtensilsCrossed size={22} color="#6DD4B4" />
-                                )}
                             <div className="recipe-name-wrapper">
                               <div className="recipe-img-container">
                                 <img src={recipe.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'} alt="" />
@@ -485,17 +480,6 @@ const RecipeManagement: React.FC = () => {
 
           {viewRecipe && editData && (
             <SharedModal title={isEditing ? "Chỉnh sửa món ăn" : "Chi tiết món ăn"} onClose={() => { setViewRecipe(null); setIsEditing(false); }} width="1000px">
-              <div style={{ display: 'flex', gap: '2.5rem' }}>
-                <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  <div style={{ width: '220px', height: '220px', borderRadius: '32px', overflow: 'hidden', backgroundColor: '#F1FAF6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)', border: '2px solid #e2e8f0' }}>
-                    {viewRecipe.imageUrl ? (
-                      <img src={viewRecipe.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-                        <UtensilsCrossed size={56} color="#6DD4B4" />
-                        <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>Chưa có hình ảnh</span>
-                      </div>
-                    )}
               <div className="modal-flex-container">
                 <div className="modal-sidebar-profile">
                   <div className="modal-recipe-img-box">
@@ -532,7 +516,6 @@ const RecipeManagement: React.FC = () => {
                       <div className="grid-span-2">
                         <FormGroup label="Hình ảnh món ăn (URL)" value={editData.imageUrl} onChange={(e: any) => setEditData({ ...editData, imageUrl: e.target.value })} />
                       </div>
-
                       <div className="grid-span-2">
                         <div className="mb-05">
                           <label className="form-label-sm">Tên gọi khác / Từ đồng nghĩa</label>
@@ -633,6 +616,7 @@ const RecipeManagement: React.FC = () => {
                         <DetailItem label="Tên món ăn" value={viewRecipe.name} />
                         <DetailItem label="Tác giả" value={viewRecipe.author || 'Admin'} />
                         <DetailItem label="Nguồn" value={viewRecipe.referenceLink || 'Nội bộ'} />
+                        <DetailItem label="Tên gọi khác" value={viewRecipe.regionalNames?.join(', ') || 'Không có'} />
                       </div>
 
                       <div className="mt-1">

@@ -8,7 +8,6 @@ import {
   Trash2, 
   X, 
   ChevronRight, 
-  ChevronLeft,
   Eye, 
   RefreshCw
 } from 'lucide-react';
@@ -72,7 +71,6 @@ const PerformanceManagement: React.FC = () => {
   const [customFoodRequestError, setCustomFoodRequestError] = useState('');
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [synonymPage, setSynonymPage] = useState(1);
   const [uiSearchQuery, setUiSearchQuery] = useState('');
   const [inlineAdding, setInlineAdding] = useState<number | null>(null);
   const [inlineValue, setInlineValue] = useState('');
@@ -336,24 +334,6 @@ const PerformanceManagement: React.FC = () => {
     s.variants.some(v => v.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const synonymItemsPerPage = 10;
-  const synonymTotalPages = Math.ceil(filteredSynonyms.length / synonymItemsPerPage);
-  const synonymStartIndex = (synonymPage - 1) * synonymItemsPerPage;
-  const displayedSynonyms = filteredSynonyms.slice(synonymStartIndex, synonymStartIndex + synonymItemsPerPage);
-
-  const getVisibleSynonymPages = () => {
-    if (synonymTotalPages <= 3) {
-      return Array.from({ length: synonymTotalPages }, (_, i) => i + 1);
-    }
-    if (synonymPage === 1) {
-      return [1, 2, 3];
-    }
-    if (synonymPage === synonymTotalPages) {
-      return [synonymTotalPages - 2, synonymTotalPages - 1, synonymTotalPages];
-    }
-    return [synonymPage - 1, synonymPage, synonymPage + 1];
-  };
-
   const itemsToSelect = foods.filter(f => 
     (!f.synonyms || f.synonyms.trim().length === 0) &&
     f.name.toLowerCase().includes(itemSearch.toLowerCase())
@@ -364,7 +344,7 @@ const PerformanceManagement: React.FC = () => {
       <Sidebar />
 
       <div className="um-main">
-        {/* 🎯 ĐÃ NHÚNG TOPBAR: Ẩn tìm kiếm thanh trên đi (showSearch={false}) và ép hiển thị ADMIN góc phải */}
+        {/* 🎯 ĐÃ NHÚNG TOPBAR: Ẩn phần tìm kiếm thanh trên đi (showSearch={false}) và ép hiển thị ADMIN góc phải */}
         <Topbar 
           title="Quản lý hiệu suất" 
           showSearch={false}
@@ -555,10 +535,7 @@ const PerformanceManagement: React.FC = () => {
                       placeholder="Tìm kiếm tên gọi..." 
                       className="um-search-input"
                       value={searchQuery}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        setSynonymPage(1);
-                      }}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
                   <button onClick={() => { setSelectedItem(null); setStep(2); setShowAddModal(true); }} className="um-btn-primary">
@@ -582,7 +559,7 @@ const PerformanceManagement: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {displayedSynonyms.map(item => (
+                      {filteredSynonyms.map(item => (
                         <tr key={item.id}>
                           <td className="custom-name-highlight">{item.originalName}</td>
                           <td>
@@ -651,36 +628,6 @@ const PerformanceManagement: React.FC = () => {
                       )}
                     </tbody>
                   </table>
-                </div>
-              )}
-
-              {/* Pagination */}
-              {filteredSynonyms.length > 10 && (
-                <div className="pagination-wrapper-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3rem' }}>
-                  <p className="pagination-info-text" style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>
-                    Hiển thị {synonymStartIndex + 1} - {Math.min(synonymStartIndex + synonymItemsPerPage, filteredSynonyms.length)} trên {filteredSynonyms.length} tên gọi
-                  </p>
-                  <div className="pagination-controls-flex" style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-                    <PageArrow 
-                      icon={<ChevronLeft size={18} />} 
-                      disabled={synonymPage === 1}
-                      onClick={() => setSynonymPage(prev => Math.max(prev - 1, 1))}
-                    />
-                    {getVisibleSynonymPages().map((p) => (
-                      <PageNum 
-                        key={p} 
-                        active={synonymPage === p}
-                        onClick={() => setSynonymPage(p)}
-                      >
-                        {p}
-                      </PageNum>
-                    ))}
-                    <PageArrow 
-                      icon={<ChevronRight size={18} />} 
-                      disabled={synonymPage === synonymTotalPages}
-                      onClick={() => setSynonymPage(prev => Math.min(prev + 1, synonymTotalPages))}
-                    />
-                  </div>
                 </div>
               )}
             </motion.div>
@@ -982,53 +929,6 @@ function DetailItem({ label, value, isBadge }: any) {
         <span className="detail-value-bold">{value || 'N/A'}</span>
       )}
     </div>
-  );
-}
-
-function PageNum({ children, active, onClick }: any) {
-  return (
-    <button 
-      onClick={onClick} 
-      style={{ 
-        width: '36px', 
-        height: '36px', 
-        borderRadius: '50%', 
-        border: 'none', 
-        fontWeight: 700, 
-        fontSize: '0.75rem', 
-        cursor: 'pointer', 
-        transition: 'all 0.2s', 
-        backgroundColor: active ? 'var(--mint-green)' : 'transparent', 
-        color: active ? 'white' : '#475569', 
-        boxShadow: active ? '0 10px 15px -3px rgba(109, 212, 180, 0.3)' : 'none' 
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-function PageArrow({ icon, disabled, onClick }: any) {
-  return (
-    <button 
-      disabled={disabled} 
-      onClick={onClick} 
-      style={{ 
-        width: '36px', 
-        height: '36px', 
-        borderRadius: '50%', 
-        border: 'none', 
-        background: 'transparent', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justify-content: 'center', 
-        cursor: disabled ? 'default' : 'pointer', 
-        color: '#94a3b8', 
-        opacity: disabled ? 0.3 : 1 
-      }}
-    >
-      {icon}
-    </button>
   );
 }
 
