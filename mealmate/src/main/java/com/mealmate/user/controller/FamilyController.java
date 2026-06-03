@@ -46,14 +46,25 @@ public class FamilyController {
         
         // 🎯 GIẢI PHÁP: Tìm đối tượng sạch thông qua Email từ Token để tránh lỗi Lazy Loading Proxy
         String currentEmail = authentication.getName();
+        System.out.println("🔍 [DEBUG Backend] getCurrentFamily() - currentEmail: " + currentEmail);
+        
         User currentUser = userRepository.findByEmail(currentEmail).orElse(null);
+        System.out.println("🔍 [DEBUG Backend] currentUser found: " + (currentUser != null));
+        System.out.println("🔍 [DEBUG Backend] currentUser.getFamilyId(): " + (currentUser != null ? currentUser.getFamilyId() : "null"));
         
         if (currentUser == null || currentUser.getFamilyId() == null) {
             return ResponseEntity.ok(new ApiResponse<>(false, "Tài khoản chưa tham gia nhóm", null));
         }
         
         Family family = service.findByFamilyId(currentUser.getFamilyId());
+        System.out.println("🔍 [DEBUG Backend] Family found: " + (family != null));
+        System.out.println("🔍 [DEBUG Backend] Family id: " + (family != null ? family.getId() : "null"));
+        System.out.println("🔍 [DEBUG Backend] Family name: " + (family != null ? family.getName() : "null"));
+        
         FamilyResponse response = familyMapper.toResponse(family);
+        System.out.println("🔍 [DEBUG Backend] FamilyResponse id: " + (response != null ? response.getId() : "null"));
+        System.out.println("🔍 [DEBUG Backend] FamilyResponse name: " + (response != null ? response.getName() : "null"));
+        
         return ResponseEntity.ok(new ApiResponse<>(true, "Success", response));
     }
 

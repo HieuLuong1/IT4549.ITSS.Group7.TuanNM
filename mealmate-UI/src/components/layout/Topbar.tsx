@@ -13,6 +13,7 @@ interface TopbarProps {
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   familyName?: string;
+  familyId?: number | null;
   showSearch?: boolean;
 }
 
@@ -22,6 +23,7 @@ const Topbar: React.FC<TopbarProps> = ({
   searchValue = "",
   onSearchChange,
   familyName,
+  familyId,
   showSearch = true
 }) => {
   const navigate = useNavigate();
