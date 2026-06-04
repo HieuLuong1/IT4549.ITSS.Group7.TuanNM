@@ -32,4 +32,29 @@ public class Recipe extends BaseEntity {
 
     @Column(name = "image_url")
     private String imageUrl; // Ảnh minh họa
+
+    @Column(name = "display_status")
+    private String displayStatus = "SYSTEM"; // SYSTEM hoặc CUSTOM
+
+    @Column(name = "cooking_time_minutes")
+    private Integer cookingTimeMinutes;
+
+    @Column(name = "difficulty")
+    private String difficulty;
+
+    @Column(name = "calories")
+    private Integer calories;
+
+    @Column(name = "protein")
+    private Double protein;
+
+    @Column(name = "fat")
+    private Double fat;
+
+    @Column(name = "carbs")
+    private Double carbs;
+
+    @Column(name = "serving_size")
+    private Integer servingSize;
 }
+

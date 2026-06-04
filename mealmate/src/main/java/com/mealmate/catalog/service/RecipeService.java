@@ -40,6 +40,14 @@ public class RecipeService {
         recipe.setAuthor(request.getAuthor());
         recipe.setPreferredMealTime(request.getPreferredMealTime());
         recipe.setImageUrl(request.getImageUrl());
+        recipe.setDisplayStatus(request.getDisplayStatus());
+        recipe.setCookingTimeMinutes(request.getCookingTimeMinutes());
+        recipe.setDifficulty(request.getDifficulty());
+        recipe.setCalories(request.getCalories());
+        recipe.setProtein(request.getProtein());
+        recipe.setFat(request.getFat());
+        recipe.setCarbs(request.getCarbs());
+        recipe.setServingSize(request.getServingSize());
         return repository.save(recipe);
     }
 

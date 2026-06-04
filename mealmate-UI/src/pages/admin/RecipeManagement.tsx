@@ -34,7 +34,24 @@ export interface Recipe {
   imageUrl?: string;
   ingredients: Ingredient[];
   regionalNames?: string[];
+  displayStatus?: 'SYSTEM' | 'CUSTOM';
+  createdAt?: string;
+  updatedAt?: string;
+  cookingTimeMinutes?: number;
+  difficulty?: string;
+  calories?: number;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
+  servingSize?: number;
 }
+
+const formatDateTime = (value?: string) => {
+  if (!value) return 'Chưa có';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('vi-VN');
+};
 
 const RecipeManagement: React.FC = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -188,7 +205,15 @@ const RecipeManagement: React.FC = () => {
         referenceLink: editData.referenceLink || '',
         author: editData.author || 'Admin',
         preferredMealTime: editData.preferredMealTime,
-        imageUrl: editData.imageUrl || ''
+        imageUrl: editData.imageUrl || '',
+        displayStatus: editData.displayStatus || 'SYSTEM',
+        cookingTimeMinutes: editData.cookingTimeMinutes,
+        servingSize: editData.servingSize,
+        difficulty: editData.difficulty || null,
+        calories: editData.calories,
+        protein: editData.protein,
+        fat: editData.fat,
+        carbs: editData.carbs
       };
 
       await api.put(`/api/v1/catalogs/recipes/${editData.id}`, recipePayload);
@@ -239,7 +264,15 @@ const RecipeManagement: React.FC = () => {
         referenceLink: formData.get('referenceLink') as string,
         author: (formData.get('author') as string) || 'Admin',
         preferredMealTime: formData.get('preferredMealTime') as any,
-        imageUrl: (formData.get('imageUrl') as string) || defaultImage
+        imageUrl: (formData.get('imageUrl') as string) || defaultImage,
+        displayStatus: (formData.get('displayStatus') as string) || 'SYSTEM',
+        cookingTimeMinutes: formData.get('cookingTimeMinutes') ? parseInt(formData.get('cookingTimeMinutes') as string) : null,
+        servingSize: formData.get('servingSize') ? parseInt(formData.get('servingSize') as string) : null,
+        difficulty: (formData.get('difficulty') as string) || null,
+        calories: formData.get('calories') ? parseInt(formData.get('calories') as string) : null,
+        protein: formData.get('protein') ? parseFloat(formData.get('protein') as string) : null,
+        fat: formData.get('fat') ? parseFloat(formData.get('fat') as string) : null,
+        carbs: formData.get('carbs') ? parseFloat(formData.get('carbs') as string) : null
       };
 
       const response = await api.post('/api/v1/catalogs/recipes', recipePayload);
@@ -415,8 +448,30 @@ const RecipeManagement: React.FC = () => {
                       <option value="DINNER">Bữa tối</option>
                     </select>
                   </div>
+                  <div className="form-select-group">
+                    <label className="form-label-sm">Phân loại món ăn</label>
+                    <select name="displayStatus" className="um-search-input pl-1">
+                      <option value="SYSTEM">Món hệ thống</option>
+                      <option value="CUSTOM">Món tự tạo</option>
+                    </select>
+                  </div>
                   <FormGroup label="Tác giả" name="author" placeholder="Bỏ trống để mặc định là Admin" />
                   <FormGroup label="Nguồn trích dẫn (Link)" name="referenceLink" placeholder="VD: https://food-source.com" />
+                  <FormGroup label="Thời gian chế biến (phút)" name="cookingTimeMinutes" type="number" placeholder="VD: 30" />
+                  <FormGroup label="Khẩu phần (người ăn)" name="servingSize" type="number" placeholder="VD: 4" />
+                  <div className="form-select-group">
+                    <label className="form-label-sm">Độ khó</label>
+                    <select name="difficulty" className="um-search-input pl-1">
+                      <option value="">Chưa chọn</option>
+                      <option value="EASY">Dễ</option>
+                      <option value="MEDIUM">Trung bình</option>
+                      <option value="HARD">Khó</option>
+                    </select>
+                  </div>
+                  <FormGroup label="Lượng calo (kcal)" name="calories" type="number" placeholder="VD: 350" />
+                  <FormGroup label="Chất đạm (g)" name="protein" type="number" step="0.1" placeholder="VD: 25.5" />
+                  <FormGroup label="Chất béo (g)" name="fat" type="number" step="0.1" placeholder="VD: 12.0" />
+                  <FormGroup label="Carbs (Tinh bột) (g)" name="carbs" type="number" step="0.1" placeholder="VD: 45.0" />
                   <div className="grid-span-2">
                     <FormGroup label="Hình ảnh món ăn (URL)" name="imageUrl" placeholder="VD: https://images.unsplash.com/photo-..." />
                   </div>
@@ -506,6 +561,9 @@ const RecipeManagement: React.FC = () => {
                         isBadge 
                       />
                       <DetailItem label="Tác giả" value={viewRecipe.author || 'Admin'} />
+                      <DetailItem label="Phân loại" value={viewRecipe.displayStatus === 'SYSTEM' ? 'Món hệ thống' : 'Món tự tạo'} />
+                      <DetailItem label="Ngày tạo" value={formatDateTime(viewRecipe.createdAt)} />
+                      <DetailItem label="Ngày cập nhật" value={formatDateTime(viewRecipe.updatedAt)} />
                     </div>
                   </div>
                 </div>
@@ -522,8 +580,30 @@ const RecipeManagement: React.FC = () => {
                           <option value="DINNER">Bữa tối</option>
                         </select>
                       </div>
+                      <div className="form-select-group">
+                        <label className="form-label-sm">Phân loại món ăn</label>
+                        <select className="um-search-input pl-1" value={editData.displayStatus || 'SYSTEM'} onChange={(e: any) => setEditData({ ...editData, displayStatus: e.target.value as any })}>
+                          <option value="SYSTEM">Món hệ thống</option>
+                          <option value="CUSTOM">Món tự tạo</option>
+                        </select>
+                      </div>
                       <FormGroup label="Tác giả" value={editData.author} onChange={(e: any) => setEditData({ ...editData, author: e.target.value })} />
                       <FormGroup label="Nguồn (Link)" value={editData.referenceLink} onChange={(e: any) => setEditData({ ...editData, referenceLink: e.target.value })} />
+                      <FormGroup label="Thời gian chế biến (phút)" type="number" value={editData.cookingTimeMinutes || ''} onChange={(e: any) => setEditData({ ...editData, cookingTimeMinutes: e.target.value ? parseInt(e.target.value) : undefined })} />
+                      <FormGroup label="Khẩu phần (người ăn)" type="number" value={editData.servingSize || ''} onChange={(e: any) => setEditData({ ...editData, servingSize: e.target.value ? parseInt(e.target.value) : undefined })} />
+                      <div className="form-select-group">
+                        <label className="form-label-sm">Độ khó</label>
+                        <select className="um-search-input pl-1" value={editData.difficulty || ''} onChange={(e: any) => setEditData({ ...editData, difficulty: e.target.value || undefined })}>
+                          <option value="">Chưa chọn</option>
+                          <option value="EASY">Dễ</option>
+                          <option value="MEDIUM">Trung bình</option>
+                          <option value="HARD">Khó</option>
+                        </select>
+                      </div>
+                      <FormGroup label="Lượng calo (kcal)" type="number" value={editData.calories || ''} onChange={(e: any) => setEditData({ ...editData, calories: e.target.value ? parseInt(e.target.value) : undefined })} />
+                      <FormGroup label="Chất đạm (g)" type="number" step="0.1" value={editData.protein || ''} onChange={(e: any) => setEditData({ ...editData, protein: e.target.value ? parseFloat(e.target.value) : undefined })} />
+                      <FormGroup label="Chất béo (g)" type="number" step="0.1" value={editData.fat || ''} onChange={(e: any) => setEditData({ ...editData, fat: e.target.value ? parseFloat(e.target.value) : undefined })} />
+                      <FormGroup label="Carbs (Tinh bột) (g)" type="number" step="0.1" value={editData.carbs || ''} onChange={(e: any) => setEditData({ ...editData, carbs: e.target.value ? parseFloat(e.target.value) : undefined })} />
                       <div className="grid-span-2">
                         <FormGroup label="Hình ảnh món ăn (URL)" value={editData.imageUrl} onChange={(e: any) => setEditData({ ...editData, imageUrl: e.target.value })} />
                       </div>
@@ -626,9 +706,22 @@ const RecipeManagement: React.FC = () => {
                     <>
                       <div className="modal-grid-2col gap-15">
                         <DetailItem label="Tên món ăn" value={viewRecipe.name} />
-                        <DetailItem label="Tác giả" value={viewRecipe.author || 'Admin'} />
-                        <DetailItem label="Nguồn" value={viewRecipe.referenceLink || 'Nội bộ'} />
+                        <DetailItem label="Nguồn" value={viewRecipe.referenceLink ? <a href={viewRecipe.referenceLink} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--fiza-primary)', fontWeight: 600 }}>{viewRecipe.referenceLink}</a> : 'Nội bộ'} />
+                        <DetailItem label="Thời gian chế biến" value={viewRecipe.cookingTimeMinutes ? `${viewRecipe.cookingTimeMinutes} phút` : 'Chưa cập nhật'} />
+                        <DetailItem label="Khẩu phần" value={viewRecipe.servingSize ? `${viewRecipe.servingSize} người ăn` : 'Chưa cập nhật'} />
+                        <DetailItem label="Độ khó" value={viewRecipe.difficulty === 'EASY' ? 'Dễ' : viewRecipe.difficulty === 'MEDIUM' ? 'Trung bình' : viewRecipe.difficulty === 'HARD' ? 'Khó' : viewRecipe.difficulty || 'Chưa cập nhật'} />
+                        <DetailItem label="Lượng calo" value={viewRecipe.calories ? `${viewRecipe.calories} kcal` : 'Chưa cập nhật'} />
                       </div>
+
+                      <div className="mt-1">
+                        <p className="section-title-label">Giá trị dinh dưỡng (Cho mỗi khẩu phần)</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
+                          <DetailItem label="Chất đạm (Protein)" value={viewRecipe.protein !== undefined && viewRecipe.protein !== null ? `${viewRecipe.protein} g` : 'Chưa cập nhật'} />
+                          <DetailItem label="Chất béo (Fat)" value={viewRecipe.fat !== undefined && viewRecipe.fat !== null ? `${viewRecipe.fat} g` : 'Chưa cập nhật'} />
+                          <DetailItem label="Carbs (Tinh bột)" value={viewRecipe.carbs !== undefined && viewRecipe.carbs !== null ? `${viewRecipe.carbs} g` : 'Chưa cập nhật'} />
+                        </div>
+                      </div>
+
 
                       <div className="mt-1">
                         <p className="section-title-label">Nguyên liệu & Định mức</p>
