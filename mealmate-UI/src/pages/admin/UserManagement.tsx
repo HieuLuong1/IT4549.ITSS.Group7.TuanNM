@@ -85,6 +85,7 @@ const UserManagement: React.FC = () => {
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [familyHousekeeperId, setFamilyHousekeeperId] = useState<number | null>(null);
   const [loadingMembers, setLoadingMembers] = useState(false);
+  const [openedFromFamilyModal, setOpenedFromFamilyModal] = useState<Family | null>(null);
 
   const openFamilyModal = async (family: Family) => {
     setSelectedFamily(family);
@@ -483,13 +484,21 @@ const UserManagement: React.FC = () => {
           {viewUser && (
             <ProfileModal
               isOpen={!!viewUser}
-              onClose={() => setViewUser(null)}
+              onClose={() => { setViewUser(null); setOpenedFromFamilyModal(null); }}
               memberData={viewUser}
               familyName={viewUser.family?.name || 'Không có'}
               isMe={false}
               isAdminView={true}
               onUpdateUser={(updatedUser) => {
                 setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+              }}
+              showBackButton={!!openedFromFamilyModal}
+              onBack={() => {
+                if (openedFromFamilyModal) {
+                  openFamilyModal(openedFromFamilyModal);
+                }
+                setViewUser(null);
+                setOpenedFromFamilyModal(null);
               }}
             />
           )}
@@ -560,20 +569,24 @@ const UserManagement: React.FC = () => {
                           key={member.id}
                           style={{ cursor: 'pointer', transition: 'background 0.15s' }}
                           onClick={() => {
-                            const isHousekeeper = familyHousekeeperId !== null && member.id === familyHousekeeperId;
                             const asUser: User = {
                               id: member.id,
                               fullName: member.fullName,
                               email: member.email,
-                              phone: member.phone,
+                              phone: member.phone || undefined,
                               gender: member.gender as any,
                               avatarUrl: member.avatarUrl,
-                              role: { id: isHousekeeper ? 1 : 2, name: isHousekeeper ? 'ADMIN' : 'CUSTOMER' },
-                              family: selectedFamily,
+                              role: { id: 2, name: 'CUSTOMER' },
+                              family: {
+                                id: selectedFamily.id,
+                                name: selectedFamily.name,
+                                housekeeperId: familyHousekeeperId || undefined
+                              },
                             };
                             setViewUser(asUser);
                             setEditData(asUser);
                             setIsEditing(false);
+                            setOpenedFromFamilyModal(selectedFamily);
                             setSelectedFamily(null);
                             setFamilyHousekeeperId(null);
                           }}

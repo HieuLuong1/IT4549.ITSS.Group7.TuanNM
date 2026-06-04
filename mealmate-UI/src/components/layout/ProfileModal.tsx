@@ -16,9 +16,21 @@ interface ProfileModalProps {
   isMe?: boolean;
   isAdminView?: boolean;
   onUpdateUser?: (updatedUser: any) => void;
+  showBackButton?: boolean;
+  onBack?: () => void;
 }
 
-const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, familyName, memberData, isMe = false, isAdminView = false, onUpdateUser }) => {
+const ProfileModal: React.FC<ProfileModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  familyName, 
+  memberData, 
+  isMe = false, 
+  isAdminView = false, 
+  onUpdateUser,
+  showBackButton = false,
+  onBack
+}) => {
   const navigate = useNavigate();
   const authContext = useAuth();
   const userFromContext = authContext?.user;
@@ -436,6 +448,22 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, familyName
                 <>
                   {!isEditing ? (
                     <>
+                      {showBackButton && onBack && (
+                        <button 
+                          type="button" 
+                          className="profile-modal-btn-close" 
+                          onClick={onBack}
+                          style={{ 
+                            borderColor: '#D1D5DB', 
+                            color: '#4B5563', 
+                            backgroundColor: '#F3F4F6',
+                            fontWeight: '600',
+                            marginRight: 'auto' // push the edit button to the right
+                          }}
+                        >
+                          Quay lại
+                        </button>
+                      )}
                       {isMe && (
                         <button 
                           type="button" 
