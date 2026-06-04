@@ -81,6 +81,17 @@ CREATE TABLE families (
     CONSTRAINT fk_family_housekeeper FOREIGN KEY (housekeeper_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
+CREATE TABLE invitations (
+    id SERIAL PRIMARY KEY,
+    family_id INT NOT NULL,
+    receiver_id INT NOT NULL,
+    status VARCHAR(50) DEFAULT 'PENDING',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_invite_family FOREIGN KEY (family_id) REFERENCES families(id) ON DELETE CASCADE,
+    CONSTRAINT fk_invite_receiver FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Thêm FK từ users → families (thêm sau để tránh phụ thuộc vòng)
 ALTER TABLE users
 ADD CONSTRAINT fk_user_family
@@ -138,7 +149,6 @@ CREATE TABLE fridge_items (
     id SERIAL PRIMARY KEY,
     family_id INT NOT NULL,                  -- Thuộc gia đình nào
     food_id INT NOT NULL,                    -- Thực phẩm gì
-    custom_name VARCHAR(255),                -- Tên cụ thể trong tủ nếu dùng thực phẩm "khác"
     quantity NUMERIC(10, 2) NOT NULL DEFAULT 0, -- Số lượng
     storage_location VARCHAR(100),           -- Vị trí lưu trữ chính: COOL (ngăn mát), FREEZER (ngăn đông), DRY (tủ đồ khô)
     specific_location VARCHAR(100),          -- Vị trí cụ thể trong khu vực lưu trữ: VEGETABLE_DRAWER (ngăn rau), DOOR_SHELF (cánh tủ), TOP_SHELF (kệ trên)...
@@ -146,7 +156,6 @@ CREATE TABLE fridge_items (
     expiry_date DATE,                        -- Hạn sử dụng
     status VARCHAR(50) DEFAULT 'STORED',     -- Trạng thái: STORED (đang lưu), EXPIRED (hết hạn), USED (đã dùng hết), REMOVED (đã loại bỏ)
     image_url VARCHAR(500),                  -- Ảnh chụp thực phẩm trong tủ (tùy chọn)
-    note TEXT,                               -- Ghi chú
     removed_reason VARCHAR(100),                -- Lý do loại bỏ: USED_UP, EXPIRED_DISCARDED, SPOILED, WRONG_INFO, OTHER
     removed_reason_note TEXT,                   -- Nội dung lý do khác nếu người dùng chọn OTHER
     removed_at TIMESTAMP,                       -- Thời điểm loại bỏ thực phẩm khỏi tủ; NULL nếu thực phẩm vẫn đang lưu
@@ -181,21 +190,17 @@ CREATE TABLE shopping_list_items (
     id SERIAL PRIMARY KEY,
     shopping_list_id INT NOT NULL,           -- Thuộc danh sách nào
     food_id INT NOT NULL,                    -- Thực phẩm cần mua
-    custom_name VARCHAR(255),                -- Tên cụ thể nếu chọn thực phẩm "khác"
     order_number INT,                        -- Số thứ tự
     quantity NUMERIC(10, 2) NOT NULL,        -- Số lượng cần mua
     unit VARCHAR(50),                        -- Đơn vị tính
     note TEXT,                               -- Ghi chú thêm
     assigned_to INT,                         -- Người được giao mua
     is_purchased BOOLEAN DEFAULT FALSE,      -- Đã mua chưa
-    imported_to_fridge_at TIMESTAMP,         -- Thời điểm đã nhập mục này vào tủ lạnh
-    fridge_item_id INT,                      -- Fridge item được tạo từ mục đi chợ này
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_sli_list FOREIGN KEY (shopping_list_id) REFERENCES shopping_lists(id) ON DELETE CASCADE,
     CONSTRAINT fk_sli_food FOREIGN KEY (food_id) REFERENCES foods(id) ON DELETE CASCADE,
-    CONSTRAINT fk_sli_assignee FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
-    CONSTRAINT fk_sli_fridge_item FOREIGN KEY (fridge_item_id) REFERENCES fridge_items(id) ON DELETE SET NULL
+    CONSTRAINT fk_sli_assignee FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- ==========================================
@@ -300,13 +305,93 @@ INSERT INTO roles (name, description) VALUES
 ('ADMIN', 'Quản trị viên hệ thống - toàn quyền truy cập'),
 ('CUSTOMER', 'Khách hàng / thành viên gia đình');
 
-CREATE TABLE invitations (
+-- Thêm logic cho bảng fridge
+ALTER TABLE fridge_items
+    ADD COLUMN custom_name VARCHAR(255),
+    ADD COLUMN note TEXT;
+
+-- =====================================================
+-- 9. RECOMMENDATION ENHANCEMENTS (MANDATORY)
+-- =====================================================
+
+ALTER TABLE recipes ADD COLUMN IF NOT EXISTS cooking_time_minutes INT;
+ALTER TABLE recipes ADD COLUMN IF NOT EXISTS difficulty VARCHAR(50);
+ALTER TABLE recipes ADD COLUMN IF NOT EXISTS calories INT;
+ALTER TABLE recipes ADD COLUMN IF NOT EXISTS protein NUMERIC(10, 2);
+ALTER TABLE recipes ADD COLUMN IF NOT EXISTS fat NUMERIC(10, 2);
+ALTER TABLE recipes ADD COLUMN IF NOT EXISTS carbs NUMERIC(10, 2);
+ALTER TABLE recipes ADD COLUMN IF NOT EXISTS serving_size INT;
+ALTER TABLE recipes ADD COLUMN IF NOT EXISTS display_status VARCHAR(50) DEFAULT 'SYSTEM';
+ALTER TABLE recipes ADD COLUMN IF NOT EXISTS image_url VARCHAR(1000);
+ALTER TABLE recipes ALTER COLUMN image_url TYPE VARCHAR(1000);
+
+CREATE TABLE IF NOT EXISTS recipe_tags (
     id SERIAL PRIMARY KEY,
-    family_id INT NOT NULL,                  -- Lời mời từ gia đình nào
-    receiver_id INT NOT NULL,                -- Gửi lời mời tới User ID nào
-    status VARCHAR(50) DEFAULT 'PENDING',    -- Trạng thái: PENDING, ACCEPTED, DECLINED
+    name VARCHAR(100) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS recipe_tag_items (
+    id SERIAL PRIMARY KEY,
+    recipe_id INT NOT NULL,
+    tag_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_invite_family FOREIGN KEY (family_id) REFERENCES families(id) ON DELETE CASCADE,
-    CONSTRAINT fk_invite_receiver FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+    CONSTRAINT uq_recipe_tag_items_recipe_tag UNIQUE (recipe_id, tag_id),
+    CONSTRAINT fk_recipe_tag_items_recipe FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+    CONSTRAINT fk_recipe_tag_items_tag FOREIGN KEY (tag_id) REFERENCES recipe_tags(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS user_recipe_history (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    recipe_id INT NOT NULL,
+    action VARCHAR(30) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_user_recipe_history_action CHECK (action IN ('VIEWED', 'COOKED', 'LIKED', 'DISLIKED', 'SKIPPED')),
+    CONSTRAINT fk_user_recipe_history_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_user_recipe_history_recipe FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
+);
+
+-- =====================================================
+-- 10. UNIT NORMALIZATION (OPTIONAL ENHANCEMENT)
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS unit_conversions (
+    id SERIAL PRIMARY KEY,
+    from_unit VARCHAR(20) NOT NULL,
+    to_unit VARCHAR(20) NOT NULL,
+    multiplier NUMERIC(12, 6) NOT NULL,
+    is_bidirectional BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_unit_conversions_from_to UNIQUE (from_unit, to_unit)
+);
+
+-- =====================================================
+-- 11. INDEXES FOR RECOMMENDATION PERFORMANCE
+-- =====================================================
+
+CREATE INDEX IF NOT EXISTS idx_fridge_items_family_status_food_expiry
+    ON fridge_items (family_id, status, food_id, expiry_date);
+
+CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_recipe
+    ON recipe_ingredients (recipe_id);
+
+CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_food
+    ON recipe_ingredients (food_id);
+
+CREATE INDEX IF NOT EXISTS idx_user_favorite_recipes_user
+    ON user_favorite_recipes (user_id);
+
+CREATE INDEX IF NOT EXISTS idx_meals_menu_date_type
+    ON meals (menu_id, meal_date, meal_type);
+
+CREATE INDEX IF NOT EXISTS idx_menus_family_date_range
+    ON menus (family_id, start_date, end_date);
+
+CREATE INDEX IF NOT EXISTS idx_meal_items_recipe
+    ON meal_items (recipe_id);
+
