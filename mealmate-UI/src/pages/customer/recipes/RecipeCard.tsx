@@ -10,10 +10,14 @@ import {
   type RecipeFromApi,
 } from "./recipeTypes";
 
+type RecipeBrowserVariant = "suggestion" | "library";
+
 type RecipeCardProps = {
   recipe: RecipeFromApi;
+  variant?: RecipeBrowserVariant;
   isFavorite: boolean;
   isFavoritePending?: boolean;
+  animationDelay?: number;
   onOpen: (recipe: RecipeFromApi) => void;
   onToggleFavorite: (recipe: RecipeFromApi) => void;
 };
@@ -56,8 +60,10 @@ const Heart: React.FC<{ filled: boolean }> = ({ filled }) => (
 
 const RecipeCard: React.FC<RecipeCardProps> = ({
   recipe,
+  variant = "suggestion",
   isFavorite,
   isFavoritePending,
+  animationDelay = 0,
   onOpen,
   onToggleFavorite,
 }) => {
@@ -65,10 +71,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   const tone = coverageTone(recipe.coveragePercent);
   const showImage = Boolean(recipe.imageUrl) && !imageFailed;
   const hasExpiringIngredients = recipe.expiringIngredients.length > 0;
+  const isLibrary = variant === "library";
 
   return (
     <article
-      className="recipe-card"
+      className="recipe-card recipe-card-enter"
+      style={{ animationDelay: `${animationDelay}ms` }}
       role="button"
       tabIndex={0}
       onClick={() => onOpen(recipe)}
@@ -88,9 +96,12 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           </span>
         )}
 
-        <span className={`recipe-card-match ${tone}`}>
-          <strong>{recipe.coveragePercent}%</strong>
-        </span>
+        {/* % khớp: chỉ hiển thị ở trang Gợi ý */}
+        {!isLibrary && (
+          <span className={`recipe-card-match ${tone}`}>
+            <strong>{recipe.coveragePercent}%</strong>
+          </span>
+        )}
 
         <button
           type="button"
@@ -106,18 +117,24 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           <Heart filled={isFavorite} />
         </button>
 
-        <span className={`recipe-card-status ${hasExpiringIngredients ? "expired" : recipe.canCook ? "ready" : "partial"}`}>
-          {hasExpiringIngredients ? "Sắp hết hạn" : recipe.canCook ? "Nấu được ngay" : "Cần bổ sung"}
-        </span>
+        {/* Badge trạng thái: chỉ hiển thị ở trang Gợi ý */}
+        {!isLibrary && (
+          <span className={`recipe-card-status ${hasExpiringIngredients ? "expired" : recipe.canCook ? "ready" : "partial"}`}>
+            {hasExpiringIngredients ? "Sắp hết hạn" : recipe.canCook ? "Nấu được ngay" : "Cần bổ sung"}
+          </span>
+        )}
       </div>
 
       <div className="recipe-card-body">
         <div className="recipe-card-heading">
           <h3 title={recipe.name}>{recipe.name}</h3>
-          <span className={`recipe-card-meal`}>{mealTimeLabel(recipe.preferredMealTime)}</span>
+          <span className="recipe-card-meal">{mealTimeLabel(recipe.preferredMealTime)}</span>
         </div>
 
-        {recipe.description && <p className="recipe-card-desc">{recipe.description}</p>}
+        {/* Description: luôn giữ chỗ để căn chỉnh đồng nhất giữa các thẻ */}
+        <p className="recipe-card-desc">
+          {recipe.description || ""}
+        </p>
 
         <div className="recipe-card-meta">
           <span className="recipe-card-meta-item">

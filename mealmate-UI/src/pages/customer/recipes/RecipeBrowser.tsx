@@ -30,14 +30,21 @@ const normalize = (value: string) =>
   value
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .replace(/đ/g, "d")
     .trim();
 
-const statusChips: Array<{ value: StatusFilter; label: string }> = [
+// Chips cho suggestion: Tất cả + Nấu được ngay + Sắp hết hạn
+const suggestionStatusChips: Array<{ value: StatusFilter; label: string }> = [
   { value: "all", label: "Tất cả" },
   { value: "canCook", label: "Nấu được ngay" },
   { value: "expiring", label: "Sắp hết hạn" },
+];
+
+// Chips cho library: Tất cả + Nấu được ngay (bỏ Sắp hết hạn)
+const libraryStatusChips: Array<{ value: StatusFilter; label: string }> = [
+  { value: "all", label: "Tất cả" },
+  { value: "canCook", label: "Nấu được ngay" },
 ];
 
 const mealChips: Array<{ value: MealFilter; label: string }> = [
@@ -69,6 +76,8 @@ const RecipeBrowser: React.FC<RecipeBrowserProps> = ({ variant, onBack }) => {
   const [difficultyFilter, setDifficultyFilter] = useState<DifficultyFilter>("all");
   const [openFilterDropdown, setOpenFilterDropdown] = useState<FilterDropdown>(null);
   const [favoriteOnly, setFavoriteOnly] = useState(false);
+
+  const statusChips = variant === "suggestion" ? suggestionStatusChips : libraryStatusChips;
 
   const loadRecipes = useCallback(async () => {
     setIsLoading(true);
@@ -128,10 +137,9 @@ const RecipeBrowser: React.FC<RecipeBrowserProps> = ({ variant, onBack }) => {
           await removeFavoriteRecipe(id);
         } else {
           await addFavoriteRecipe(id);
-          setToast({ message: `Đã thêm “${recipe.name}” vào món yêu thích.`, variant: "success" });
+          setToast({ message: `Đã thêm "${recipe.name}" vào món yêu thích.`, variant: "success" });
         }
       } catch {
-        // Hoàn tác nếu lỗi
         setFavoriteIds((current) => {
           const next = new Set(current);
           if (wasFavorite) next.add(id);
@@ -152,11 +160,12 @@ const RecipeBrowser: React.FC<RecipeBrowserProps> = ({ variant, onBack }) => {
 
   const handleAddMissingToShopping = useCallback(
     (recipe: RecipeFromApi, missing: RecipeIngredientFromApi[]) => {
-      // Danh sách đi chợ sẽ được tích hợp sau — hiện tại hiển thị thông báo demo.
       setToast({
-        message: `Đã ghi nhận ${missing.length} nguyên liệu thiếu của “${recipe.name}” để thêm vào danh sách đi chợ.`,
+        message: `Đã ghi nhận ${missing.length} nguyên liệu thiếu của "${recipe.name}" vào danh sách đi chợ.`,
         variant: "success",
       });
+      // Đóng popup sau khi thêm
+      setSelectedRecipe(null);
     },
     []
   );
@@ -164,16 +173,23 @@ const RecipeBrowser: React.FC<RecipeBrowserProps> = ({ variant, onBack }) => {
   const filteredRecipes = useMemo(() => {
     const normalizedKeyword = normalize(keyword);
 
-    return recipes.filter((recipe) => {
-      if (normalizedKeyword && !normalize(recipe.name).includes(normalizedKeyword)) {
-        return false;
-      }
+    const filtered = recipes.filter((recipe) => {
+      if (normalizedKeyword && !normalize(recipe.name).includes(normalizedKeyword)) return false;
       if (statusFilter === "canCook" && !recipe.canCook) return false;
       if (statusFilter === "expiring" && recipe.expiringIngredients.length === 0) return false;
       if (favoriteOnly && !favoriteIds.has(recipe.recipeId)) return false;
       if (mealFilter !== "all" && recipe.preferredMealTime !== mealFilter) return false;
       if (difficultyFilter !== "all" && recipe.difficulty !== difficultyFilter) return false;
       return true;
+    });
+
+    // Sắp xếp: điểm cao nhất trước, nếu bằng điểm thì ưu tiên có nguyên liệu sắp hết hạn
+    return [...filtered].sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (b.coveragePercent !== a.coveragePercent) return b.coveragePercent - a.coveragePercent;
+      const aExpiring = a.expiringIngredients.length > 0 ? 1 : 0;
+      const bExpiring = b.expiringIngredients.length > 0 ? 1 : 0;
+      return bExpiring - aExpiring;
     });
   }, [recipes, keyword, statusFilter, favoriteOnly, favoriteIds, mealFilter, difficultyFilter]);
 
@@ -310,29 +326,50 @@ const RecipeBrowser: React.FC<RecipeBrowserProps> = ({ variant, onBack }) => {
         </div>
       </div>
 
-      {isLoading && <div className="recipe-browser-state">Đang tìm món phù hợp...</div>}
-      {!isLoading && errorMessage && <div className="recipe-browser-state error">{errorMessage}</div>}
-      {!isLoading && !errorMessage && filteredRecipes.length === 0 && (
-        <div className="recipe-browser-state">
-          {recipes.length === 0
-            ? "Chưa có công thức phù hợp với thực phẩm hiện có trong tủ."
-            : "Không có món nào khớp với bộ lọc hiện tại."}
+      {/* Skeleton loading giống mạng xã hội */}
+      {isLoading && (
+        <div className="recipe-browser-grid">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="recipe-card-skeleton">
+              <div className="recipe-card-skeleton-media" />
+              <div className="recipe-card-skeleton-body">
+                <div className="recipe-card-skeleton-line long" />
+                <div className="recipe-card-skeleton-line short" />
+                <div className="recipe-card-skeleton-meta">
+                  <div className="recipe-card-skeleton-line half" />
+                  <div className="recipe-card-skeleton-line half" />
+                  <div className="recipe-card-skeleton-line half" />
+                  <div className="recipe-card-skeleton-line half" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
+      {!isLoading && errorMessage && (
+        <div className="recipe-browser-state error">{errorMessage}</div>
+      )}
+
+      {!isLoading && !errorMessage && filteredRecipes.length === 0 && (
+        <div className="recipe-browser-state">Không tìm thấy công thức phù hợp.</div>
+      )}
+
       {!isLoading && !errorMessage && filteredRecipes.length > 0 && (
-        <section className="recipe-browser-grid">
-          {filteredRecipes.map((recipe) => (
+        <div className="recipe-browser-grid">
+          {filteredRecipes.map((recipe, index) => (
             <RecipeCard
               key={recipe.recipeId}
               recipe={recipe}
+              variant={variant}
               isFavorite={favoriteIds.has(recipe.recipeId)}
               isFavoritePending={pendingFavoriteIds.has(recipe.recipeId)}
+              animationDelay={index * 50}
               onOpen={setSelectedRecipe}
               onToggleFavorite={handleToggleFavorite}
             />
           ))}
-        </section>
+        </div>
       )}
 
       {selectedRecipe && (
@@ -349,9 +386,7 @@ const RecipeBrowser: React.FC<RecipeBrowserProps> = ({ variant, onBack }) => {
       {toast && (
         <div className={`recipe-browser-toast ${toast.variant}`} role="status">
           <span>{toast.message}</span>
-          <button type="button" onClick={() => setToast(null)} aria-label="Đóng thông báo">
-            ×
-          </button>
+          <button type="button" onClick={() => setToast(null)} aria-label="Đóng">×</button>
         </div>
       )}
     </div>

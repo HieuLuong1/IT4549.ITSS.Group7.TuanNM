@@ -266,9 +266,9 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 11px 14px;
-  border-radius: 18px;
-  border: 1px solid #e8eef4;
+  padding: 7px 12px;
+  border-radius: 12px;
+  border: 1px dashed #e2e8f0;
   background: #ffffff;
   cursor: pointer;
   transition: border-color 160ms ease, background 160ms ease;
@@ -280,17 +280,20 @@
 
 .recipe-detail-ingredient.available {
   background: #f4fbf8;
-  border-color: #d4f0e6;
+  border-color: #c4e8d8;
+  border-style: dashed;
 }
 
 .recipe-detail-ingredient.missing {
   background: #f8fafc;
-  border-color: #d1d5db;
+  border-color: #cbd5e1;
+  border-style: dashed;
 }
 
 .recipe-detail-ingredient.expired {
   background: #f3f4f6;
-  border-color: #d1d5db;
+  border-color: #cbd5e1;
+  border-style: dashed;
 }
 
 .recipe-detail-ingredient input {
@@ -404,9 +407,9 @@
   gap: 12px;
   align-items: flex-start;
   color: #334155;
-  font-size: 13px;
+  font-size: 14.5px;
   font-weight: 500;
-  line-height: 20px;
+  line-height: 22px;
 }
 
 .recipe-detail-step-no {
@@ -483,4 +486,29 @@
   .recipe-detail-heart.active svg {
     animation: none;
   }
+}
+                                                                                                                                                                                                                                                                                                                                                            
+
+/* Wrapper card cho nguyên liệu */
+.recipe-detail-ingredients-card {
+  background: #f8fafc;
+  border: 1px solid #e8eef4;
+  border-radius: 18px;
+  padding: 14px;
+}
+
+/* Wrapper card cho các bước */
+.recipe-detail-steps-card {
+  background: #f8fafc;
+  border: 1px solid #e8eef4;
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.recipe-detail-steps-card .recipe-detail-steps {
+  gap: 12px;
+}
+
+.recipe-detail-steps-card .recipe-detail-empty {
+  padding: 8px 0;
 }

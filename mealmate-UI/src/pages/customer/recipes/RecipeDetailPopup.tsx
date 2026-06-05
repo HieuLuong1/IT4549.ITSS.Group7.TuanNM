@@ -45,7 +45,6 @@ const RecipeDetailPopup: React.FC<RecipeDetailPopupProps> = ({
 }) => {
   const [imageFailed, setImageFailed] = useState(false);
 
-  // Hợp nhất nguyên liệu khớp và thiếu thành một danh sách duy nhất theo foodId.
   const ingredients = useMemo(() => {
     const byId = new Map<number, RecipeIngredientFromApi>();
     recipe.matchedIngredients.forEach((item) => byId.set(item.foodId, item));
@@ -55,7 +54,6 @@ const RecipeDetailPopup: React.FC<RecipeDetailPopupProps> = ({
     return Array.from(byId.values());
   }, [recipe]);
 
-  // Nguyên liệu khả dụng (đủ số lượng) được tick sẵn.
   const [checkedIds, setCheckedIds] = useState<Set<number>>(
     () => new Set(ingredients.filter((item) => item.sufficientQuantity).map((item) => item.foodId))
   );
@@ -159,6 +157,7 @@ const RecipeDetailPopup: React.FC<RecipeDetailPopupProps> = ({
             />
           </div>
 
+          {/* Section nguyên liệu — bọc trong card lớn */}
           <section className="recipe-detail-section">
             <div className="recipe-detail-section-head">
               <h3>Nguyên liệu</h3>
@@ -167,51 +166,56 @@ const RecipeDetailPopup: React.FC<RecipeDetailPopupProps> = ({
               </span>
             </div>
 
-            <div className="recipe-detail-ingredients">
-              {ingredients.map((item) => {
-                const checked = checkedIds.has(item.foodId);
-                const available = item.sufficientQuantity;
-                const statusClass = item.expiringSoon ? "expired" : available ? "available" : "missing";
+            <div className="recipe-detail-ingredients-card">
+              <div className="recipe-detail-ingredients">
+                {ingredients.map((item) => {
+                  const checked = checkedIds.has(item.foodId);
+                  const available = item.sufficientQuantity;
+                  const statusClass = item.expiringSoon ? "expired" : available ? "available" : "missing";
 
-                return (
-                  <label
-                    className={`recipe-detail-ingredient ${statusClass}`}
-                    key={item.foodId}
-                  >
-                    <input type="checkbox" checked={checked} onChange={() => toggleChecked(item.foodId)} />
-                    <span className="recipe-detail-ingredient-check" aria-hidden="true" />
-                    <span className="recipe-detail-ingredient-main">
-                      <strong>{item.foodName}</strong>
-                      <small>
-                        Cần {formatQuantity(item.requiredQuantity, item.requiredUnit)}
-                        {item.availableQuantity !== undefined && item.availableQuantity !== null
-                          ? ` · Có ${formatQuantity(item.availableQuantity, item.availableUnit)}`
-                          : ""}
-                      </small>
-                    </span>
-                    <span className={`recipe-detail-ingredient-status ${statusClass}`}>
-                      {item.expiringSoon ? "Sắp hết hạn" : available ? "Khả dụng" : "Thiếu"}
-                    </span>
-                  </label>
-                );
-              })}
+                  return (
+                    <label
+                      className={`recipe-detail-ingredient ${statusClass}`}
+                      key={item.foodId}
+                    >
+                      <input type="checkbox" checked={checked} onChange={() => toggleChecked(item.foodId)} />
+                      <span className="recipe-detail-ingredient-check" aria-hidden="true" />
+                      <span className="recipe-detail-ingredient-main">
+                        <strong>{item.foodName}</strong>
+                        <small>
+                          Cần {formatQuantity(item.requiredQuantity, item.requiredUnit)}
+                          {item.availableQuantity !== undefined && item.availableQuantity !== null
+                            ? ` · Có ${formatQuantity(item.availableQuantity, item.availableUnit)}`
+                            : ""}
+                        </small>
+                      </span>
+                      <span className={`recipe-detail-ingredient-status ${statusClass}`}>
+                        {item.expiringSoon ? "Sắp hết hạn" : available ? "Khả dụng" : "Thiếu"}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
           </section>
 
+          {/* Section các bước — bọc trong card lớn */}
           <section className="recipe-detail-section">
             <h3>Các bước thực hiện</h3>
-            {steps.length > 0 ? (
-              <ol className="recipe-detail-steps">
-                {steps.map((step, index) => (
-                  <li key={index}>
-                    <span className="recipe-detail-step-no">{index + 1}</span>
-                    <span>{step}</span>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="recipe-detail-empty">Chưa có hướng dẫn nấu cho món này.</p>
-            )}
+            <div className="recipe-detail-steps-card">
+              {steps.length > 0 ? (
+                <ol className="recipe-detail-steps">
+                  {steps.map((step, index) => (
+                    <li key={index}>
+                      <span className="recipe-detail-step-no">{index + 1}</span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="recipe-detail-empty">Chưa có hướng dẫn nấu cho món này.</p>
+              )}
+            </div>
           </section>
         </div>
 

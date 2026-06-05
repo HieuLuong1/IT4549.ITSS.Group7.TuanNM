@@ -289,6 +289,66 @@
   margin-right: 32px;
 }
 
+
+/* ===== SKELETON LOADING ===== */
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.recipe-card-skeleton {
+  border-radius: 22px;
+  overflow: hidden;
+  background: var(--fiza-white, #ffffff);
+  border: 1px solid #dfe9e5;
+  display: flex;
+  flex-direction: column;
+}
+
+.recipe-card-skeleton-media {
+  height: 176px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e8edf3 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
+}
+
+.recipe-card-skeleton-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recipe-card-skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e8edf3 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
+}
+
+.recipe-card-skeleton-line.long { width: 85%; height: 16px; }
+.recipe-card-skeleton-line.short { width: 60%; }
+.recipe-card-skeleton-line.half { width: 45%; }
+
+.recipe-card-skeleton-meta {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Card enter animation */
+@keyframes recipeCardEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.recipe-card-enter {
+  animation: recipeCardEnter 320ms ease-out both;
+}
+
+/* Toast complete styles */
 .recipe-browser-toast {
   position: fixed;
   top: 96px;
@@ -300,21 +360,14 @@
   border-radius: 16px;
   border: 1px solid #cbfbf1;
   background: #f0fdf9;
-  box-shadow: none;
   color: #00786f;
+  font-size: 13px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 19px;
-}
-
-.recipe-browser-toast.info {
-  border-color: #fde68a;
-  background: #fffbeb;
-  color: #b45309;
+  gap: 12px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
 }
 
 .recipe-browser-toast button {
@@ -322,50 +375,23 @@
   height: 28px;
   border: none;
   border-radius: 9999px;
-  background: rgba(0, 120, 111, 0.1);
-  color: inherit;
+  background: rgba(0,120,111,0.1);
+  color: #00786f;
   cursor: pointer;
   font-size: 18px;
-  line-height: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-@media (max-width: 980px) {
-  .recipe-browser.suggestion {
-    padding: 6px 18px 40px;
-  }
-
-  .recipe-browser.library .recipe-browser-header,
-  .recipe-browser.library .recipe-browser-toolbar,
-  .recipe-browser.library .recipe-browser-state,
-  .recipe-browser.library .recipe-browser-grid {
-    margin-left: 18px;
-    margin-right: 18px;
-  }
-
-  .recipe-browser-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.recipe-browser-toast.info {
+  border-color: #dbeafe;
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
-@media (max-width: 700px) {
-  .recipe-browser-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .recipe-browser-search {
-    max-width: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .recipe-browser-back,
-  .recipe-browser-chip-row button,
-  .recipe-browser-toast {
-    transition: none;
-    animation: none;
-  }
+.recipe-browser-toast.info button {
+  background: rgba(29,78,216,0.1);
+  color: #1d4ed8;
 }
