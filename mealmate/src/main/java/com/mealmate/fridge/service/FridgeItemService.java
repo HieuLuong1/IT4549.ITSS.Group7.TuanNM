@@ -2,6 +2,7 @@ package com.mealmate.fridge.service;
 
 import com.mealmate.catalog.repository.RecipeIngredientRepository;
 import com.mealmate.catalog.repository.RecipeSuggestionProjection;
+import com.mealmate.catalog.repository.UserFavoriteRecipeRepository;
 import com.mealmate.fridge.mapper.FridgeItemMapper;
 import com.mealmate.fridge.model.FridgeItem;
 import com.mealmate.fridge.model.FridgeItemStatus;
@@ -24,6 +25,7 @@ import com.mealmate.shopping.repository.ShoppingImportCandidateProjection;
 import com.mealmate.shopping.repository.ShoppingListItemRepository;
 import com.mealmate.user.model.User;
 import jakarta.transaction.Transactional;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -35,10 +37,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class FridgeItemService {
@@ -47,17 +51,20 @@ public class FridgeItemService {
     private final FridgeItemMapper fridgeItemMapper;
     private final ShoppingListItemRepository shoppingListItemRepository;
     private final RecipeIngredientRepository recipeIngredientRepository;
+    private final UserFavoriteRecipeRepository userFavoriteRecipeRepository;
 
     public FridgeItemService(
             FridgeItemRepository fridgeItemRepository,
             FridgeItemMapper fridgeItemMapper,
             ShoppingListItemRepository shoppingListItemRepository,
-            RecipeIngredientRepository recipeIngredientRepository
+            RecipeIngredientRepository recipeIngredientRepository,
+            UserFavoriteRecipeRepository userFavoriteRecipeRepository
     ) {
         this.fridgeItemRepository = fridgeItemRepository;
         this.fridgeItemMapper = fridgeItemMapper;
         this.shoppingListItemRepository = shoppingListItemRepository;
         this.recipeIngredientRepository = recipeIngredientRepository;
+        this.userFavoriteRecipeRepository = userFavoriteRecipeRepository;
     }
 
     public List<FridgeItemResponse> getStoredItems() {
@@ -212,8 +219,20 @@ public class FridgeItemService {
     }
 
     public List<RecipeSuggestionResponse> getRecipeSuggestions(int limit) {
+        // Gợi ý món ăn: chỉ hiển thị các công thức tận dụng được thực phẩm đang có,
+        // ưu tiên công thức có phần trăm nguyên liệu khớp cao nhất.
+        return buildRecipeResponses(limit, true);
+    }
+
+    public List<RecipeSuggestionResponse> getRecipeLibrary(int limit) {
+        // Thư viện công thức: hiển thị toàn bộ công thức (kể cả khi tủ chưa có nguyên liệu),
+        // vẫn kèm phần trăm khớp so với tủ lạnh hiện tại.
+        return buildRecipeResponses(limit, false);
+    }
+
+    private List<RecipeSuggestionResponse> buildRecipeResponses(int limit, boolean onlyMatched) {
         Long familyId = getCurrentFamilyIdOrThrow();
-        int normalizedLimit = Math.max(1, Math.min(limit, 50));
+        int normalizedLimit = Math.max(1, Math.min(limit, 200));
         LocalDate today = LocalDate.now();
 
         Map<Long, IngredientStock> stockByFoodId = buildStockByFoodId(
@@ -221,8 +240,10 @@ public class FridgeItemService {
                 today
         );
 
+        Set<Long> favoriteRecipeIds = loadFavoriteRecipeIdsSafely();
+
         Map<Long, RecipeSuggestionDraft> draftsByRecipeId = new LinkedHashMap<>();
-        recipeIngredientRepository.findRecipeSuggestionRows().forEach(row -> {
+        findRecipeSuggestionRowsSafely().forEach(row -> {
             RecipeSuggestionDraft draft = draftsByRecipeId.computeIfAbsent(
                     row.getRecipeId(),
                     recipeId -> new RecipeSuggestionDraft(row)
@@ -232,24 +253,42 @@ public class FridgeItemService {
 
         return draftsByRecipeId.values()
                 .stream()
-                .map(draft -> toRecipeSuggestionResponse(draft, stockByFoodId, today))
-                .filter(response -> !response.getMatchedIngredients().isEmpty())
+                .map(draft -> toRecipeSuggestionResponse(draft, stockByFoodId, today, favoriteRecipeIds))
+                .filter(response -> !onlyMatched || !response.getMatchedIngredients().isEmpty())
                 .sorted(
-                        Comparator.comparingInt(RecipeSuggestionResponse::getScore).reversed()
+                        // Ưu tiên phần trăm khớp cao nhất, rồi đến công thức nấu được ngay,
+                        // rồi đến nguyên liệu sắp hết hạn, cuối cùng theo tên.
+                        Comparator.comparingInt(RecipeSuggestionResponse::getCoveragePercent).reversed()
                                 .thenComparing(
                                         Comparator.<RecipeSuggestionResponse>comparingInt(
-                                                response -> response.getExpiringIngredients().size()
+                                                response -> Boolean.TRUE.equals(response.getCanCook()) ? 1 : 0
                                         ).reversed()
                                 )
                                 .thenComparing(
                                         Comparator.<RecipeSuggestionResponse>comparingInt(
-                                                response -> response.getMatchedIngredients().size()
+                                                response -> response.getExpiringIngredients().size()
                                         ).reversed()
                                 )
                                 .thenComparing(RecipeSuggestionResponse::getName)
                 )
                 .limit(normalizedLimit)
                 .toList();
+    }
+
+    private List<RecipeSuggestionProjection> findRecipeSuggestionRowsSafely() {
+        try {
+            return recipeIngredientRepository.findRecipeSuggestionRows();
+        } catch (DataAccessException error) {
+            return recipeIngredientRepository.findRecipeSuggestionRowsLegacy();
+        }
+    }
+
+    private Set<Long> loadFavoriteRecipeIdsSafely() {
+        try {
+            return new HashSet<>(userFavoriteRecipeRepository.findRecipeIdsByUserId(getCurrentUserOrThrow().getId()));
+        } catch (DataAccessException error) {
+            return Set.of();
+        }
     }
 
     @Transactional
@@ -388,7 +427,8 @@ public class FridgeItemService {
     private RecipeSuggestionResponse toRecipeSuggestionResponse(
             RecipeSuggestionDraft draft,
             Map<Long, IngredientStock> stockByFoodId,
-            LocalDate today
+            LocalDate today,
+            Set<Long> favoriteRecipeIds
     ) {
         List<RecipeSuggestionIngredientResponse> matchedIngredients = new ArrayList<>();
         List<RecipeSuggestionIngredientResponse> missingIngredients = new ArrayList<>();
@@ -432,11 +472,18 @@ public class FridgeItemService {
         response.setRecipeId(draft.recipeId);
         response.setName(draft.recipeName);
         response.setImageUrl(draft.imageUrl);
+        response.setDescription(draft.description);
         response.setInstructions(draft.instructions);
+        response.setCookingTimeMinutes(draft.cookingTimeMinutes);
+        response.setServings(draft.servings);
+        response.setCalories(draft.calories);
+        response.setDifficulty(draft.difficulty);
         response.setPreferredMealTime(draft.preferredMealTime);
+        response.setIngredientCount(draft.ingredients.size());
         response.setScore(Math.max(0, Math.min(score, 100)));
         response.setCoveragePercent(Math.max(0, Math.min(coveragePercent, 100)));
         response.setCanCook(missingIngredients.isEmpty());
+        response.setFavorite(favoriteRecipeIds.contains(draft.recipeId));
         response.setMatchedIngredients(matchedIngredients);
         response.setMissingIngredients(missingIngredients);
         response.setExpiringIngredients(expiringIngredients);
@@ -613,7 +660,12 @@ public class FridgeItemService {
         private final Long recipeId;
         private final String recipeName;
         private final String imageUrl;
+        private final String description;
         private final String instructions;
+        private final Integer cookingTimeMinutes;
+        private final Integer servings;
+        private final Integer calories;
+        private final String difficulty;
         private final String preferredMealTime;
         private final List<RecipeSuggestionProjection> ingredients = new ArrayList<>();
 
@@ -621,7 +673,12 @@ public class FridgeItemService {
             this.recipeId = projection.getRecipeId();
             this.recipeName = projection.getRecipeName();
             this.imageUrl = projection.getImageUrl();
+            this.description = projection.getDescription();
             this.instructions = projection.getInstructions();
+            this.cookingTimeMinutes = projection.getCookingTimeMinutes();
+            this.servings = projection.getServings();
+            this.calories = projection.getCalories();
+            this.difficulty = projection.getDifficulty();
             this.preferredMealTime = projection.getPreferredMealTime();
         }
     }

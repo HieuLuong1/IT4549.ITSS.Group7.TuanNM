@@ -40,6 +40,11 @@ public interface RecipeIngredientRepository extends JpaRepository<RecipeIngredie
             r.name AS recipeName,
             r.image_url AS imageUrl,
             r.instructions AS instructions,
+            r.description AS description,
+            r.cooking_time_minutes AS cookingTimeMinutes,
+            r.servings AS servings,
+            r.calories AS calories,
+            r.difficulty AS difficulty,
             r.preferred_meal_time AS preferredMealTime,
             ri.food_id AS foodId,
             f.name AS foodName,
@@ -51,4 +56,27 @@ public interface RecipeIngredientRepository extends JpaRepository<RecipeIngredie
         ORDER BY r.name ASC, ri.id ASC
         """, nativeQuery = true)
     List<RecipeSuggestionProjection> findRecipeSuggestionRows();
+
+    @Query(value = """
+        SELECT
+            r.id AS recipeId,
+            r.name AS recipeName,
+            r.image_url AS imageUrl,
+            r.instructions AS instructions,
+            CAST(NULL AS TEXT) AS description,
+            r.cooking_time_minutes AS cookingTimeMinutes,
+            CAST(NULL AS INTEGER) AS servings,
+            CAST(NULL AS INTEGER) AS calories,
+            CAST(NULL AS VARCHAR) AS difficulty,
+            r.preferred_meal_time AS preferredMealTime,
+            ri.food_id AS foodId,
+            f.name AS foodName,
+            ri.quantity AS requiredQuantity,
+            COALESCE(ri.unit, f.unit) AS requiredUnit
+        FROM recipes r
+        JOIN recipe_ingredients ri ON ri.recipe_id = r.id
+        JOIN foods f ON f.id = ri.food_id
+        ORDER BY r.name ASC, ri.id ASC
+        """, nativeQuery = true)
+    List<RecipeSuggestionProjection> findRecipeSuggestionRowsLegacy();
 }

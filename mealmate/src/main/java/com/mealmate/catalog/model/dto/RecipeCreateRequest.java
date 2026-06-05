@@ -16,6 +16,8 @@ public class RecipeCreateRequest {
     @NotBlank
     private String name;
 
+    private String description;
+
     private String instructions;
 
     private String referenceLink;
@@ -28,6 +30,14 @@ public class RecipeCreateRequest {
 
     @Positive
     private Integer cookingTimeMinutes;
+
+    @Positive
+    private Integer servings;
+
+    @Positive
+    private Integer calories;
+
+    private String difficulty;
 
     @Valid
     private List<RecipeIngredientRequest> ingredients = new ArrayList<>();

@@ -294,8 +294,6 @@ const FamilyGroup: React.FC = () => {
         <Topbar 
           title="Nhóm gia đình" 
           searchPlaceholder="Tìm kiếm thành viên..."
-          searchValue={keyword}
-          onSearchChange={setKeyword}
           familyName={familyName} 
         />
 
@@ -340,10 +338,20 @@ const FamilyGroup: React.FC = () => {
               </div>
             </div>
             
-            <button className="btn-add-member" onClick={() => setIsAddModalOpen(true)}>
+            <div className="family-group-actions">
+              <input
+                type="search"
+                className="family-member-search"
+                placeholder="TÃ¬m kiáº¿m thÃ nh viÃªn..."
+                value={keyword}
+                onChange={(event) => setKeyword(event.target.value)}
+              />
+
+              <button className="btn-add-member" onClick={() => setIsAddModalOpen(true)}>
               <div className="btn-shadow" />
               <div className="btn-text">Thêm thành viên</div>
-            </button>
+              </button>
+            </div>
           </div>
 
           <div className="table-wrapper">

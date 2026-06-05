@@ -19,6 +19,8 @@ public class RecipeDetailResponse {
 
     private String name;
 
+    private String description;
+
     private String instructions;
 
     private String referenceLink;
@@ -28,6 +30,12 @@ public class RecipeDetailResponse {
     private String preferredMealTime;
 
     private Integer cookingTimeMinutes;
+
+    private Integer servings;
+
+    private Integer calories;
+
+    private String difficulty;
 
     private String displayStatus;
 

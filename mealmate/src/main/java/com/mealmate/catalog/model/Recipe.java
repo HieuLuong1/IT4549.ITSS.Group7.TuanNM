@@ -21,7 +21,22 @@ public class Recipe extends BaseEntity {
     private String name;
 
     @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(columnDefinition = "TEXT")
     private String instructions;
+
+    @Column(name = "cooking_time_minutes")
+    private Integer cookingTimeMinutes;
+
+    @Column(name = "servings")
+    private Integer servings;
+
+    @Column(name = "calories")
+    private Integer calories;
+
+    @Column(name = "difficulty")
+    private String difficulty;
 
     @Column(name = "reference_link")
     private String referenceLink;
@@ -31,9 +46,6 @@ public class Recipe extends BaseEntity {
 
     @Column(name = "preferred_meal_time")
     private String preferredMealTime;
-
-    @Column(name = "cooking_time_minutes")
-    private Integer cookingTimeMinutes;
 
     @Column(name = "display_status")
     private String displayStatus;

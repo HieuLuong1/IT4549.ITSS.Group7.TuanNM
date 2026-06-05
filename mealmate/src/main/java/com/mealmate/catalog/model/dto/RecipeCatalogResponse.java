@@ -21,9 +21,17 @@ public class RecipeCatalogResponse {
 
     private String imageUrl;
 
+    private String description;
+
     private String preferredMealTime;
 
     private Integer cookingTimeMinutes;
+
+    private Integer servings;
+
+    private Integer calories;
+
+    private String difficulty;
 
     private String displayStatus;
 

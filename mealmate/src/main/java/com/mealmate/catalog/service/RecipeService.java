@@ -55,7 +55,11 @@ public class RecipeService {
     public Recipe update(Long id, Recipe request) {
         Recipe recipe = findById(id);
         recipe.setName(request.getName());
+        recipe.setDescription(request.getDescription());
         recipe.setInstructions(request.getInstructions());
+        recipe.setServings(request.getServings());
+        recipe.setCalories(request.getCalories());
+        recipe.setDifficulty(request.getDifficulty());
         recipe.setReferenceLink(request.getReferenceLink());
         recipe.setAuthor(request.getAuthor());
         recipe.setPreferredMealTime(request.getPreferredMealTime());
@@ -122,8 +126,12 @@ public class RecipeService {
                         .id(recipe.getId())
                         .name(recipe.getName())
                         .imageUrl(recipe.getImageUrl())
+                        .description(recipe.getDescription())
                         .preferredMealTime(recipe.getPreferredMealTime())
                         .cookingTimeMinutes(recipe.getCookingTimeMinutes())
+                        .servings(recipe.getServings())
+                        .calories(recipe.getCalories())
+                        .difficulty(recipe.getDifficulty())
                         .displayStatus(recipe.getDisplayStatus())
                         .favorite(favoriteRecipeIds.contains(recipe.getId()))
                         .ingredients(ingredientsByRecipeId.getOrDefault(recipe.getId(), List.of()))
@@ -174,12 +182,16 @@ public class RecipeService {
     public RecipeDetailResponse createRecipe(RecipeCreateRequest request, Long userId) {
         Recipe recipe = new Recipe();
         recipe.setName(normalizeBlank(request.getName()));
+        recipe.setDescription(normalizeBlank(request.getDescription()));
         recipe.setInstructions(normalizeBlank(request.getInstructions()));
         recipe.setReferenceLink(normalizeBlank(request.getReferenceLink()));
         recipe.setAuthor(normalizeBlank(request.getAuthor()));
         recipe.setImageUrl(normalizeBlank(request.getImageUrl()));
         recipe.setPreferredMealTime(normalizeBlank(request.getPreferredMealTime()));
         recipe.setCookingTimeMinutes(request.getCookingTimeMinutes());
+        recipe.setServings(request.getServings());
+        recipe.setCalories(request.getCalories());
+        recipe.setDifficulty(normalizeBlank(request.getDifficulty()));
         recipe.setDisplayStatus(userId == null ? "SYSTEM" : "CUSTOM");
 
         Recipe savedRecipe = repository.save(recipe);
@@ -217,11 +229,15 @@ public class RecipeService {
         return RecipeDetailResponse.builder()
                 .id(recipe.getId())
                 .name(recipe.getName())
+                .description(recipe.getDescription())
                 .instructions(recipe.getInstructions())
                 .referenceLink(recipe.getReferenceLink())
                 .author(recipe.getAuthor())
                 .preferredMealTime(recipe.getPreferredMealTime())
                 .cookingTimeMinutes(recipe.getCookingTimeMinutes())
+                .servings(recipe.getServings())
+                .calories(recipe.getCalories())
+                .difficulty(recipe.getDifficulty())
                 .displayStatus(recipe.getDisplayStatus())
                 .imageUrl(recipe.getImageUrl())
                 .favorite(favorite)
