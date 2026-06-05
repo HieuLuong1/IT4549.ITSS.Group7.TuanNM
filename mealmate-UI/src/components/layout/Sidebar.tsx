@@ -69,7 +69,7 @@ const Sidebar: React.FC = () => {
 
         <Link 
           className={`sidebar-menu-item ${location.pathname === "/recipes" ? "active" : ""}`} 
-          to="#"
+          to="/recipes"
         >
           <span className="sidebar-icon-wrap">
             <img src={iconRecipe} alt="" className="sidebar-menu-icon" />

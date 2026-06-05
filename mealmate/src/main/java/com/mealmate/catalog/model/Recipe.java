@@ -1,8 +1,13 @@
 package com.mealmate.catalog.model;
 
 import com.mealmate.common.base.BaseEntity;
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "recipes")
@@ -11,25 +16,28 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Recipe extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
+
     @Column(nullable = false)
-    private String name; // Tên món ăn
+    private String name;
 
     @Column(columnDefinition = "TEXT")
-    private String instructions; // Hướng dẫn chế biến
+    private String instructions;
 
     @Column(name = "reference_link")
-    private String referenceLink; // Link tham khảo
+    private String referenceLink;
 
     @Column(name = "author")
-    private String author; // Tác giả công thức
+    private String author;
 
     @Column(name = "preferred_meal_time")
-    private String preferredMealTime; // Bữa ưu tiên
+    private String preferredMealTime;
+
+    @Column(name = "cooking_time_minutes")
+    private Integer cookingTimeMinutes;
+
+    @Column(name = "display_status")
+    private String displayStatus;
 
     @Column(name = "image_url")
-    private String imageUrl; // Ảnh minh họa
+    private String imageUrl;
 }

@@ -9,6 +9,7 @@ import ProfileDetail from '@/pages/profile/ProfileDetail';
 import FamilyGroup from '@/pages/customer/group/FamilyGroup';
 import MyFridge from '@/pages/customer/fridge/MyFridge';
 import MenuSuggestion from '@/pages/customer/MenuSuggestion';
+import RecipeLibraryPage from '@/pages/customer/recipes/RecipeLibraryPage';
 import Reports from '@/pages/customer/Reports';
 import ShoppingPlanPage from '@/pages/customer/shopping-plan/ShoppingPlanPage';
 
@@ -40,6 +41,7 @@ const App: React.FC = () => {
       <Route path="/customer/family" element={<Navigate to="/family" replace />} />
       <Route path="/customer/shopping" element={<Navigate to="/shopping" replace />} />
       <Route path="/customer/suggestions" element={<Navigate to="/suggestions" replace />} />
+      <Route path="/customer/recipes" element={<Navigate to="/recipes" replace />} />
       <Route path="/customer/reports" element={<Navigate to="/reports" replace />} />
 
       <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
@@ -51,6 +53,7 @@ const App: React.FC = () => {
       <Route path="/shopping" element={<RequireAuth><ShoppingPlanPage /></RequireAuth>} />
       <Route path="/fridge" element={<RequireAuth><MyFridge /></RequireAuth>} />
       <Route path="/suggestions" element={<RequireAuth><MenuSuggestion /></RequireAuth>} />
+      <Route path="/recipes" element={<RequireAuth><RecipeLibraryPage /></RequireAuth>} />
       <Route path="/reports" element={<RequireAuth><Reports /></RequireAuth>} />
 
       <Route path="/admin/users" element={<RequireAuth><UserManagement /></RequireAuth>} />

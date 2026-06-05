@@ -16,6 +16,12 @@ interface MemberType {
   avatarClass: string; 
 }
 
+interface FamilyResponse {
+  id?: number;
+  name?: string;
+  housekeeperId?: number;
+}
+
 const FamilyGroup: React.FC = () => {
   const [keyword, setKeyword] = useState("");
   const [familyName, setFamilyName] = useState<string>("Đang tải...");
@@ -58,16 +64,16 @@ const FamilyGroup: React.FC = () => {
         
         console.log("👉 [LOG] API Nhóm Gia Đình trả về:", resGroup.data);
         
-        const groupData = resGroup.data.success ? resGroup.data.data : resGroup.data;
+        const groupData: FamilyResponse = resGroup.data.success ? resGroup.data.data : resGroup.data;
         
         if (groupData) {
           const cleanName = String(groupData.name || "Gia đình Fiza").trim();
           setFamilyName(cleanName);
           setEditName(cleanName);
-          setFamilyId(groupData.id);
+          setFamilyId(groupData.id ?? null);
 
-          // Quét sạch mã ID chủ nhà từ Backend
-          const dbHousekeeperId = groupData.housekeeperId || groupData.ownerId || groupData.createdBy || (groupData.housekeeper && groupData.housekeeper.id);
+          // Đọc đúng field housekeeperId từ DTO backend
+          const dbHousekeeperId = groupData.housekeeperId ?? null;
           console.log("👉 [LOG] Đối chiếu ID:", currentUserId, "với Chủ nhà DB:", dbHousekeeperId);
 
           // Kiểm tra quyền: ID người dùng trùng khớp với ID chủ nhà thì mở khóa
@@ -97,7 +103,7 @@ const FamilyGroup: React.FC = () => {
 
         if (Array.isArray(dbMembers)) {
           const formattedMembers = dbMembers.map((m: any, index: number) => {
-            const isOwner = m.role && (m.role.name === "HOUSEKEEPER" || m.role.id === 3 || m.roleId === 3);
+            const isOwner = m.roleName === "HOUSEKEEPER" || m.roleId === 3;
             return {
               id: m.id,
               fullName: m.fullName || "Thành viên ẩn danh",

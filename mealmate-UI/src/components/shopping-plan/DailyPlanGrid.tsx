@@ -13,9 +13,9 @@ const DailyPlanGrid: React.FC<DailyPlanGridProps> = ({ plans, activeDate, onCard
     return (
         <div className="daily-plan-grid-wrapper">
             <div className="daily-plan-grid-container">
-                {plans.map((plan) => (
+                {plans.map((plan, index) => (
                     <DailyPlanCard
-                        key={plan.planned_date}
+                        key={`${plan.planned_date}-${index}`}
                         data={plan}
                         isActive={plan.planned_date === activeDate}
                         onClick={() => onCardClick?.(plan.planned_date)}
