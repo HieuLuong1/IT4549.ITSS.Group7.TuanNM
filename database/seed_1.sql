@@ -116,11 +116,11 @@ INSERT INTO users (role_id, email, password_hash, full_name, phone, gender, avat
 ((SELECT id FROM roles WHERE name = 'CUSTOMER'), 'mai.tran@example.com', '$2a$10$1sovGk7R/WWccz.5eLCfUO6dI1uabs7xL6o98ilj.Db5RIK3zvq9K', 'Trần Ngọc Mai', '0987654323', 'FEMALE', 'https://i.pravatar.cc/300?img=29', TRUE);
 
 INSERT INTO families (name, housekeeper_id) VALUES
-('Gia đình Nguyễn An Vui', (SELECT id FROM users WHERE email = 'lan.nguyen@example.com')),
+('Gia đình An An', (SELECT id FROM users WHERE email = 'lan.nguyen@example.com')),
 ('Gia đình Trần Sum Vầy', (SELECT id FROM users WHERE email = 'huong.tran@example.com'));
 
 UPDATE users
-SET family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui')
+SET family_id = (SELECT id FROM families WHERE name = 'Gia đình An An')
 WHERE email IN ('lan.nguyen@example.com', 'minh.nguyen@example.com', 'anh.nguyen@example.com', 'binh.nguyen@example.com');
 
 UPDATE users
@@ -132,13 +132,13 @@ WHERE email IN ('huong.tran@example.com', 'khoa.tran@example.com', 'mai.tran@exa
 -- ==========================================
 
 INSERT INTO categories (name, icon_key, color_code) VALUES
-('Rau củ', 'leafy_green', '#E8F5E9'),
+('Rau củ', 'vegetable', '#E8F5E9'),
 ('Thịt', 'meat', '#FFEBEE'),
 ('Hải sản', 'fish', '#E3F2FD'),
 ('Trái cây', 'fruit', '#FFF8E1'),
-('Trứng và sữa', 'egg_milk', '#F3E5F5'),
+('Trứng và sữa', 'dairy', '#F3E5F5'),
 ('Đồ khô', 'dry_food', '#EFEBE9'),
-('Gia vị', 'seasoning', '#FFF3E0'),
+('Gia vị', 'spice', '#FFF3E0'),
 ('Đồ uống', 'drink', '#E0F7FA');
 
 INSERT INTO foods (category_id, name, unit, synonyms, image_url, is_system) VALUES
@@ -260,27 +260,27 @@ INSERT INTO preservation_methods (food_id, content, reference_source) VALUES
 -- ==========================================
 
 INSERT INTO fridge_items (family_id, food_id, quantity, storage_location, specific_location, added_date, expiry_date, status, note) VALUES
-((SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui'), (SELECT id FROM foods WHERE name = 'Rau muống'), 2, 'COOL', 'VEGETABLE_DRAWER', '2026-06-03', '2026-06-07', 'STORED', 'Mua ở chợ Nghĩa Tân, rau còn tươi'),
-((SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui'), (SELECT id FROM foods WHERE name = 'Cà chua'), 1.5, 'COOL', 'VEGETABLE_DRAWER', '2026-06-02', '2026-06-09', 'STORED', 'Dùng nấu canh chua và sốt cà'),
-((SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui'), (SELECT id FROM foods WHERE name = 'Thịt ba chỉ heo'), 1.2, 'FREEZER', 'MIDDLE_DRAWER', '2026-06-01', '2026-07-01', 'STORED', 'Chia 3 túi nhỏ để kho và rang'),
-((SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui'), (SELECT id FROM foods WHERE name = 'Thịt bò thăn'), 0.8, 'FREEZER', 'TOP_DRAWER', '2026-06-04', '2026-07-04', 'STORED', 'Để làm bò lúc lắc cuối tuần'),
-((SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui'), (SELECT id FROM foods WHERE name = 'Cá basa'), 0.7, 'FREEZER', 'BOTTOM_DRAWER', '2026-06-02', '2026-06-25', 'STORED', 'Phi lê đã rửa sạch'),
-((SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui'), (SELECT id FROM foods WHERE name = 'Trứng gà'), 12, 'COOL', 'DOOR_SHELF', '2026-05-30', '2026-06-20', 'STORED', 'Dùng dần cho bữa sáng'),
-((SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui'), (SELECT id FROM foods WHERE name = 'Sữa chua'), 8, 'COOL', 'TOP_SHELF', '2026-06-01', '2026-06-15', 'STORED', 'Cho bé ăn sau bữa tối'),
-((SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui'), (SELECT id FROM foods WHERE name = 'Gạo tẻ'), 8, 'DRY', 'RICE_BIN', '2026-05-20', '2026-12-31', 'STORED', 'Gạo tám thơm mới mua'),
-((SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui'), (SELECT id FROM foods WHERE name = 'Nước mắm'), 1, 'DRY', 'SEASONING_SHELF', '2026-05-25', '2027-05-25', 'STORED', 'Chai đang dùng dở'),
-((SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui'), (SELECT id FROM foods WHERE name = 'Chuối'), 1, 'COOL', 'BOTTOM_SHELF', '2026-05-29', '2026-06-03', 'EXPIRED', 'Chuối đã quá chín, cần kiểm tra trước khi dùng'),
-((SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui'), (SELECT id FROM foods WHERE name = 'Ức gà'), 0.5, 'FREEZER', 'TOP_DRAWER', '2026-05-28', '2026-06-20', 'USED', 'Đã dùng nấu cháo gà'),
+((SELECT id FROM families WHERE name = 'Gia đình An An'), (SELECT id FROM foods WHERE name = 'Rau muống'), 2, 'COOL', 'VEGETABLE_DRAWER', '2026-06-03', '2026-06-07', 'STORED', 'Mua ở chợ Nghĩa Tân, rau còn tươi'),
+((SELECT id FROM families WHERE name = 'Gia đình An An'), (SELECT id FROM foods WHERE name = 'Cà chua'), 1.5, 'COOL', 'VEGETABLE_DRAWER', '2026-06-02', '2026-06-09', 'STORED', 'Dùng nấu canh chua và sốt cà'),
+((SELECT id FROM families WHERE name = 'Gia đình An An'), (SELECT id FROM foods WHERE name = 'Thịt ba chỉ heo'), 1.2, 'FREEZER', 'MIDDLE_SHELF', '2026-06-01', '2026-07-01', 'STORED', 'Chia 3 túi nhỏ để kho và rang'),
+((SELECT id FROM families WHERE name = 'Gia đình An An'), (SELECT id FROM foods WHERE name = 'Thịt bò thăn'), 0.8, 'FREEZER', 'TOP_SHELF', '2026-06-04', '2026-07-04', 'STORED', 'Để làm bò lúc lắc cuối tuần'),
+((SELECT id FROM families WHERE name = 'Gia đình An An'), (SELECT id FROM foods WHERE name = 'Cá basa'), 0.7, 'FREEZER', 'BOTTOM_SHELF', '2026-06-02', '2026-06-25', 'STORED', 'Phi lê đã rửa sạch'),
+((SELECT id FROM families WHERE name = 'Gia đình An An'), (SELECT id FROM foods WHERE name = 'Trứng gà'), 12, 'COOL', 'DOOR_SHELF', '2026-05-30', '2026-06-20', 'STORED', 'Dùng dần cho bữa sáng'),
+((SELECT id FROM families WHERE name = 'Gia đình An An'), (SELECT id FROM foods WHERE name = 'Sữa chua'), 8, 'COOL', 'TOP_SHELF', '2026-06-01', '2026-06-15', 'STORED', 'Cho bé ăn sau bữa tối'),
+((SELECT id FROM families WHERE name = 'Gia đình An An'), (SELECT id FROM foods WHERE name = 'Gạo tẻ'), 8, 'DRY', 'BOTTOM_SHELF', '2026-05-20', '2026-12-31', 'STORED', 'Gạo tám thơm mới mua'),
+((SELECT id FROM families WHERE name = 'Gia đình An An'), (SELECT id FROM foods WHERE name = 'Nước mắm'), 1, 'DRY', 'TOP_SHELF', '2026-05-25', '2027-05-25', 'STORED', 'Chai đang dùng dở'),
+((SELECT id FROM families WHERE name = 'Gia đình An An'), (SELECT id FROM foods WHERE name = 'Chuối'), 1, 'COOL', 'BOTTOM_SHELF', '2026-05-29', '2026-06-03', 'EXPIRED', 'Chuối đã quá chín, cần kiểm tra trước khi dùng'),
+((SELECT id FROM families WHERE name = 'Gia đình An An'), (SELECT id FROM foods WHERE name = 'Ức gà'), 0.5, 'FREEZER', 'TOP_SHELF', '2026-05-28', '2026-06-20', 'USED', 'Đã dùng nấu cháo gà'),
 
 ((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM foods WHERE name = 'Cải thìa'), 1.2, 'COOL', 'VEGETABLE_DRAWER', '2026-06-04', '2026-06-08', 'STORED', 'Rau cho món xào tỏi'),
 ((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM foods WHERE name = 'Bí đỏ'), 1.8, 'COOL', 'BOTTOM_SHELF', '2026-06-01', '2026-06-12', 'STORED', 'Một nửa quả bí đỏ'),
-((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM foods WHERE name = 'Sườn non heo'), 1, 'FREEZER', 'MIDDLE_DRAWER', '2026-06-02', '2026-07-02', 'STORED', 'Dùng kho tiêu hoặc nấu canh'),
-((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM foods WHERE name = 'Đùi gà'), 1.4, 'FREEZER', 'TOP_DRAWER', '2026-06-01', '2026-06-28', 'STORED', 'Đùi gà đã chia 2 phần'),
-((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM foods WHERE name = 'Tôm sú'), 0.9, 'FREEZER', 'BOTTOM_DRAWER', '2026-06-03', '2026-06-24', 'STORED', 'Tôm còn vỏ, đã cắt râu'),
-((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM foods WHERE name = 'Mực ống'), 0.6, 'FREEZER', 'BOTTOM_DRAWER', '2026-06-02', '2026-06-23', 'STORED', 'Làm sạch sẵn'),
+((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM foods WHERE name = 'Sườn non heo'), 1, 'FREEZER', 'MIDDLE_SHELF', '2026-06-02', '2026-07-02', 'STORED', 'Dùng kho tiêu hoặc nấu canh'),
+((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM foods WHERE name = 'Đùi gà'), 1.4, 'FREEZER', 'TOP_SHELF', '2026-06-01', '2026-06-28', 'STORED', 'Đùi gà đã chia 2 phần'),
+((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM foods WHERE name = 'Tôm sú'), 0.9, 'FREEZER', 'BOTTOM_SHELF', '2026-06-03', '2026-06-24', 'STORED', 'Tôm còn vỏ, đã cắt râu'),
+((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM foods WHERE name = 'Mực ống'), 0.6, 'FREEZER', 'BOTTOM_SHELF', '2026-06-02', '2026-06-23', 'STORED', 'Làm sạch sẵn'),
 ((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM foods WHERE name = 'Trứng vịt'), 10, 'COOL', 'DOOR_SHELF', '2026-05-31', '2026-06-18', 'STORED', 'Dùng làm món kho'),
-((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM foods WHERE name = 'Bún khô'), 700, 'DRY', 'NOODLE_BOX', '2026-05-15', '2026-10-15', 'STORED', 'Còn nguyên nửa gói lớn'),
-((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM foods WHERE name = 'Miến dong'), 500, 'DRY', 'NOODLE_BOX', '2026-05-16', '2026-11-16', 'STORED', 'Dành cho món miến gà'),
+((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM foods WHERE name = 'Bún khô'), 700, 'DRY', 'MIDDLE_SHELF', '2026-05-15', '2026-10-15', 'STORED', 'Còn nguyên nửa gói lớn'),
+((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM foods WHERE name = 'Miến dong'), 500, 'DRY', 'MIDDLE_SHELF', '2026-05-16', '2026-11-16', 'STORED', 'Dành cho món miến gà'),
 ((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM foods WHERE name = 'Xoài'), 2, 'COOL', 'BOTTOM_SHELF', '2026-06-03', '2026-06-09', 'STORED', 'Xoài cát Hòa Lộc chín vừa'),
 ((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM foods WHERE name = 'Sữa tươi không đường'), 2, 'COOL', 'DOOR_SHELF', '2026-06-01', '2026-06-12', 'STORED', 'Dùng pha sinh tố');
 
@@ -289,10 +289,12 @@ INSERT INTO fridge_items (family_id, food_id, quantity, storage_location, specif
 -- ==========================================
 
 INSERT INTO shopping_lists (created_by, family_id, created_date, planned_date, note) VALUES
-((SELECT id FROM users WHERE email = 'lan.nguyen@example.com'), (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui'), '2026-06-04', '2026-06-06', 'Mua thêm đồ cho bữa cuối tuần và chuẩn bị thực đơn tuần mới'),
-((SELECT id FROM users WHERE email = 'minh.nguyen@example.com'), (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui'), '2026-06-01', '2026-06-02', 'Danh sách đồ ăn sáng và trái cây cho các bé'),
+((SELECT id FROM users WHERE email = 'lan.nguyen@example.com'), (SELECT id FROM families WHERE name = 'Gia đình An An'), '2026-06-04', '2026-06-06', 'Mua thêm đồ cho bữa cuối tuần và chuẩn bị thực đơn tuần mới'),
+((SELECT id FROM users WHERE email = 'minh.nguyen@example.com'), (SELECT id FROM families WHERE name = 'Gia đình An An'), '2026-06-01', '2026-06-02', 'Danh sách đồ ăn sáng và trái cây cho các bé'),
 ((SELECT id FROM users WHERE email = 'huong.tran@example.com'), (SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), '2026-06-04', '2026-06-07', 'Đi siêu thị gần nhà sau giờ làm'),
-((SELECT id FROM users WHERE email = 'khoa.tran@example.com'), (SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), '2026-05-30', '2026-05-31', 'Mua gia vị và đồ khô bổ sung');
+((SELECT id FROM users WHERE email = 'khoa.tran@example.com'), (SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), '2026-05-30', '2026-05-31', 'Mua gia vị và đồ khô bổ sung'),
+((SELECT id FROM users WHERE email = 'lan.nguyen@example.com'), (SELECT id FROM families WHERE name = 'Gia đình An An'), '2026-06-05', '2026-06-05', 'Đồ đã mua ở chợ sáng, chờ nhập vào tủ lạnh'),
+((SELECT id FROM users WHERE email = 'huong.tran@example.com'), (SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), '2026-06-05', '2026-06-06', 'Đồ đã mua cuối tuần, chờ đưa vào tủ lạnh');
 
 INSERT INTO shopping_list_items (shopping_list_id, food_id, custom_name, order_number, quantity, unit, note, assigned_to, is_purchased, imported_to_fridge_at) VALUES
 ((SELECT id FROM shopping_lists WHERE note = 'Mua thêm đồ cho bữa cuối tuần và chuẩn bị thực đơn tuần mới'), (SELECT id FROM foods WHERE name = 'Cá thu'), NULL, 1, 0.8, 'kg', 'Chọn cá tươi, cắt khoanh vừa kho', (SELECT id FROM users WHERE email = 'minh.nguyen@example.com'), FALSE, NULL),
@@ -312,7 +314,17 @@ INSERT INTO shopping_list_items (shopping_list_id, food_id, custom_name, order_n
 
 ((SELECT id FROM shopping_lists WHERE note = 'Mua gia vị và đồ khô bổ sung'), (SELECT id FROM foods WHERE name = 'Nước mắm'), NULL, 1, 1, 'chai', 'Nước mắm truyền thống độ đạm vừa', (SELECT id FROM users WHERE email = 'khoa.tran@example.com'), TRUE, '2026-05-31 10:30:00'),
 ((SELECT id FROM shopping_lists WHERE note = 'Mua gia vị và đồ khô bổ sung'), (SELECT id FROM foods WHERE name = 'Tiêu xay'), NULL, 2, 100, 'g', 'Tiêu đen xay mới', (SELECT id FROM users WHERE email = 'khoa.tran@example.com'), TRUE, '2026-05-31 10:32:00'),
-((SELECT id FROM shopping_lists WHERE note = 'Mua gia vị và đồ khô bổ sung'), (SELECT id FROM foods WHERE name = 'Đậu xanh'), NULL, 3, 1, 'kg', 'Nấu xôi và chè', (SELECT id FROM users WHERE email = 'huong.tran@example.com'), TRUE, '2026-05-31 10:40:00');
+((SELECT id FROM shopping_lists WHERE note = 'Mua gia vị và đồ khô bổ sung'), (SELECT id FROM foods WHERE name = 'Đậu xanh'), NULL, 3, 1, 'kg', 'Nấu xôi và chè', (SELECT id FROM users WHERE email = 'huong.tran@example.com'), TRUE, '2026-05-31 10:40:00'),
+
+((SELECT id FROM shopping_lists WHERE note = 'Đồ đã mua ở chợ sáng, chờ nhập vào tủ lạnh'), (SELECT id FROM foods WHERE name = 'Cải thìa'), NULL, 1, 1.5, 'kg', 'Đã mua, cần nhập vào ngăn rau', (SELECT id FROM users WHERE email = 'lan.nguyen@example.com'), TRUE, NULL),
+((SELECT id FROM shopping_lists WHERE note = 'Đồ đã mua ở chợ sáng, chờ nhập vào tủ lạnh'), (SELECT id FROM foods WHERE name = 'Tôm sú'), NULL, 2, 0.8, 'kg', 'Đã mua, chia hộp cấp đông', (SELECT id FROM users WHERE email = 'minh.nguyen@example.com'), TRUE, NULL),
+((SELECT id FROM shopping_lists WHERE note = 'Đồ đã mua ở chợ sáng, chờ nhập vào tủ lạnh'), (SELECT id FROM foods WHERE name = 'Sữa tươi không đường'), NULL, 3, 2, 'lít', 'Đã mua, để cánh cửa tủ lạnh', (SELECT id FROM users WHERE email = 'anh.nguyen@example.com'), TRUE, NULL),
+((SELECT id FROM shopping_lists WHERE note = 'Đồ đã mua ở chợ sáng, chờ nhập vào tủ lạnh'), (SELECT id FROM foods WHERE name = 'Rau củ khác'), 'Rau ngót', 4, 2, 'bó', 'Người dùng tự nhập tên khi thêm vào tủ lạnh', (SELECT id FROM users WHERE email = 'lan.nguyen@example.com'), TRUE, NULL),
+
+((SELECT id FROM shopping_lists WHERE note = 'Đồ đã mua cuối tuần, chờ đưa vào tủ lạnh'), (SELECT id FROM foods WHERE name = 'Cá thu'), NULL, 1, 1, 'kg', 'Đã mua, cắt khoanh để cấp đông', (SELECT id FROM users WHERE email = 'khoa.tran@example.com'), TRUE, NULL),
+((SELECT id FROM shopping_lists WHERE note = 'Đồ đã mua cuối tuần, chờ đưa vào tủ lạnh'), (SELECT id FROM foods WHERE name = 'Cà chua'), NULL, 2, 1, 'kg', 'Đã mua, dùng nấu canh và sốt', (SELECT id FROM users WHERE email = 'huong.tran@example.com'), TRUE, NULL),
+((SELECT id FROM shopping_lists WHERE note = 'Đồ đã mua cuối tuần, chờ đưa vào tủ lạnh'), (SELECT id FROM foods WHERE name = 'Trứng gà'), NULL, 3, 12, 'quả', 'Đã mua, kiểm tra hạn khi nhập kho', (SELECT id FROM users WHERE email = 'mai.tran@example.com'), TRUE, NULL),
+((SELECT id FROM shopping_lists WHERE note = 'Đồ đã mua cuối tuần, chờ đưa vào tủ lạnh'), (SELECT id FROM foods WHERE name = 'Trái cây khác'), 'Ổi nữ hoàng', 4, 1.2, 'kg', 'Người dùng tự nhập tên khi thêm vào tủ lạnh', (SELECT id FROM users WHERE email = 'huong.tran@example.com'), TRUE, NULL);
 
 -- ==========================================
 -- 7. CÔNG THỨC NẤU ĂN
@@ -450,19 +462,19 @@ INSERT INTO user_favorite_recipes (user_id, recipe_id) VALUES
 -- ==========================================
 
 INSERT INTO menus (family_id, start_date, end_date) VALUES
-((SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui'), '2026-06-08', '2026-06-14'),
+((SELECT id FROM families WHERE name = 'Gia đình An An'), '2026-06-08', '2026-06-14'),
 ((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), '2026-06-08', '2026-06-14');
 
 INSERT INTO meals (menu_id, meal_date, meal_type) VALUES
-((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08'), '2026-06-08', 'BREAKFAST'),
-((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08'), '2026-06-08', 'LUNCH'),
-((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08'), '2026-06-08', 'DINNER'),
-((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08'), '2026-06-09', 'BREAKFAST'),
-((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08'), '2026-06-09', 'LUNCH'),
-((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08'), '2026-06-09', 'DINNER'),
-((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08'), '2026-06-10', 'BREAKFAST'),
-((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08'), '2026-06-10', 'LUNCH'),
-((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08'), '2026-06-10', 'DINNER'),
+((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08'), '2026-06-08', 'BREAKFAST'),
+((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08'), '2026-06-08', 'LUNCH'),
+((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08'), '2026-06-08', 'DINNER'),
+((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08'), '2026-06-09', 'BREAKFAST'),
+((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08'), '2026-06-09', 'LUNCH'),
+((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08'), '2026-06-09', 'DINNER'),
+((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08'), '2026-06-10', 'BREAKFAST'),
+((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08'), '2026-06-10', 'LUNCH'),
+((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08'), '2026-06-10', 'DINNER'),
 
 ((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy') AND start_date = '2026-06-08'), '2026-06-08', 'BREAKFAST'),
 ((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy') AND start_date = '2026-06-08'), '2026-06-08', 'LUNCH'),
@@ -475,16 +487,16 @@ INSERT INTO meals (menu_id, meal_date, meal_type) VALUES
 ((SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy') AND start_date = '2026-06-08'), '2026-06-10', 'DINNER');
 
 INSERT INTO meal_items (meal_id, recipe_id, status) VALUES
-((SELECT id FROM meals WHERE meal_date = '2026-06-08' AND meal_type = 'BREAKFAST' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Cháo gà xé'), 'CONFIRMED'),
-((SELECT id FROM meals WHERE meal_date = '2026-06-08' AND meal_type = 'LUNCH' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Cơm tấm sườn trứng'), 'SUGGESTED'),
-((SELECT id FROM meals WHERE meal_date = '2026-06-08' AND meal_type = 'DINNER' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Canh chua cá basa'), 'CONFIRMED'),
-((SELECT id FROM meals WHERE meal_date = '2026-06-08' AND meal_type = 'DINNER' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Rau muống xào tỏi'), 'CONFIRMED'),
-((SELECT id FROM meals WHERE meal_date = '2026-06-09' AND meal_type = 'BREAKFAST' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Phở bò gia đình'), 'SUGGESTED'),
-((SELECT id FROM meals WHERE meal_date = '2026-06-09' AND meal_type = 'LUNCH' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Tôm rang thịt ba chỉ'), 'SUGGESTED'),
-((SELECT id FROM meals WHERE meal_date = '2026-06-09' AND meal_type = 'DINNER' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Thịt kho trứng'), 'CONFIRMED'),
-((SELECT id FROM meals WHERE meal_date = '2026-06-10' AND meal_type = 'BREAKFAST' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Sinh tố xoài sữa chua'), 'SUGGESTED'),
-((SELECT id FROM meals WHERE meal_date = '2026-06-10' AND meal_type = 'LUNCH' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Bún chả Hà Nội'), 'CONFIRMED'),
-((SELECT id FROM meals WHERE meal_date = '2026-06-10' AND meal_type = 'DINNER' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Bò lúc lắc'), 'SUGGESTED'),
+((SELECT id FROM meals WHERE meal_date = '2026-06-08' AND meal_type = 'BREAKFAST' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Cháo gà xé'), 'CONFIRMED'),
+((SELECT id FROM meals WHERE meal_date = '2026-06-08' AND meal_type = 'LUNCH' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Cơm tấm sườn trứng'), 'SUGGESTED'),
+((SELECT id FROM meals WHERE meal_date = '2026-06-08' AND meal_type = 'DINNER' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Canh chua cá basa'), 'CONFIRMED'),
+((SELECT id FROM meals WHERE meal_date = '2026-06-08' AND meal_type = 'DINNER' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Rau muống xào tỏi'), 'CONFIRMED'),
+((SELECT id FROM meals WHERE meal_date = '2026-06-09' AND meal_type = 'BREAKFAST' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Phở bò gia đình'), 'SUGGESTED'),
+((SELECT id FROM meals WHERE meal_date = '2026-06-09' AND meal_type = 'LUNCH' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Tôm rang thịt ba chỉ'), 'SUGGESTED'),
+((SELECT id FROM meals WHERE meal_date = '2026-06-09' AND meal_type = 'DINNER' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Thịt kho trứng'), 'CONFIRMED'),
+((SELECT id FROM meals WHERE meal_date = '2026-06-10' AND meal_type = 'BREAKFAST' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Sinh tố xoài sữa chua'), 'SUGGESTED'),
+((SELECT id FROM meals WHERE meal_date = '2026-06-10' AND meal_type = 'LUNCH' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Bún chả Hà Nội'), 'CONFIRMED'),
+((SELECT id FROM meals WHERE meal_date = '2026-06-10' AND meal_type = 'DINNER' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình An An') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Bò lúc lắc'), 'SUGGESTED'),
 
 ((SELECT id FROM meals WHERE meal_date = '2026-06-08' AND meal_type = 'BREAKFAST' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Xôi đậu xanh'), 'CONFIRMED'),
 ((SELECT id FROM meals WHERE meal_date = '2026-06-08' AND meal_type = 'LUNCH' AND menu_id = (SELECT id FROM menus WHERE family_id = (SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy') AND start_date = '2026-06-08')), (SELECT id FROM recipes WHERE name = 'Sườn non kho tiêu'), 'SUGGESTED'),
@@ -501,8 +513,8 @@ INSERT INTO meal_items (meal_id, recipe_id, status) VALUES
 -- ==========================================
 
 INSERT INTO invitations (family_id, receiver_id, status) VALUES
-((SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui'), (SELECT id FROM users WHERE email = 'anh.nguyen@example.com'), 'ACCEPTED'),
-((SELECT id FROM families WHERE name = 'Gia đình Nguyễn An Vui'), (SELECT id FROM users WHERE email = 'binh.nguyen@example.com'), 'ACCEPTED'),
+((SELECT id FROM families WHERE name = 'Gia đình An An'), (SELECT id FROM users WHERE email = 'anh.nguyen@example.com'), 'ACCEPTED'),
+((SELECT id FROM families WHERE name = 'Gia đình An An'), (SELECT id FROM users WHERE email = 'binh.nguyen@example.com'), 'ACCEPTED'),
 ((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM users WHERE email = 'mai.tran@example.com'), 'ACCEPTED'),
 ((SELECT id FROM families WHERE name = 'Gia đình Trần Sum Vầy'), (SELECT id FROM users WHERE email = 'quantri@mealmate.vn'), 'PENDING');
 
