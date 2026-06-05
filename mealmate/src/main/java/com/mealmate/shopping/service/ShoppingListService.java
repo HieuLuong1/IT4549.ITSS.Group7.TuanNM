@@ -1,5 +1,15 @@
 package com.mealmate.shopping.service;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+
 import com.mealmate.catalog.repository.CategoryRepository;
 import com.mealmate.catalog.repository.FoodRepository;
 import com.mealmate.shopping.dto.DailyPlanSummaryDTO;
@@ -12,18 +22,9 @@ import com.mealmate.shopping.repository.ShoppingListItemRepository;
 import com.mealmate.shopping.repository.ShoppingListRepository;
 import com.mealmate.user.repository.FamilyRepository;
 import com.mealmate.user.repository.UserRepository;
+
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.temporal.TemporalAdjusters;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-
 
 @Service
 @RequiredArgsConstructor
@@ -38,7 +39,8 @@ public class ShoppingListService {
 
     public List<ShoppingItemDTO> getPlanDetail(Long familyId, LocalDate date) {
         ShoppingList list = repository.findByFamilyIdAndPlannedDate(familyId, date).orElse(null);
-        if (list == null) return Collections.emptyList();
+        if (list == null)
+            return Collections.emptyList();
         return list.getItems().stream().map(item -> {
             ShoppingItemDTO dto = mapper.toItemDto(item);
             // Tìm tên Category từ categoryId trong Food
@@ -61,6 +63,7 @@ public class ShoppingListService {
     public List<ShoppingList> findAll() {
         return repository.findAll();
     }
+
     public List<DailyPlanSummaryDTO> getWeeklySummary(Long familyId, LocalDate selectedDate) {
         LocalDate monday = selectedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate sunday = monday.plusDays(6);
@@ -95,6 +98,7 @@ public class ShoppingListService {
         }
         return summary;
     }
+
     private String getVietnameseDayOfWeek(LocalDate date) {
         return switch (date.getDayOfWeek()) {
             case MONDAY -> "Thứ 2";
@@ -115,13 +119,12 @@ public class ShoppingListService {
     }
 
     @Transactional
-    public void savePlan(ShoppingListRequestDTO request) { //lưu kế hoạch đi chợ
+    public void savePlan(ShoppingListRequestDTO request) { // lưu kế hoạch đi chợ
         ShoppingList list = repository.findByFamilyIdAndPlannedDate(request.getFamilyId(), request.getPlannedDate())
                 .orElse(new ShoppingList());
 
         var family = familyRepository.findById(request.getFamilyId())
                 .orElseThrow(() -> new RuntimeException("Family không tồn tại"));
-
 
         list.setFamilyId(request.getFamilyId());
         list.setPlannedDate(request.getPlannedDate());
@@ -132,7 +135,6 @@ public class ShoppingListService {
         }
 
         ShoppingList savedList = repository.save(list);
-
 
         itemRepository.deleteByShoppingListId(savedList.getId());
         if (request.getItems() != null) {
@@ -159,7 +161,15 @@ public class ShoppingListService {
 
             itemRepository.saveAll(newItems);
         }
-//        return savedList;
+        // return savedList;
+    }
+
+    @Transactional
+    public void deletePlan(Long listId) {
+        if (!repository.existsById(listId)) {
+            throw new RuntimeException("Không tìm thấy danh sách cần xóa.");
+        }
+        repository.deleteById(listId);
     }
 
 }

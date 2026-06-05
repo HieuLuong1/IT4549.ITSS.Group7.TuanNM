@@ -1,4 +1,4 @@
-import { useAuth } from "@/context/AuthContext"; // Import useAuth để lấy thông tin user thực
+// import { useAuth } from "@/context/AuthContext"; // Import useAuth để lấy thông tin user thực
 import React from "react";
 import { NavLink } from "react-router-dom"; // Import NavLink
 import "./Sidebar.css";
@@ -13,7 +13,6 @@ import iconShopping from "@/assets/icon/Icon-shopping.svg";
 import iconStatistic from "@/assets/icon/Icon-statistic.svg";
 
 const Sidebar: React.FC = () => {
-  const { user } = useAuth(); // Lấy thông tin user từ Context
 
   // Định nghĩa danh sách menu để map ra cho gọn
   const menuItems = [
