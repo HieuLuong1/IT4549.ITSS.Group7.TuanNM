@@ -53,16 +53,26 @@
   line-height: 21px;
 }
 
+/* Cố định hàng toggle "Từ kế hoạch đi chợ / Thêm thủ công" khi cuộn. */
+.add-fridge-tabs-bar {
+  position: sticky;
+  top: 80px;
+  z-index: 30;
+  margin-top: 8px;
+  padding: 10px 0 12px;
+  background: var(--fiza-background, #f1f5f9);
+}
+
 .add-fridge-tabs {
   width: 280px;
   height: 43.44px;
-  margin-top: 1px;
   padding: 3.99px;
   border-radius: 16px;
   background: #ffffff;
   display: flex;
   gap: 7.98px;
   box-sizing: border-box;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
 }
 
 .add-fridge-tabs button {
@@ -76,15 +86,17 @@
   font-weight: 500;
   line-height: 19.5px;
   cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
 }
 
 .add-fridge-tabs button.active {
   background: #6ed4b4;
   color: #ffffff;
+  transform: translateY(-1px);
 }
 
 .add-fridge-plan-layout {
-  margin-top: 20px;
+  margin-top: 8px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
   gap: 23.97px;
@@ -127,6 +139,20 @@
   display: flex;
   flex-direction: column;
   gap: 19.99px;
+}
+
+.add-fridge-state {
+  min-height: 56px;
+  margin-top: 16px;
+  padding: 0 16px;
+  border-radius: 14px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 19.5px;
+  display: flex;
+  align-items: center;
 }
 
 .shopping-category {
@@ -337,16 +363,24 @@
   color: #94a3b8;
 }
 
+.add-fridge-field input:disabled,
+.add-fridge-field select:disabled,
+.add-fridge-field textarea:disabled {
+  color: #64748b;
+  cursor: not-allowed;
+}
+
 .add-fridge-field textarea {
   height: 86.97px;
   resize: none;
 }
 
 .add-fridge-summary {
-  min-height: 653.56px;
   padding: 23.98px;
   position: sticky;
-  top: 104px;
+  top: 150px;
+  max-height: calc(100vh - 174px);
+  overflow-y: auto;
 }
 
 .add-fridge-summary h2 {
@@ -472,6 +506,12 @@
   background: #6ed4b4;
 }
 
+.add-fridge-summary-actions button:disabled,
+.manual-form-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .manual-add-card {
   width: min(900px, calc(100% - 224px));
   min-height: 823.15px;
@@ -484,6 +524,98 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 19.99px;
+}
+
+.manual-food-search {
+  position: relative;
+}
+
+.manual-food-suggestions {
+  position: absolute;
+  top: 78px;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  max-height: 320px;
+  padding: 10px;
+  border: 1px solid #d9f1eb;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  overflow-y: auto;
+}
+
+.manual-food-suggestions > button {
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.manual-food-suggestions > button:hover,
+.manual-other-category button:hover {
+  background: #f0fdf9;
+}
+
+.manual-food-suggestions strong {
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 19.5px;
+}
+
+.manual-food-suggestions span,
+.manual-suggestion-state,
+.manual-other-foods p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.manual-other-foods {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.manual-other-category {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.manual-other-category > span {
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 19.5px;
+}
+
+.manual-other-category > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.manual-other-category button {
+  min-height: 30px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
 }
 
 .manual-form .add-fridge-field span {
@@ -520,4 +652,20 @@
 
 .manual-form-actions button:last-child {
   width: 137.96px;
+}
+
+.manual-form-error {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 19.5px;
+}
+
+.manual-form-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
 }

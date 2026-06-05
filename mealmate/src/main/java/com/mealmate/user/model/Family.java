@@ -11,10 +11,14 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Family extends BaseEntity {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
     @Column(nullable = false)
     private String name; // Tên gia đình
+    
+    @Column(name = "housekeeper_id", nullable = false)
+    private Long housekeeperId; // ID của chủ nhà
 }

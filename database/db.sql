@@ -138,6 +138,7 @@ CREATE TABLE fridge_items (
     id SERIAL PRIMARY KEY,
     family_id INT NOT NULL,                  -- Thuộc gia đình nào
     food_id INT NOT NULL,                    -- Thực phẩm gì
+    custom_name VARCHAR(255),                -- Tên tùy chỉnh nếu người dùng tự nhập thực phẩm
     quantity NUMERIC(10, 2) NOT NULL DEFAULT 0, -- Số lượng
     storage_location VARCHAR(100),           -- Vị trí lưu trữ chính: COOL (ngăn mát), FREEZER (ngăn đông), DRY (tủ đồ khô)
     specific_location VARCHAR(100),          -- Vị trí cụ thể trong khu vực lưu trữ: VEGETABLE_DRAWER (ngăn rau), DOOR_SHELF (cánh tủ), TOP_SHELF (kệ trên)...
@@ -145,6 +146,7 @@ CREATE TABLE fridge_items (
     expiry_date DATE,                        -- Hạn sử dụng
     status VARCHAR(50) DEFAULT 'STORED',     -- Trạng thái: STORED (đang lưu), EXPIRED (hết hạn), USED (đã dùng hết), REMOVED (đã loại bỏ)
     image_url VARCHAR(500),                  -- Ảnh chụp thực phẩm trong tủ (tùy chọn)
+    note TEXT,                               -- Ghi chú
     removed_reason VARCHAR(100),                -- Lý do loại bỏ: USED_UP, EXPIRED_DISCARDED, SPOILED, WRONG_INFO, OTHER
     removed_reason_note TEXT,                   -- Nội dung lý do khác nếu người dùng chọn OTHER
     removed_at TIMESTAMP,                       -- Thời điểm loại bỏ thực phẩm khỏi tủ; NULL nếu thực phẩm vẫn đang lưu
@@ -179,17 +181,21 @@ CREATE TABLE shopping_list_items (
     id SERIAL PRIMARY KEY,
     shopping_list_id INT NOT NULL,           -- Thuộc danh sách nào
     food_id INT NOT NULL,                    -- Thực phẩm cần mua
+    custom_name VARCHAR(255),                -- Tên cụ thể nếu chọn thực phẩm "khác"
     order_number INT,                        -- Số thứ tự
     quantity NUMERIC(10, 2) NOT NULL,        -- Số lượng cần mua
     unit VARCHAR(50),                        -- Đơn vị tính
     note TEXT,                               -- Ghi chú thêm
     assigned_to INT,                         -- Người được giao mua
     is_purchased BOOLEAN DEFAULT FALSE,      -- Đã mua chưa
+    imported_to_fridge_at TIMESTAMP,         -- Thời điểm đã nhập mục này vào tủ lạnh
+    fridge_item_id INT,                      -- Fridge item được tạo từ mục đi chợ này
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_sli_list FOREIGN KEY (shopping_list_id) REFERENCES shopping_lists(id) ON DELETE CASCADE,
     CONSTRAINT fk_sli_food FOREIGN KEY (food_id) REFERENCES foods(id) ON DELETE CASCADE,
-    CONSTRAINT fk_sli_assignee FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL
+    CONSTRAINT fk_sli_assignee FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_sli_fridge_item FOREIGN KEY (fridge_item_id) REFERENCES fridge_items(id) ON DELETE SET NULL
 );
 
 -- ==========================================
@@ -199,13 +205,27 @@ CREATE TABLE shopping_list_items (
 -- Bảng công thức / món ăn
 CREATE TABLE recipes (
     id SERIAL PRIMARY KEY,
+
     name VARCHAR(255) NOT NULL,              -- Tên món ăn
-    instructions TEXT,                       -- Hướng dẫn chế biến
-    reference_link VARCHAR(500),             -- Link tham khảo (video, blog...)
+    description TEXT,                        -- Mô tả ngắn về món ăn hiển thị ở trang chi tiết
+
+    instructions TEXT,                       -- Hướng dẫn chế biến đầy đủ
+
+    cooking_time_minutes INT,                -- Thời gian nấu dự kiến (phút)
+    servings INT,                            -- Số khẩu phần ăn phù hợp
+    calories INT,                            -- Tổng năng lượng ước tính (kcal)
+
+    difficulty VARCHAR(20)
+        CHECK (difficulty IN ('EASY', 'MEDIUM', 'HARD')), -- Độ khó chế biến: EASY, MEDIUM, HARD
+
+    reference_link VARCHAR(500),             -- Link tham khảo (video, blog, website...)
     author VARCHAR(255),                     -- Tác giả công thức
-    preferred_meal_time VARCHAR(50),         -- Bữa ưu tiên: BREAKFAST (sáng), LUNCH (trưa), DINNER (tối)
-    display_status VARCHAR(50) DEFAULT 'SYSTEM', -- Loại: SYSTEM (món hệ thống), CUSTOM (món tự tạo)
+
+    preferred_meal_time VARCHAR(20)
+    CHECK (preferred_meal_time IN ('BREAKFAST', 'LUNCH', 'DINNER')),         -- Bữa ăn phù hợp: BREAKFAST, LUNCH, DINNER
+
     image_url VARCHAR(500),                  -- Ảnh minh họa món ăn
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -222,18 +242,6 @@ CREATE TABLE recipe_ingredients (
     CONSTRAINT uq_recipe_food UNIQUE (recipe_id, food_id),
     CONSTRAINT fk_ri_recipe FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
     CONSTRAINT fk_ri_food FOREIGN KEY (food_id) REFERENCES foods(id) ON DELETE CASCADE
-);
-
--- Bảng món ăn tự tạo của người dùng (liên kết user → recipe)
-CREATE TABLE custom_recipes (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,                    -- Người tạo
-    recipe_id INT NOT NULL,                  -- Món ăn
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_custom_recipe UNIQUE (user_id, recipe_id),
-    CONSTRAINT fk_cr_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_cr_recipe FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
 );
 
 -- Bảng yêu thích / nổi bật (liên kết N-N giữa người dùng và món ăn) — theo yêu cầu mục 4.3
@@ -266,7 +274,8 @@ CREATE TABLE meals (
     id SERIAL PRIMARY KEY,
     menu_id INT NOT NULL,                    -- Thuộc thực đơn nào
     meal_date DATE NOT NULL,                 -- Ngày ăn
-    meal_type VARCHAR(50) NOT NULL,          -- Loại bữa: BREAKFAST (sáng), LUNCH (trưa), DINNER (tối)
+    meal_type VARCHAR(20) NOT NULL
+        CHECK (meal_type IN ('BREAKFAST', 'LUNCH', 'DINNER')), -- Loại bữa ăn: BREAKFAST, LUNCH, DINNER
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_meal_menu FOREIGN KEY (menu_id) REFERENCES menus(id) ON DELETE CASCADE
@@ -294,7 +303,15 @@ INSERT INTO roles (name, description) VALUES
 ('ADMIN', 'Quản trị viên hệ thống - toàn quyền truy cập'),
 ('CUSTOMER', 'Khách hàng / thành viên gia đình');
 
--- Thêm logic cho bảng fridge
-ALTER TABLE fridge_items
-    ADD COLUMN custom_name VARCHAR(255),
-    ADD COLUMN note TEXT;
+CREATE TABLE invitations (
+    id SERIAL PRIMARY KEY,
+    family_id INT NOT NULL,                  -- Lời mời từ gia đình nào
+    receiver_id INT NOT NULL,                -- Gửi lời mời tới User ID nào
+    status VARCHAR(20) DEFAULT 'PENDING'
+        CHECK (status IN ('PENDING', 'ACCEPTED', 'DECLINED')), -- Trạng thái lời mời: PENDING (đang chờ), ACCEPTED (đã chấp nhận), DECLINED (đã từ chối)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_invite_family FOREIGN KEY (family_id) REFERENCES families(id) ON DELETE CASCADE,
+    CONSTRAINT fk_invite_receiver FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+);
+

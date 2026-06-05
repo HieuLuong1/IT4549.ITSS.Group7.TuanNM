@@ -32,6 +32,7 @@ export interface ShoppingListItem {
   id: number;
   shoppingListId: number;
   foodId: number;
+  custom_name?: string;
   food?: Food;
   foodName?: string;
   categoryName?: string;
@@ -42,6 +43,9 @@ export interface ShoppingListItem {
   assignee?: UserSummary;
   isPurchased: boolean;
   orderNumber?: number;
+  imported_to_fridge_at?: string;
+  fridge_item_id?: number;
+  order_number?: number;
 }
 
 // Bảng shopping_lists
