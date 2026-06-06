@@ -1,5 +1,8 @@
 package com.mealmate.user.controller;
 
+import com.mealmate.notification.model.NotificationCategory;
+import com.mealmate.notification.model.NotificationSeverity;
+import com.mealmate.notification.service.NotificationService;
 import com.mealmate.user.model.User;
 import com.mealmate.user.model.Invitation;
 import com.mealmate.user.model.Family;
@@ -8,7 +11,7 @@ import com.mealmate.user.model.dto.UserResponse;
 import com.mealmate.user.service.UserService;
 import com.mealmate.user.service.FamilyService;
 import com.mealmate.user.repository.InvitationRepository;
-import com.mealmate.user.repository.UserRepository; 
+import com.mealmate.user.repository.UserRepository;
 import com.mealmate.common.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +34,8 @@ public class UserController {
     private final UserService service;
     private final InvitationRepository invitationRepository;
     private final FamilyService familyService;
-    private final UserRepository userRepository; 
+    private final UserRepository userRepository;
+    private final NotificationService notificationService;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @GetMapping
@@ -242,10 +246,23 @@ public class UserController {
 
                 // 3. Lưu User cập nhật nhà mới xuống DB
                 userRepository.save(currentUser);
-                
+
+                // 4. Thông báo: housekeeper biết có người vào nhà
+                try {
+                    Family joinedFamily = familyService.findByFamilyId(familyId);
+                    if (joinedFamily != null && joinedFamily.getHousekeeperId() != null
+                            && !joinedFamily.getHousekeeperId().equals(currentUser.getId())) {
+                        notificationService.push(
+                                joinedFamily.getHousekeeperId(),
+                                NotificationCategory.GROUP, NotificationSeverity.NORMAL,
+                                "🎉 Thành viên mới vào nhóm",
+                                currentUser.getFullName() + " đã chấp nhận lời mời và gia nhập gia đình của bạn.");
+                    }
+                } catch (Exception ignored) {}
+
                 return ResponseEntity.ok(new ApiResponse<>(true, "Đồng ý gia nhập thành công!", null));
             }
-            
+
             return ResponseEntity.status(404).body(new ApiResponse<>(false, "Không tìm thấy lời mời hợp lệ", null));
         
         } catch (Exception e) {
@@ -326,6 +343,25 @@ public class UserController {
             }
 
             userRepository.updateFamilyAndRoleDirectlyNative(targetUserId, restoredFamilyId, 3L);
+
+            // Thông báo cho người bị/tự rời nhóm
+            try {
+                if (isSelfLeave) {
+                    // Báo cho các thành viên còn lại biết có người rời nhóm
+                    userRepository.findByFamily_IdOrderByIdAsc(currentFamilyId).stream()
+                            .filter(u -> !u.getId().equals(targetUserId))
+                            .forEach(u -> notificationService.push(
+                                    u.getId(), NotificationCategory.GROUP, NotificationSeverity.MEDIUM,
+                                    "👋 Thành viên rời nhóm",
+                                    targetUser.getFullName() + " vừa rời khỏi nhóm gia đình."));
+                } else {
+                    // Báo cho người bị kick
+                    notificationService.push(
+                            targetUserId, NotificationCategory.GROUP, NotificationSeverity.HIGH,
+                            "🚪 Bạn đã bị xoá khỏi nhóm",
+                            "Bạn đã bị xoá khỏi nhóm gia đình bởi " + currentUser.getFullName() + ".");
+                }
+            } catch (Exception ignored) {}
 
             return ResponseEntity.ok(new ApiResponse<>(
                     true,

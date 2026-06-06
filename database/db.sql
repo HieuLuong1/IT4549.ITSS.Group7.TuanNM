@@ -316,3 +316,21 @@ CREATE TABLE invitations (
     CONSTRAINT fk_invite_receiver FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+
+-- ==========================================
+-- NOTIFICATIONS
+-- ==========================================
+CREATE TABLE IF NOT EXISTS notifications (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    category    VARCHAR(30)  NOT NULL CHECK (category IN ('FRIDGE','SHOPPING','MEAL','GROUP','SYSTEM')),
+    severity    VARCHAR(20)  NOT NULL DEFAULT 'NORMAL' CHECK (severity IN ('INFO','NORMAL','MEDIUM','HIGH')),
+    title       VARCHAR(255) NOT NULL,
+    body        TEXT,
+    is_read     BOOLEAN      NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id    ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_is_read    ON notifications(user_id, is_read);

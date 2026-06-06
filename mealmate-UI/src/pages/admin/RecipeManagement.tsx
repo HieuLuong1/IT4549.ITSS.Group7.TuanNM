@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { NavLink } from 'react-router-dom';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import SharedModal from '../../components/admin/Modal';
+import NotificationPanel from '../../components/common/NotificationPanel';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -326,7 +327,7 @@ const RecipeManagement: React.FC = () => {
             <p className="um-subtitle">Danh mục công thức nấu ăn của hệ thống</p>
           </div>
           <div className="um-header-right">
-            <HeaderBtn icon={<Bell size={20} />} hasBadge />
+            <NotificationPanel variant="admin" />
             <HeaderBtn icon={<Settings size={20} />} />
           </div>
         </header>

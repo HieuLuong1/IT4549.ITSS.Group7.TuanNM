@@ -104,41 +104,7 @@
   object-fit: contain;
 }
 
-.topbar-notification {
-  width: 40px;
-  height: 40px;
-  position: relative;
-  border-radius: 9999px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: #475569;
-  transition: background 160ms ease, color 160ms ease;
-}
-
-.topbar-notification:hover {
-  background: #f1f5f9;
-  color: var(--fiza-primary);
-}
-
-.topbar-bell-icon {
-  width: 22px;
-  height: 22px;
-}
-
-.topbar-notification-dot {
-  position: absolute;
-  top: 7px;
-  right: 7px;
-  width: 9px;
-  height: 9px;
-  background: #ef4444;
-  border-radius: 9999px;
-  border: 2px solid var(--fiza-background);
-}
+/* Notification button styles moved to NotificationPanel.css */
 
 .topbar-family-button {
   padding-left: 24px;

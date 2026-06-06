@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-// 🎯 GIỮ NGUYÊN: Sử dụng instance axios cấu hình chung của hệ thống
+import toast from 'react-hot-toast';
 import api from "@/services/api";
 import './FamilyGroup.css';
 
@@ -250,10 +250,10 @@ const FamilyGroup: React.FC = () => {
       setFamilyName(cleanedName);
       setEditName(cleanedName);
       localStorage.setItem("currentFamilyName", cleanedName); // Cập nhật tên gia đình đổi mới
-      alert("🎉 Đã cập nhật tên nhóm thành công!");
+      toast.success("Đã cập nhật tên nhóm thành công!");
     })
     .catch(error => {
-      alert(`Backend từ chối lưu! Lỗi HTTP: ${error.response?.status}`);
+      toast.error(`Không thể lưu! Lỗi HTTP: ${error.response?.status ?? "mạng"}`);
       setEditName(familyName);
     });
   };
@@ -292,11 +292,12 @@ const FamilyGroup: React.FC = () => {
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       if (res.data && res.data.success) {
-        alert("🎉 Đã gửi yêu cầu mời thành viên vào hệ thống thành công!");
+        toast.success("Đã gửi lời mời thành công!");
         setIsAddModalOpen(false);
       }
     } catch (err) {
       console.error("Lỗi gửi lời mời:", err);
+      toast.error("Không thể gửi lời mời. Vui lòng thử lại!");
     }
   };
 
@@ -317,7 +318,9 @@ const FamilyGroup: React.FC = () => {
       );
 
       if (res.data && res.data.success) {
-        alert("🎉 Đã trục xuất thành viên và trả về làm chủ nhà gốc thành công!");
+        toast.success(Number(selectedMemberId) === Number(loggedUserId)
+          ? "Bạn đã rời khỏi nhóm gia đình."
+          : "Đã xoá thành viên khỏi nhóm thành công!");
         setIsModalOpen(false);
         
         // 🎯 LOGIC TỰ ĐỘNG LOAD CHO CHÍNH MÌNH:
@@ -341,7 +344,7 @@ const FamilyGroup: React.FC = () => {
       }
     } catch (err: any) {
       console.error("❌ Lỗi gọi API remove-member:", err);
-      alert("Hệ thống từ chối xử lý hoặc lỗi kết nối mạng!");
+      toast.error("Không thể thực hiện. Vui lòng thử lại!");
     }
   };
 

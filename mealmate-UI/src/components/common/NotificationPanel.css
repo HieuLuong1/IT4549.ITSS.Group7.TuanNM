@@ -1,0 +1,383 @@
+/* ══════════════════════════════════════════════════════
+   NotificationPanel — Soft UI, cute, đồng nhất hệ thống
+   Dùng chung cho user (Topbar) & admin (HeaderBtn)
+   ══════════════════════════════════════════════════════ */
+
+@keyframes np-slide-down {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+
+@keyframes np-item-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+
+@keyframes np-pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.45); }
+  50%       { box-shadow: 0 0 0 5px rgba(239,68,68,0);  }
+}
+
+/* ── Wrapper ──────────────────────────────────────────── */
+.np-root {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ── Trigger button (user variant) ───────────────────── */
+.np-trigger {
+  position: relative;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 160ms ease;
+  flex-shrink: 0;
+}
+
+.np-trigger-user {
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #475569;
+  box-shadow: 0 1px 4px rgba(0, 107, 85, 0.10);
+  border: 1px solid #e8f2ee;
+}
+
+.np-trigger-user:hover {
+  background: #f0fdf9;
+  border-color: #b2ebd9;
+  box-shadow: 0 3px 10px rgba(0, 107, 85, 0.14);
+  color: #0e9a7e;
+}
+
+/* Admin trigger — style giống HeaderBtn cũ */
+.np-trigger-admin {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.np-trigger-admin:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+/* ── Chấm tròn pulse (thay thế badge số) ─────────────── */
+.np-dot {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  background: #ef4444;
+  border: 2px solid var(--fiza-background, #f1f5f9);
+  animation: np-pulse-dot 2s ease-in-out infinite;
+}
+
+.np-trigger-admin .np-dot {
+  border-color: #fff;
+  top: 8px;
+  right: 8px;
+}
+
+/* ── Dropdown panel ───────────────────────────────────── */
+.np-panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 360px;
+  max-height: 520px;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1.5px solid #e4ede9;
+  border-radius: 22px;
+  box-shadow: 0 8px 32px rgba(0, 107, 85, 0.10), 0 2px 8px rgba(0,0,0,0.06);
+  overflow: hidden;
+  z-index: 9999;
+  animation: np-slide-down 240ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  font-family: "Plus Jakarta Sans", "Inter", "Segoe UI", sans-serif;
+}
+
+/* Khi dùng trong admin (right-aligned khác nhau) */
+.np-panel-admin {
+  right: 0;
+}
+
+/* ── Panel header ─────────────────────────────────────── */
+.np-header {
+  padding: 16px 18px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #eef2ef;
+  background: linear-gradient(135deg, #f0fdf9 0%, #ffffff 100%);
+  flex-shrink: 0;
+}
+
+.np-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.np-header-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #006b55;
+  letter-spacing: -0.2px;
+}
+
+.np-unread-pill {
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.np-mark-all {
+  border: none;
+  background: none;
+  padding: 5px 10px;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #0e9a7e;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.np-mark-all:hover {
+  background: #d1fae5;
+}
+
+/* ── Category chips ───────────────────────────────────── */
+.np-chips {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  padding: 10px 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid #eef2ef;
+  flex-shrink: 0;
+}
+
+.np-chips::-webkit-scrollbar { display: none; }
+
+.np-chip {
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 11px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9999px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+  white-space: nowrap;
+}
+
+.np-chip:hover {
+  background: #f1f5f9;
+}
+
+.np-chip.active {
+  background: #d1fae5;
+  color: #065f46;
+  border-color: #6ee7b7;
+}
+
+/* ── Notification list ────────────────────────────────── */
+.np-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #d1fae5 transparent;
+}
+
+.np-list::-webkit-scrollbar { width: 5px; }
+.np-list::-webkit-scrollbar-thumb { background: #b2ebd9; border-radius: 9999px; }
+
+/* ── Empty state ──────────────────────────────────────── */
+.np-empty {
+  padding: 36px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: #94a3b8;
+}
+
+.np-empty-icon { font-size: 36px; }
+.np-empty p { font-size: 13px; font-weight: 500; }
+
+/* ── Notification item ────────────────────────────────── */
+.np-item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 150ms ease;
+  animation: np-item-in 280ms ease both;
+}
+
+.np-item:last-child { border-bottom: none; }
+
+.np-item:hover { background: #f8fdfb; }
+
+.np-item-unread {
+  background: #f0fdf9;
+}
+
+.np-item-unread:hover { background: #e8faf4; }
+
+/* Severity dot (left side) */
+.np-severity-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  margin-top: 6px;
+}
+
+/* Content */
+.np-item-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.np-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.np-item-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 18px;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.np-item-cat {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  font-size: 9.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.np-item-desc {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: #475569;
+  line-height: 17px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.np-item-time {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+/* Unread dot (right corner) */
+.np-unread-dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: #0e9a7e;
+  margin-top: 7px;
+}
+
+/* ── Skeleton loading ─────────────────────────────────── */
+@keyframes np-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.np-loading {
+  padding: 6px 0;
+}
+
+.np-skeleton-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.np-skeleton-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  margin-top: 6px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: np-shimmer 1.4s infinite;
+}
+
+.np-skeleton-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.np-skeleton-line {
+  height: 12px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: np-shimmer 1.4s infinite;
+}
+
+.np-skeleton-line.long  { width: 85%; }
+.np-skeleton-line.short { width: 55%; height: 10px; }
+
+/* ── Reduced motion ───────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .np-panel,
+  .np-item,
+  .np-dot,
+  .np-skeleton-dot,
+  .np-skeleton-line {
+    animation: none;
+    transition: none;
+  }
+}

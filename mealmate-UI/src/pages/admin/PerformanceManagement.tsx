@@ -19,6 +19,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { NavLink } from 'react-router-dom';
 import AdminSidebar from '../../components/admin/AdminSidebar';
+import NotificationPanel from '../../components/common/NotificationPanel';
 import { useAuth } from '../../context/AuthContext';
 
 import { 
@@ -333,7 +334,7 @@ const PerformanceManagement: React.FC = () => {
             <p className="um-subtitle">Theo dõi báo cáo và tối ưu hóa hệ thống</p>
           </div>
           <div className="um-header-right">
-            <HeaderBtn icon={<Bell size={20} />} hasBadge />
+            <NotificationPanel variant="admin" />
             <HeaderBtn icon={<Settings size={20} />} />
           </div>
         </header>

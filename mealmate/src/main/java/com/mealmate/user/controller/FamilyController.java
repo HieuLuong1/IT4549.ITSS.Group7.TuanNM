@@ -1,12 +1,15 @@
 package com.mealmate.user.controller;
 
+import com.mealmate.notification.model.NotificationCategory;
+import com.mealmate.notification.model.NotificationSeverity;
+import com.mealmate.notification.service.NotificationService;
 import com.mealmate.user.model.Family;
 import com.mealmate.user.model.User;
 import com.mealmate.user.model.dto.FamilyResponse;
 import com.mealmate.user.service.FamilyService;
-import com.mealmate.user.service.UserService; 
+import com.mealmate.user.service.UserService;
 import com.mealmate.user.mapper.FamilyMapper;
-import com.mealmate.user.repository.UserRepository; // 🎯 Bổ sung import Repo để lấy User sạch
+import com.mealmate.user.repository.UserRepository;
 import com.mealmate.common.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,8 +27,9 @@ public class FamilyController {
 
     private final FamilyService service;
     private final FamilyMapper familyMapper;
-    private final UserService userService; 
-    private final UserRepository userRepository; // 🎯 Inject trực tiếp Repo để triệt tiêu lỗi Hibernate Proxy
+    private final UserService userService;
+    private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<Family>>> getAll() {
@@ -107,8 +111,16 @@ public class FamilyController {
         
         Long userId = Long.valueOf(rawUserId.toString());
         boolean isSuccess = service.inviteMemberToFamily(familyId, userId);
-        
+
         if (isSuccess) {
+            // Thông báo cho người được mời
+            try {
+                Family family = service.findByFamilyId(familyId);
+                String familyName = family != null ? family.getName() : "một gia đình";
+                notificationService.push(userId, NotificationCategory.GROUP, NotificationSeverity.INFO,
+                        "🏠 Bạn nhận được lời mời",
+                        "Bạn được mời gia nhập nhóm gia đình \"" + familyName + "\". Hãy mở ứng dụng để phản hồi!");
+            } catch (Exception ignored) {}
             return ResponseEntity.ok(new ApiResponse<>(true, "Gửi lời mời thành công!", null));
         }
         return ResponseEntity.status(500).body(new ApiResponse<>(false, "Không thể thêm thành viên này!", null));
