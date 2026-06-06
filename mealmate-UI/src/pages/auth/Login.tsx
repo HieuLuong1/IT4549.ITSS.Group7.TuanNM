@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { login as loginRequest } from '@/features/auth/api/authApi';
 import { AuthInput, AuthButton, AuthLayout } from '@/components/auth/AuthComponents';
@@ -12,6 +13,7 @@ const Login: React.FC = () => {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ identifier?: string; password?: string }>({});
   const [submitError, setSubmitError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -195,7 +197,7 @@ const Login: React.FC = () => {
           <div className="input-group">
             <AuthInput 
               label="Mật khẩu"
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder="Nhập mật khẩu của bạn"
               value={password}
               autoComplete="current-password"
@@ -205,6 +207,17 @@ const Login: React.FC = () => {
                 if (errors.password) setErrors({ ...errors, password: '' });
               }}
               rightLabel={<span className="forgot-pass">Quên mật khẩu?</span>}
+              endAdornment={
+                <button
+                  type="button"
+                  className="password-toggle"
+                  aria-label={showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
+                  onClick={() => setShowPassword((current) => !current)}
+                  disabled={isSubmitting}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              }
               className={errors.password ? 'input-error' : ''}
             />
             {errors.password && <span className="error-text">{errors.password}</span>}

@@ -1,76 +1,111 @@
+/* ═══════════════════════════════════════════════════
+   Login page styles — layout handled by AuthLayout.css
+   ═══════════════════════════════════════════════════ */
+
 .login-container .login-form {
   display: flex;
   flex-direction: column;
-  gap: 2.5vh; 
+  gap: 20px;
 }
 
 .login-container .input-group {
   display: flex;
   flex-direction: column;
-  gap: 0.8vh; 
+  gap: 6px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
 
-/* Kế thừa trực tiếp style mượt từ file cấu hình AuthInput bên trên */
 .login-container .input-group input {
   transition: background 0.2s ease;
   width: 100% !important;
-  background-color: #F7FAFC !important;
+  background-color: #ffffff !important;
   text-align: left !important;
   font-weight: 500 !important;
-  color: #171D1A !important;
+  color: #171d1a !important;
+  box-shadow: none !important;
+}
+
+.login-container .input-group input:-webkit-autofill,
+.login-container .input-group input:-webkit-autofill:hover,
+.login-container .input-group input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #171d1a;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  transition: background-color 9999s ease-in-out 0s;
 }
 
 .login-container .input-group input::placeholder {
-  color: #6B7280;
-  text-align: left;
+  color: #6b7280;
 }
 
-/* Viền đỏ hiển thị chuẩn xác khi có lỗi */
 .login-container .input-error {
-  border: 1px solid #EF4444 !important;
+  border: 1px solid #ef4444 !important;
 }
 
 .login-container .error-text {
-  color: #EF4444;
-  font-size: 0.75rem; 
-  margin-left: 0.25rem; 
-  margin-top: 0.4vh;
+  color: #ef4444;
+  font-size: 11.5px;
+  margin-left: 2px;
 }
 
 .login-container .forgot-pass {
-  font-size: 0.8125rem; 
-  color: #4D9A80;
+  font-size: 13px;
+  color: #4d9a80;
   cursor: pointer;
   font-weight: 500;
 }
 
-.login-container .login-footer {
-  margin-top: 3.3vh; 
-  padding-top: 2.5vh; 
-  border-top: 1px solid #F0F4F2;
-  text-align: center;
-  font-size: 0.875rem; 
-}
-
-.login-container .register-link {
-  color: #4D9A80;
-  font-weight: 700;
-  margin-left: 0.5vw; 
+.login-container .password-toggle {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #6b7280;
   cursor: pointer;
 }
 
-/* Triệt tiêu hoàn toàn viền focus/outline tự động bọc quanh cả cụm nhóm nhập liệu */
+.login-container .password-toggle:hover {
+  color: #0b735f;
+}
+
+.login-container .password-toggle:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.login-container .login-footer {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #f0f4f2;
+  text-align: center;
+  font-size: 14px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.login-container .register-link {
+  color: #4d9a80;
+  font-weight: 700;
+  margin-left: 6px;
+  cursor: pointer;
+}
+
+/* Tắt outline/shadow trên nhóm input */
 .login-container .input-group:focus-within,
 .login-container .input-group:focus,
 .login-container .input-group *:focus {
   outline: none !important;
   box-shadow: none !important;
-  border-color: transparent !important;
+  border-color: #d7e3de !important;
 }
 
-/* Đảm bảo trạng thái bình thường của khối div bọc ngoài không tự sinh màu nền lạ */
-.login-container .input-group {
-  background: transparent !important;
-  box-shadow: none !important;
-  border: none !important;
+/* Short viewport: compact form spacing */
+@media (max-height: 700px) {
+  .login-container .login-form { gap: 14px; }
+  .login-container .login-footer { margin-top: 14px; padding-top: 14px; }
 }
