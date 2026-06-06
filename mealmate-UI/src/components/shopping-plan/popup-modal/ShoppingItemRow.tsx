@@ -15,8 +15,7 @@ const ShoppingItemRow: React.FC<RowProps> = ({ item, mode, members = [], onUpdat
 
     if (mode === 'CREATE') {
         const selectedMember = members.find(m => m.id === item.assignedTo);
-        const displayName = selectedMember ? selectedMember.fullName : 'Chưa giao';
-
+        const displayName = selectedMember ? selectedMember.name : (item.assigneeName || 'Chưa giao');
         return (
             <div className="shopping-row-edit">
                 <span className="food-name">{item.foodName || 'Thực phẩm'}</span>
@@ -46,7 +45,7 @@ const ShoppingItemRow: React.FC<RowProps> = ({ item, mode, members = [], onUpdat
                         <option value="">Chưa giao</option>
                         {members.map((m: any) => (
                             <option key={m.id} value={m.id}>
-                                {m.fullName}
+                                {m.name}
                             </option>
                         ))}
                     </select>
@@ -69,14 +68,21 @@ const ShoppingItemRow: React.FC<RowProps> = ({ item, mode, members = [], onUpdat
                 {item.isPurchased && <Check size={14} color="white" />}
             </div>
 
-            <span className="food-name-display">{item.foodName}</span>
+            <div className="food-info-display">
+                <span className="food-name-display">{item.foodName}</span>
+                {item.note && item.note.trim() !== "" && (
+                    <p style={{ color: "#94A3B8", fontSize: "12px", margin: "2px 0 0 0", fontWeight: 500 }}>
+                        {item.note.startsWith("Lưu ý") ? item.note : `Lưu ý: ${item.note}`}
+                    </p>
+                )}
+            </div>
 
             <div className="quantity-display">
                 {item.quantity} {item.unit}
             </div>
 
             <div className="assignee-badge">
-                {item.assignee?.name}
+                {item.assignee?.name || 'Chưa giao'}
             </div>
         </div>
     );
