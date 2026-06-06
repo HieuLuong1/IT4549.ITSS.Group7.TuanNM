@@ -17,6 +17,7 @@ type RecipeBrowserVariant = "suggestion" | "library";
 type RecipeBrowserProps = {
   variant: RecipeBrowserVariant;
   onBack?: () => void;
+  searchValue?: string;
 };
 
 type StatusFilter = "all" | "canCook" | "expiring";
@@ -61,7 +62,7 @@ const difficultyChips: Array<{ value: DifficultyFilter; label: string }> = [
   { value: "HARD", label: "Khó" },
 ];
 
-const RecipeBrowser: React.FC<RecipeBrowserProps> = ({ variant, onBack }) => {
+const RecipeBrowser: React.FC<RecipeBrowserProps> = ({ variant, onBack, searchValue }) => {
   const [recipes, setRecipes] = useState<RecipeFromApi[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
   const [pendingFavoriteIds, setPendingFavoriteIds] = useState<Set<number>>(new Set());
@@ -70,7 +71,7 @@ const RecipeBrowser: React.FC<RecipeBrowserProps> = ({ variant, onBack }) => {
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeFromApi | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
 
-  const [keyword, setKeyword] = useState("");
+  const [internalKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [mealFilter, setMealFilter] = useState<MealFilter>("all");
   const [difficultyFilter, setDifficultyFilter] = useState<DifficultyFilter>("all");
@@ -78,6 +79,7 @@ const RecipeBrowser: React.FC<RecipeBrowserProps> = ({ variant, onBack }) => {
   const [favoriteOnly, setFavoriteOnly] = useState(false);
 
   const statusChips = variant === "suggestion" ? suggestionStatusChips : libraryStatusChips;
+  const keyword = searchValue ?? internalKeyword;
 
   const loadRecipes = useCallback(async () => {
     setIsLoading(true);
@@ -214,19 +216,6 @@ const RecipeBrowser: React.FC<RecipeBrowserProps> = ({ variant, onBack }) => {
       )}
 
       <div className="recipe-browser-toolbar">
-        <label className="recipe-browser-search">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="7" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
-          <input
-            type="text"
-            value={keyword}
-            onChange={(event) => setKeyword(event.target.value)}
-            placeholder="Tìm món ăn..."
-          />
-        </label>
-
         <div className="recipe-browser-filter-groups">
           <div className="recipe-browser-chip-row" role="group" aria-label="Lọc theo trạng thái">
             {statusChips.map((chip) => (

@@ -294,6 +294,7 @@ const MyFridge: React.FC = () => {
   const [categories, setCategories] = useState<CategoryFromApi[]>([]);
   const [selectedFood, setSelectedFood] = useState<FridgeItemFromApi | null>(null);
   const [keyword, setKeyword] = useState("");
+  const [recipeSearchKeyword, setRecipeSearchKeyword] = useState("");
   const [filterMode, setFilterMode] = useState<FilterMode>("LOCATION");
   const [activeLocation, setActiveLocation] = useState<StorageLocation | "ALL">("ALL");
   const [activeCategoryId, setActiveCategoryId] = useState<number | "ALL">("ALL");
@@ -530,15 +531,15 @@ const MyFridge: React.FC = () => {
 
       <div className="my-fridge-page">
         <Topbar
-          searchPlaceholder="Tìm kiếm thực phẩm..."
-          searchValue={keyword}
-          onSearchChange={setKeyword}
+          searchPlaceholder={isSuggesting ? "Tìm kiếm món ăn gợi ý..." : "Tìm kiếm thực phẩm..."}
+          searchValue={isSuggesting ? recipeSearchKeyword : keyword}
+          onSearchChange={isSuggesting ? setRecipeSearchKeyword : setKeyword}
         />
 
         {isAddingFood ? (
           <AddFoodToFridgeScreen onCancel={() => setIsAddingFood(false)} onAdded={handleFoodAdded} />
         ) : isSuggesting ? (
-          <MenuSuggestionScreen onCancel={() => setIsSuggesting(false)} />
+          <MenuSuggestionScreen onCancel={() => setIsSuggesting(false)} searchValue={recipeSearchKeyword} />
         ) : (
           <div className="my-fridge">
           <div className="my-fridge-content">
@@ -737,7 +738,14 @@ const MyFridge: React.FC = () => {
                   <img src={iconPlus} alt="" />
                   <span>Thêm thực phẩm</span>
                 </button>
-                <button className="round-action suggest" aria-label="Gợi ý món ăn" onClick={() => setIsSuggesting(true)}>
+                <button
+                  className="round-action suggest"
+                  aria-label="Gợi ý món ăn"
+                  onClick={() => {
+                    setRecipeSearchKeyword("");
+                    setIsSuggesting(true);
+                  }}
+                >
                   <img src={iconRecipe} alt="" />
                   <span>Gợi ý món ăn</span>
                 </button>
