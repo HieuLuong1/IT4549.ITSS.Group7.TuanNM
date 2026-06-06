@@ -9,6 +9,7 @@ interface ExtendedAuthFields {
   gender?: string;
   roleName?: string;
   avatarUrl?: string; // Đồng bộ ảnh đại diện tươi mới từ DB lúc Login
+  familyName?: string;
 }
 
 // Kết hợp thuộc tính AuthSession gốc với các trường chi tiết mở rộng bằng dấu &

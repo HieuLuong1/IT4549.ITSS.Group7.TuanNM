@@ -58,6 +58,9 @@ const Login: React.FC = () => {
     setIsSubmitting(true);
 
     try {
+      localStorage.removeItem("currentFamilyName");
+      localStorage.removeItem("familyMembersCache");
+
       // 1. Gọi API đăng nhập để bốc thông tin Token xác thực cơ bản
       const response = await loginRequest({ email, password });
       const currentToken = response.accessToken ?? '';
@@ -66,7 +69,12 @@ const Login: React.FC = () => {
       let detailedPhone = "Chưa cập nhật";
       let detailedGender = "OTHER";
       let detailedRoleName = response.role;
-      let detailedFamilyId: number | undefined;
+      let detailedFamilyId: number | undefined = response.familyId;
+      let detailedFamilyName: string | undefined = response.familyName;
+
+      if (detailedFamilyName) {
+        localStorage.setItem("currentFamilyName", detailedFamilyName.trim());
+      }
 
       // 🎯 Ép kiểu trung gian sang 'any' để bypass qua bộ lọc TypeScript của AuthResponse gốc
       const rawResponse = response as any;
@@ -81,9 +89,8 @@ const Login: React.FC = () => {
           });
           const groupData = resGroup.data.success ? resGroup.data.data : resGroup.data;
           if (groupData?.name) {
-            localStorage.setItem("currentFamilyName", String(groupData.name).trim());
-          } else {
-            localStorage.removeItem("currentFamilyName");
+            detailedFamilyName = String(groupData.name).trim();
+            localStorage.setItem("currentFamilyName", detailedFamilyName);
           }
           if (groupData?.id) {
             detailedFamilyId = Number(groupData.id);
@@ -96,6 +103,15 @@ const Login: React.FC = () => {
           const dbMembers = resMembers.data.success ? resMembers.data.data : resMembers.data;
           
           if (Array.isArray(dbMembers)) {
+            const familyMeta = dbMembers[0];
+            if (familyMeta?.familyId) {
+              detailedFamilyId = Number(familyMeta.familyId);
+            }
+            if (familyMeta?.familyName) {
+              detailedFamilyName = String(familyMeta.familyName).trim();
+              localStorage.setItem("currentFamilyName", detailedFamilyName);
+            }
+
             // Định dạng và lưu bộ nhớ đệm danh sách thành viên phục vụ hệ thống
             const formattedMembers = dbMembers.map((m: any) => {
               const rName = String(m.roleName || m.role?.name || m.role).toUpperCase();
@@ -138,6 +154,7 @@ const Login: React.FC = () => {
         gender: detailedGender,
         roleName: detailedRoleName,
         familyId: detailedFamilyId,
+        familyName: detailedFamilyName,
         avatarUrl: detailedAvatar 
       });
 

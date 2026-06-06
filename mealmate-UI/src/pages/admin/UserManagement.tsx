@@ -21,7 +21,7 @@ import AdminSidebar from '../../components/admin/AdminSidebar';
 import SharedModal from '../../components/admin/Modal';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { AUTH_ROLES, getRoleId, getRoleLabel } from '../../features/auth/role';
+import { AUTH_ROLES, getAuthRoleName, getRoleId, getRoleLabel } from '../../features/auth/role';
 
 
 interface Role {
@@ -38,6 +38,8 @@ export interface User {
   gender?: 'MALE' | 'FEMALE' | 'OTHER';
   avatarUrl?: string;
   emailVerified?: boolean;
+  familyId?: number;
+  familyName?: string;
   role?: Role;
   roleName?: string;
 }
@@ -96,10 +98,20 @@ const UserManagement: React.FC = () => {
     setErrorMessage('');
     try {
       const response = await api.get('/api/v1/users/users');
+      if (response.data?.success === false) {
+        throw new Error(response.data?.message || 'API trả về trạng thái không thành công.');
+      }
       setUsers(readUsersResponse(response.data));
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setErrorMessage('Không tải được danh sách người dùng từ máy chủ.');
+      const status = err?.response?.status;
+      const serverMessage = err?.response?.data?.message || err?.message;
+      setErrorMessage(
+        status === 403
+          ? 'Tài khoản admin không có quyền xem danh sách người dùng. Hãy kiểm tra role ADMIN trong token/database.'
+          : serverMessage || 'Không tải được danh sách người dùng từ máy chủ.'
+      );
+      setUsers([]);
     } finally {
       setIsLoading(false);
     }
@@ -126,6 +138,12 @@ const UserManagement: React.FC = () => {
   const currentUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
 
   const handleDelete = async (id: number) => {
+    const targetUser = users.find((user) => user.id === id);
+    if (targetUser && getAuthRoleName(targetUser.role ?? targetUser.roleName) === AUTH_ROLES.ADMIN) {
+      setDeleteConfirm(null);
+      return;
+    }
+
     try {
       await api.delete(`/api/v1/users/users/${id}`);
       setUsers(users.filter(u => u.id !== id));
@@ -253,6 +271,12 @@ const UserManagement: React.FC = () => {
                 </button>
               </div>
 
+              {errorMessage && (
+                <div style={{ marginBottom: '1rem', padding: '0.875rem 1rem', borderRadius: '12px', background: '#FEF2F2', color: '#B91C1C', fontWeight: 600, fontSize: '0.875rem' }}>
+                  {errorMessage}
+                </div>
+              )}
+
               <div style={{ overflowX: 'auto' }}>
                 <table className="um-table">
                   <thead>
@@ -297,11 +321,13 @@ const UserManagement: React.FC = () => {
                               hoverColor="var(--fiza-primary)" 
                               onClick={() => handleEditClick(user)}
                             />
-                            <ActionBtn 
-                              icon={<Trash2 size={18} />} 
-                              hoverColor="#ef4444" 
-                              onClick={() => setDeleteConfirm(user.id)}
-                            />
+                            {getAuthRoleName(user.role ?? user.roleName) !== AUTH_ROLES.ADMIN && (
+                              <ActionBtn 
+                                icon={<Trash2 size={18} />} 
+                                hoverColor="#ef4444" 
+                                onClick={() => setDeleteConfirm(user.id)}
+                              />
+                            )}
                           </div>
                         </td>
                       </tr>
