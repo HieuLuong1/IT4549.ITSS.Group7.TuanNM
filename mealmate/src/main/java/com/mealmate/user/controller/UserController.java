@@ -400,8 +400,9 @@ public class UserController {
                             : body.containsKey("phone_number") ? body.get("phone_number").toString() 
                             : null;
                             
-            String newGender = body.containsKey("gender") ? body.get("gender").toString() : null;
-            String newPassword = body.containsKey("password") ? body.get("password").toString() : null;
+            String newGender    = body.containsKey("gender")    ? body.get("gender").toString()    : null;
+            String newPassword  = body.containsKey("password")  ? body.get("password").toString()  : null;
+            String newAvatarUrl = body.containsKey("avatarUrl") ? body.get("avatarUrl").toString() : null;
 
             // 3. Tiến hành gán cập nhật dữ liệu vào thực thể User
             if (newFullName != null && !newFullName.trim().isEmpty()) {
@@ -411,26 +412,30 @@ public class UserController {
                 currentUser.setPhone(newPhone.trim());
             }
             if (newGender != null && !newGender.trim().isEmpty()) {
-                currentUser.setGender(newGender.trim().toUpperCase()); // Lưu 'MALE', 'FEMALE', 'OTHER'
+                currentUser.setGender(newGender.trim().toUpperCase());
             }
-            
-            // 🎯 XỬ LÝ MẬT KHẨU MỚI: Nếu Front-end có truyền lên chuỗi mật khẩu hợp lệ thì tiến hành băm mã hóa
+            // Lưu avatar URL mới từ Cloudinary (nếu có)
+            if (newAvatarUrl != null && !newAvatarUrl.trim().isEmpty()) {
+                currentUser.setAvatarUrl(newAvatarUrl.trim());
+            }
+
+            // Xử lý mật khẩu mới
             if (newPassword != null && newPassword.trim().length() >= 6) {
                 currentUser.setPasswordHash(passwordEncoder.encode(newPassword.trim()));
-                System.out.println("🎉 Đã băm mã hóa và cập nhật mật khẩu mới thành công cho user: " + currentEmail);
             }
 
-            // 4. Lưu ghi đè dữ liệu xuống Database
+            // 4. Lưu xuống Database
             userRepository.save(currentUser);
 
-            // Đóng gói thông tin mới phản hồi về cho React nhận diện
+            // Phản hồi đầy đủ (bao gồm avatarUrl mới) để frontend cập nhật localStorage ngay
             Map<String, Object> result = new java.util.HashMap<>();
-            result.put("email", currentUser.getEmail());
-            result.put("fullName", currentUser.getFullName());
-            result.put("phone", currentUser.getPhone());
-            result.put("gender", currentUser.getGender());
+            result.put("email",     currentUser.getEmail());
+            result.put("fullName",  currentUser.getFullName());
+            result.put("phone",     currentUser.getPhone());
+            result.put("gender",    currentUser.getGender());
+            result.put("avatarUrl", currentUser.getAvatarUrl() != null ? currentUser.getAvatarUrl() : "");
 
-            return ResponseEntity.ok(new ApiResponse<>(true, "🎉 Cập nhật thông tin tài khoản thành công!", result));
+            return ResponseEntity.ok(new ApiResponse<>(true, "Cập nhật thông tin tài khoản thành công!", result));
 
         } catch (Exception e) {
             System.err.println("❌ LỖI SẬP TẠI API PUT PROFILE CONTROLLER: " + e.getMessage());

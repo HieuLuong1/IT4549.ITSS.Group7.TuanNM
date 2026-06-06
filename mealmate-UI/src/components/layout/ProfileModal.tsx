@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
-// 🎯 GIỮ NGUYÊN VẸN: createPortal giúp đẩy modal lên front, không bao giờ bị che khuất
+import React, { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
-import api from "@/services/api"; 
-import "./ProfileModal.css"; 
-
+import api from "@/services/api";
+import { uploadFile } from "@/features/uploads/uploadApi";
+import "./ProfileModal.css";
 import defaultAvatar from "@/assets/avatar/26.svg";
 
 interface ProfileModalProps {
@@ -16,382 +16,329 @@ interface ProfileModalProps {
   isMe?: boolean;
 }
 
-const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, familyName, memberData, isMe = false }) => {
+const ProfileModal: React.FC<ProfileModalProps> = ({
+  isOpen, onClose, familyName, memberData, isMe = false,
+}) => {
   const navigate = useNavigate();
-  const authContext = useAuth();
-  const userFromContext = authContext?.user;
-  const logoutFromContext = (authContext as any)?.logout; 
+  const { user: userFromContext, logout: logoutFromContext } = useAuth() as any;
 
-  let userFromLocalStorage = null;
-  const authUserString = localStorage.getItem("authUser");
-  if (authUserString) {
-    try {
-      userFromLocalStorage = JSON.parse(authUserString);
-    } catch (e) {
-      console.error("Lỗi đọc thông tin local tại ProfileModal:", e);
-    }
-  }
+  const userFromLocalStorage = (() => {
+    try { return JSON.parse(localStorage.getItem("authUser") || "null"); }
+    catch { return null; }
+  })();
 
   const displayUser = memberData || (isMe ? (userFromContext || userFromLocalStorage) : null);
 
-  // =========================================================================
-  // 🎯 QUẢN LÝ TRẠNG THÁI FORM CHỈNH SỬA & MẬT KHẨU KHÓA ĐÔI
-  // =========================================================================
-  const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [editFullName, setEditFullName] = useState<string>("");
-  const [editPhone, setEditPhone] = useState<string>("");
-  const [editGender, setEditGender] = useState<string>("OTHER");
-  
-  // State phục vụ luồng kiểm tra trùng khớp mật khẩu mới (NEW)
-  const [editPassword, setEditPassword] = useState<string>(""); 
-  const [confirmPassword, setConfirmPassword] = useState<string>(""); 
-  
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  // ── Form state ──────────────────────────────────────────
+  const [isEditing, setIsEditing]           = useState(false);
+  const [editFullName, setEditFullName]      = useState("");
+  const [editPhone, setEditPhone]            = useState("");
+  const [editGender, setEditGender]          = useState("OTHER");
+  const [editPassword, setEditPassword]      = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isSubmitting, setIsSubmitting]      = useState(false);
 
-  // Đồng bộ dữ liệu người dùng vào Form khi mở Modal
+  // ── Avatar upload ───────────────────────────────────────
+  const [avatarPreview, setAvatarPreview]       = useState<string>("");
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (isOpen && displayUser) {
-      setEditFullName(displayUser?.fullName || displayUser?.full_name || displayUser?.name || "");
+      setEditFullName(displayUser?.fullName || displayUser?.full_name || "");
       setEditPhone(displayUser?.phone || displayUser?.phoneNumber || "");
       setEditGender(String(displayUser?.gender || "OTHER").toUpperCase());
-      
-      // Reset sạch form mật khẩu ẩn về rỗng khi mở modal
-      setEditPassword(""); 
+      setEditPassword("");
       setConfirmPassword("");
-      setIsEditing(false); 
+      setAvatarPreview("");
+      setIsEditing(false);
     }
-  }, [isOpen, displayUser]);
+  }, [isOpen]);
 
-  if (!isOpen) return null;
-  if (!displayUser) return null;
+  if (!isOpen || !displayUser) return null;
 
-  const email = displayUser?.email || "Chưa cập nhật";
-  const avatarUrl = displayUser?.avatarUrl || displayUser?.avatar_url || displayUser?.avatar || defaultAvatar;
-  const roleObj = displayUser?.role;
-  const roleName = (typeof roleObj === "object" && roleObj !== null ? roleObj.name : roleObj) 
-                    || displayUser?.roleName 
-                    || "";
-  const normalizedRoleName = String(roleName).toUpperCase();
-  const isAdminRole = normalizedRoleName.includes("ADMIN");
-  const isHousekeeperRole = normalizedRoleName.includes("HOUSEKEEPER") ||
-                            normalizedRoleName.includes("CHỦ NHÀ");
-  const roleLabel = isAdminRole ? "Quản trị viên" : isHousekeeperRole ? "Chủ nhà" : "Thành viên";
+  const email            = displayUser?.email || "Chưa cập nhật";
+  const currentAvatarUrl = displayUser?.avatarUrl || displayUser?.avatar_url || defaultAvatar;
+  const shownAvatar      = avatarPreview || currentAvatarUrl;
 
-  const handleLogoutClick = () => {
-    const confirmLogout = window.confirm("Bạn có chắc chắn muốn đăng xuất tài khoản khỏi hệ thống không?");
-    if (!confirmLogout) return;
+  const roleObj   = displayUser?.role;
+  const roleName  = (typeof roleObj === "object" && roleObj !== null ? roleObj.name : roleObj) || displayUser?.roleName || "";
+  const norm      = String(roleName).toUpperCase();
+  const roleLabel = norm.includes("ADMIN") ? "Quản trị viên"
+                  : norm.includes("HOUSEKEEPER") ? "Chủ nhà"
+                  : "Thành viên";
 
-    if (typeof logoutFromContext === "function") {
-      logoutFromContext();
-    } else {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("authUser");
-      localStorage.removeItem("currentFamilyName");
-    }
-    
-    onClose(); 
-    navigate("/login"); 
-    window.location.reload(); 
-  };
+  const genderLabel = editGender === "MALE" ? "Nam" : editGender === "FEMALE" ? "Nữ" : "Khác";
 
-  // =========================================================================
-  // 🎯 HÀM XỬ LÝ LƯU THÔNG TIN LÊN BACKEND (Kiểm tra đối khớp mật khẩu)
-  // =========================================================================
-  const handleSaveProfile = async () => {
-    if (!editFullName.trim()) {
-      alert("⚠️ Họ và tên không được để trống!");
+  // ── Avatar upload ───────────────────────────────────────
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Chỉ chấp nhận file ảnh (jpg, png, webp...)");
       return;
     }
-
-    // Kiểm tra xem người dùng có thực sự muốn đổi mật khẩu hay không
-    const hasPasswordInput = editPassword.trim().length > 0 || confirmPassword.trim().length > 0;
-    
-    if (hasPasswordInput) {
-      if (editPassword.trim().length < 6) {
-        alert("⚠️ Mật khẩu mới phải có độ dài từ 6 ký tự trở lên!");
-        return;
-      }
-      if (editPassword.trim() !== confirmPassword.trim()) {
-        alert("❌ Xác nhận mật khẩu mới không trùng khớp! Vui lòng kiểm tra lại.");
-        return;
-      }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ảnh không được vượt quá 5 MB");
+      return;
     }
+    setIsUploadingAvatar(true);
+    try {
+      const result = await uploadFile(file, "mealmate/avatars");
+      setAvatarPreview(result.url);
+      toast.success("Ảnh đã tải lên — nhấn Lưu để cập nhật.");
+    } catch {
+      toast.error("Không tải được ảnh. Vui lòng thử lại!");
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  };
 
+  // ── Save ────────────────────────────────────────────────
+  const handleSave = async () => {
+    if (!editFullName.trim()) { toast.error("Họ và tên không được để trống!"); return; }
+    const hasNewPwd = editPassword.trim().length > 0 || confirmPassword.trim().length > 0;
+    if (hasNewPwd) {
+      if (editPassword.trim().length < 6) { toast.error("Mật khẩu mới phải có ít nhất 6 ký tự!"); return; }
+      if (editPassword.trim() !== confirmPassword.trim()) { toast.error("Xác nhận mật khẩu không khớp!"); return; }
+    }
     const token = localStorage.getItem("accessToken");
     setIsSubmitting(true);
-
     try {
-      // 🎯 CHIẾN THUẬT DỰ PHÒNG KÉP: Bắn cả CamelCase lẫn SnakeCase để triệt tiêu lỗi lệch DTO ở Backend
       const payload: any = {
-        fullName: editFullName.trim(),
-        full_name: editFullName.trim(),     // Dự phòng nếu Backend dùng snake_case
-        phone: editPhone.trim(),
-        phoneNumber: editPhone.trim(),      // Dự phòng nếu Backend dùng phoneNumber
-        phone_number: editPhone.trim(),     // Dự phòng nếu Backend dùng phone_number
-        gender: editGender
+        fullName: editFullName.trim(), full_name: editFullName.trim(),
+        phone: editPhone.trim(), phoneNumber: editPhone.trim(), phone_number: editPhone.trim(),
+        gender: editGender,
       };
-
-      // 🎯 Chỉ đính kèm password nếu có nội dung nhập mới hợp lệ
-      if (hasPasswordInput) {
-        payload.password = editPassword.trim();
-      }
-
-      console.log("👉 [PUT PROFILE DEBUG] Gửi dữ liệu cập nhật lên Server:", payload);
+      if (avatarPreview) payload.avatarUrl = avatarPreview;
+      if (hasNewPwd)     payload.password  = editPassword.trim();
 
       const res = await api.put("/api/v1/users/users/profile", payload, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (res.data && res.data.success) {
-        alert("🎉 Cập nhật thông tin tài khoản thành công!");
+      if (res.data?.success) {
+        toast.success("Cập nhật thông tin thành công!");
         setIsEditing(false);
 
-        // Đồng bộ ngay dữ liệu mới vào bộ nhớ trình duyệt để các trang khác nhận diện luôn
+        // Lấy avatarUrl chính xác từ response backend (đã lưu DB)
+        // Fallback sang avatarPreview (URL Cloudinary) nếu backend chưa trả về
+        const savedAvatarUrl: string =
+          res.data?.data?.avatarUrl || avatarPreview || currentAvatarUrl;
+
+        const currentUserId = userFromLocalStorage?.userId || userFromLocalStorage?.id;
+
+        // 1. Cập nhật authUser trong localStorage
         if (userFromLocalStorage) {
-          const updatedUser = { 
-            ...userFromLocalStorage, 
-            fullName: editFullName.trim(), 
-            full_name: editFullName.trim(), 
-            phone: editPhone.trim(), 
-            phoneNumber: editPhone.trim(),
-            gender: editGender 
-          };
-          localStorage.setItem("authUser", JSON.stringify(updatedUser));
+          localStorage.setItem("authUser", JSON.stringify({
+            ...userFromLocalStorage,
+            fullName: editFullName.trim(), full_name: editFullName.trim(),
+            phone: editPhone.trim(), gender: editGender,
+            avatarUrl: savedAvatarUrl,
+            avatar_url: savedAvatarUrl,
+          }));
         }
 
-        // Tải lại trang nhẹ nhàng để cập nhật toàn diện
+        // 2. Cập nhật familyMembersCache trong localStorage
+        // (Sidebar.tsx và các component khác đọc cache này → phải đồng bộ)
+        if (savedAvatarUrl && currentUserId) {
+          try {
+            const cacheRaw = localStorage.getItem("familyMembersCache");
+            if (cacheRaw) {
+              const cache = JSON.parse(cacheRaw);
+              if (Array.isArray(cache)) {
+                const updated = cache.map((m: any) =>
+                  Number(m.id) === Number(currentUserId)
+                    ? { ...m, avatarUrl: savedAvatarUrl, avatar_url: savedAvatarUrl,
+                            fullName: editFullName.trim(), phone: editPhone.trim(), gender: editGender }
+                    : m
+                );
+                localStorage.setItem("familyMembersCache", JSON.stringify(updated));
+              }
+            }
+          } catch {
+            // bỏ qua lỗi cache
+          }
+        }
+
         window.location.reload();
       } else {
-        alert(`Thất bại: ${res.data.message || "Không thể lưu thông tin"}`);
+        toast.error(res.data?.message || "Không thể lưu thông tin.");
       }
-    } catch (err: any) {
-      console.error("❌ Lỗi API cập nhật Profile:", err);
-      alert("Hệ thống từ chối cập nhật! Vui lòng kiểm tra log Console của Spring Boot.");
+    } catch {
+      toast.error("Hệ thống từ chối cập nhật! Vui lòng thử lại.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleLogout = () => {
+    if (!window.confirm("Bạn có chắc muốn đăng xuất không?")) return;
+    if (typeof logoutFromContext === "function") logoutFromContext();
+    else ["accessToken", "authUser", "currentFamilyName"].forEach((k) => localStorage.removeItem(k));
+    onClose();
+    navigate("/login");
+    window.location.reload();
+  };
+
+  const handleCancel = () => {
+    setAvatarPreview("");
+    setEditPassword("");
+    setConfirmPassword("");
+    setIsEditing(false);
+  };
+
   return createPortal(
-    <div className="profile-modal-overlay" onClick={onClose}>
-      <div className="profile-modal-card" onClick={(e) => e.stopPropagation()}>
-        
-        <button type="button" className="profile-modal-close-btn" onClick={onClose} aria-label="Đóng">
-          ×
+    <div className="pm-overlay" onClick={onClose}>
+      <div className="pm-card" onClick={(e) => e.stopPropagation()}>
+
+        {/* Close btn */}
+        <button className="pm-close" onClick={onClose} aria-label="Đóng">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
         </button>
 
-        <div className="profile-modal-tag-wrapper">
-          <span className="profile-modal-tag">
-            {isMe ? "THÔNG TIN TÀI KHOẢN" : "THÔNG TIN THÀNH VIÊN"}
-          </span>
+        {/* Tag */}
+        <div className="pm-tag-row">
+          <span className="pm-tag">{isMe ? "THÔNG TIN TÀI KHOẢN" : "THÔNG TIN THÀNH VIÊN"}</span>
         </div>
 
-        <div className="profile-modal-body">
-          
-          <div className="profile-modal-sidebar">
-            <div className="profile-modal-avatar-container">
-              <img 
-                className="profile-modal-avatar-img" 
-                src={avatarUrl} 
-                onError={(e) => { (e.target as HTMLImageElement).src = defaultAvatar; }}
+        {/* Body */}
+        <div className="pm-body">
+
+          {/* Sidebar */}
+          <div className="pm-sidebar">
+            <div className="pm-avatar-wrap">
+              <img
+                className="pm-avatar-img"
+                src={shownAvatar}
                 alt="Avatar"
+                onError={(e) => { (e.target as HTMLImageElement).src = defaultAvatar; }}
               />
-              <div className="profile-modal-avatar-badge">
-                <div className="profile-modal-avatar-badge-icon" />
-              </div>
-            </div>
-
-            <div className="profile-modal-meta-info">
-              <h3 className="profile-modal-username">{isEditing ? editFullName : (displayUser?.fullName || displayUser?.full_name || displayUser?.name)}</h3>
-              <span className="profile-modal-role-badge">{roleLabel}</span>
-            </div>
-          </div>
-
-          <div className="profile-modal-content">
-            <h4 className="profile-modal-section-title">Thông tin chi tiết</h4>
-
-            <div className="profile-modal-info-grid">
-              
-              {/* Họ và tên */}
-              <div className="profile-modal-info-col">
-                <span className="profile-modal-info-label">Họ và tên</span>
-                {isEditing ? (
-                  <input 
-                    type="text" 
-                    className="profile-modal-input-editing" 
-                    value={editFullName}
-                    onChange={(e) => setEditFullName(e.target.value)}
-                  />
-                ) : (
-                  <span className="profile-modal-info-value">{editFullName}</span>
-                )}
-              </div>
-
-              {/* Vai trò: KHÓA CHẶT */}
-              <div className="profile-modal-info-col">
-                <span className="profile-modal-info-label">Vai trò</span>
-                {isEditing ? (
-                  <input type="text" className="profile-modal-input-disabled" value={roleLabel} disabled />
-                ) : (
-                  <span className="profile-modal-info-value">{roleLabel}</span>
-                )}
-              </div>
-
-              {/* Gia đình: KHÓA CHẶT */}
-              <div className="profile-modal-info-col">
-                <span className="profile-modal-info-label">Gia đình</span>
-                {isEditing ? (
-                  <input type="text" className="profile-modal-input-disabled" value={familyName || "Chưa có gia đình"} disabled />
-                ) : (
-                  <span className="profile-modal-info-value">{familyName || "Chưa có gia đình"}</span>
-                )}
-              </div>
-
-              {/* Số điện thoại */}
-              <div className="profile-modal-info-col">
-                <span className="profile-modal-info-label">Số điện thoại</span>
-                {isEditing ? (
-                  <input 
-                    type="text" 
-                    className="profile-modal-input-editing" 
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value)}
-                  />
-                ) : (
-                  <span className="profile-modal-info-value">{editPhone || "Chưa cập nhật"}</span>
-                )}
-              </div>
-
-              {/* Giới tính - Dropdown */}
-              <div className="profile-modal-info-col">
-                <span className="profile-modal-info-label">Giới tính</span>
-                {isEditing ? (
-                  <select 
-                    className="profile-modal-select-editing"
-                    value={editGender}
-                    onChange={(e) => setEditGender(e.target.value)}
-                  >
-                    <option value="MALE">Nam</option>
-                    <option value="FEMALE">Nữ</option>
-                    <option value="OTHER">Khác</option>
-                  </select>
-                ) : (
-                  <span className="profile-modal-info-value">
-                    {editGender === "MALE" ? "Nam" : editGender === "FEMALE" ? "Nữ" : "Khác"}
-                  </span>
-                )}
-              </div>
-
-              {/* Email: KHÓA CHẶT */}
-              <div className="profile-modal-info-col">
-                <span className="profile-modal-info-label">Email</span>
-                {isEditing ? (
-                  <input type="text" className="profile-modal-input-disabled" value={email} disabled />
-                ) : (
-                  <span className="profile-modal-info-value">{email}</span>
-                )}
-              </div>
-
-            </div>
-
-            {/* =========================================================================
-                🎯 KHỐI XỬ LÝ MẬT KHẨU MỚI & XÁC NHẬN MẬT KHẨU VIỀN XANH (NEW)
-                ========================================================================= */}
-            {isMe && (
-              <div className="profile-modal-password-section-wrapper" style={{ marginTop: '16px' }}>
-                {isEditing ? (
-                  /* 🎯 TRẠNG THÁI EDIT: Tách đôi thành 2 ô input viền xanh song song */
-                  <div className="profile-modal-password-edit-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', width: '100%' }}>
-                    <div className="profile-modal-info-col">
-                      <span className="profile-modal-info-label" style={{ color: '#10B981', fontWeight: 'bold' }}>Mật khẩu mới</span>
-                      <input 
-                        type="password" 
-                        className="profile-modal-input-editing" 
-                        placeholder="Để trống nếu không đổi..."
-                        value={editPassword}
-                        onChange={(e) => setEditPassword(e.target.value)}
-                      />
-                    </div>
-                    <div className="profile-modal-info-col">
-                      <span className="profile-modal-info-label" style={{ color: '#10B981', fontWeight: 'bold' }}>Xác nhận mật khẩu mới</span>
-                      <input 
-                        type="password" 
-                        className="profile-modal-input-editing" 
-                        placeholder="Nhập lại mật khẩu mới..."
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  /* TRẠNG THÁI XEM: Giữ nguyên dòng bảo mật cũ */
-                  <div className="profile-modal-password-row">
-                    <div className="profile-modal-password-left">
-                      <span className="profile-modal-info-label">Mật khẩu</span>
-                      <span className="profile-modal-info-value">••••••••</span>
-                    </div>
-                    <button type="button" className="profile-modal-password-btn" onClick={() => setIsEditing(true)}>
-                      Đổi mật khẩu
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="profile-modal-actions">
-              {isMe && (
+              {isMe && isEditing && (
                 <>
-                  {!isEditing ? (
-                    <>
-                      <button 
-                        type="button" 
-                        className="profile-modal-btn-close" 
-                        onClick={handleLogoutClick}
-                        style={{ 
-                          borderColor: '#FEE2E2', 
-                          color: '#EF4444', 
-                          backgroundColor: 'rgba(239, 68, 68, 0.05)',
-                          fontWeight: '600'
-                        }}
-                      >
-                        Đăng xuất
-                      </button>
-                      <button 
-                        type="button" 
-                        className="profile-modal-btn-edit"
-                        onClick={() => setIsEditing(true)}
-                      >
-                        Chỉnh sửa thông tin
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button 
-                        type="button" 
-                        className="profile-modal-btn-close" 
-                        onClick={() => setIsEditing(false)} 
-                        disabled={isSubmitting}
-                        style={{ borderColor: '#D1D5DB', color: '#4B5563', backgroundColor: '#F3F4F6' }}
-                      >
-                        Hủy bỏ
-                      </button>
-                      <button 
-                        type="button" 
-                        className="profile-modal-btn-edit"
-                        onClick={handleSaveProfile} 
-                        disabled={isSubmitting}
-                        style={{ backgroundColor: '#10B981', borderColor: '#10B981', color: '#FFF' }}
-                      >
-                        {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
-                      </button>
-                    </>
-                  )}
+                  <button
+                    type="button"
+                    className={`pm-avatar-cam ${isUploadingAvatar ? "spinning" : ""}`}
+                    onClick={() => avatarInputRef.current?.click()}
+                    aria-label="Thay ảnh đại diện"
+                    disabled={isUploadingAvatar}
+                  >
+                    {isUploadingAvatar ? (
+                      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3Z"/>
+                        <circle cx="12" cy="13" r="3"/>
+                      </svg>
+                    )}
+                  </button>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={handleAvatarFileChange}
+                  />
                 </>
               )}
             </div>
 
+            <div className="pm-sidebar-meta">
+              <h3 className="pm-username">
+                {isEditing ? (editFullName || "—") : (displayUser?.fullName || displayUser?.full_name || "—")}
+              </h3>
+              <span className="pm-role-pill">{roleLabel}</span>
+              {familyName && <span className="pm-family-hint">{familyName}</span>}
+            </div>
           </div>
 
+          {/* Content */}
+          <div className="pm-content">
+            <p className="pm-section-title">Thông tin chi tiết</p>
+
+            <div className="pm-grid">
+
+              <div className="pm-field">
+                <span className="pm-label">Họ và tên</span>
+                {isEditing
+                  ? <input className="pm-input" value={editFullName} onChange={(e) => setEditFullName(e.target.value)} />
+                  : <span className="pm-value">{displayUser?.fullName || displayUser?.full_name || "—"}</span>}
+              </div>
+
+              <div className="pm-field">
+                <span className="pm-label">Email</span>
+                {isEditing
+                  ? <input className="pm-input pm-input-lock" value={email} disabled />
+                  : <span className="pm-value">{email}</span>}
+              </div>
+
+              <div className="pm-field">
+                <span className="pm-label">Số điện thoại</span>
+                {isEditing
+                  ? <input className="pm-input" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="Chưa cập nhật" />
+                  : <span className="pm-value">{editPhone || "Chưa cập nhật"}</span>}
+              </div>
+
+              <div className="pm-field">
+                <span className="pm-label">Giới tính</span>
+                {isEditing
+                  ? (
+                    <select className="pm-select" value={editGender} onChange={(e) => setEditGender(e.target.value)}>
+                      <option value="MALE">Nam</option>
+                      <option value="FEMALE">Nữ</option>
+                      <option value="OTHER">Khác</option>
+                    </select>
+                  )
+                  : <span className="pm-value">{genderLabel}</span>}
+              </div>
+
+              <div className="pm-field">
+                <span className="pm-label">Vai trò</span>
+                <span className="pm-value">{roleLabel}</span>
+              </div>
+
+              {isMe && (
+                <div className="pm-field">
+                  <span className="pm-label">Mật khẩu</span>
+                  {isEditing
+                    ? <input type="password" className="pm-input" placeholder="Để trống nếu không đổi" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} />
+                    : <span className="pm-value">••••••••</span>}
+                </div>
+              )}
+
+              {/* Xác nhận mật khẩu — chỉ khi edit và đang nhập */}
+              {isMe && isEditing && editPassword.length > 0 && (
+                <div className="pm-field pm-field-full">
+                  <span className="pm-label">Xác nhận mật khẩu mới</span>
+                  <input type="password" className="pm-input" placeholder="Nhập lại mật khẩu mới" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                </div>
+              )}
+
+            </div>
+
+            {/* Actions */}
+            {isMe && (
+              <div className="pm-actions">
+                {!isEditing ? (
+                  <>
+                    <button className="pm-btn-danger" onClick={handleLogout}>Đăng xuất</button>
+                    <button className="pm-btn-primary" onClick={() => setIsEditing(true)}>Chỉnh sửa thông tin</button>
+                  </>
+                ) : (
+                  <>
+                    <button className="pm-btn-ghost" onClick={handleCancel} disabled={isSubmitting}>Hủy bỏ</button>
+                    <button className="pm-btn-primary" onClick={handleSave} disabled={isSubmitting}>
+                      {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>,

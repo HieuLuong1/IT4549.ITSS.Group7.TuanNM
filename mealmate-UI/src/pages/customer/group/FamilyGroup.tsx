@@ -441,8 +441,28 @@ const FamilyGroup: React.FC = () => {
                       <div className={index === 0 ? "table-row" : "table-row-bordered"} key={member.id}>
                         <div className="td-id"><div className="td-id-text">#{member.id}</div></div>
                         <div className="td-member-info">
-                          <div className={`avatar-wrapper ${member.avatarClass}`}>
-                            <span className="avatar-text-placeholder">{member.fullName.charAt(0).toUpperCase()}</span>
+                          <div className={`avatar-wrapper ${member.avatarUrl ? '' : member.avatarClass}`}>
+                            {member.avatarUrl ? (
+                              <img
+                                src={member.avatarUrl}
+                                alt={member.fullName}
+                                className="avatar-img"
+                                onError={(e) => {
+                                  const target = e.currentTarget;
+                                  target.style.display = 'none';
+                                  const parent = target.parentElement;
+                                  if (parent) {
+                                    parent.classList.add(member.avatarClass);
+                                    const span = document.createElement('span');
+                                    span.className = 'avatar-text-placeholder';
+                                    span.textContent = member.fullName.charAt(0).toUpperCase();
+                                    parent.appendChild(span);
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <span className="avatar-text-placeholder">{member.fullName.charAt(0).toUpperCase()}</span>
+                            )}
                           </div>
                           <div className="member-name-box"><div className="member-name">{member.fullName}</div></div>
                         </div>
