@@ -72,6 +72,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   const showImage = Boolean(recipe.imageUrl) && !imageFailed;
   const hasExpiringIngredients = recipe.expiringIngredients.length > 0;
   const isLibrary = variant === "library";
+  const statusLabel = hasExpiringIngredients ? "🔥 Sắp hết hạn" : recipe.canCook ? "✅ Nấu được ngay" : null;
+  const statusClass = hasExpiringIngredients ? "expired" : recipe.canCook ? "ready" : "";
 
   return (
     <article
@@ -117,12 +119,17 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           <Heart filled={isFavorite} />
         </button>
 
-        {/* Badge trạng thái: chỉ hiển thị ở trang Gợi ý */}
-        {!isLibrary && (
-          <span className={`recipe-card-status ${hasExpiringIngredients ? "expired" : recipe.canCook ? "ready" : "partial"}`}>
-            {hasExpiringIngredients ? "Sắp hết hạn" : recipe.canCook ? "Nấu được ngay" : "Cần bổ sung"}
+        {/* Badges hàng dưới: trạng thái (suggestion only) + độ khó */}
+        <div className="recipe-card-badges">
+          {!isLibrary && statusLabel && (
+            <span className={`recipe-card-status ${statusClass}`}>
+              {statusLabel}
+            </span>
+          )}
+          <span className={`recipe-card-diff ${difficultyClass(recipe.difficulty)}`}>
+            {difficultyLabel(recipe.difficulty)}
           </span>
-        )}
+        </div>
       </div>
 
       <div className="recipe-card-body">
@@ -155,19 +162,6 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           </span>
         </div>
 
-        <div className="recipe-card-footer">
-          <span className={`recipe-card-diff ${difficultyClass(recipe.difficulty)}`}>
-            {difficultyLabel(recipe.difficulty)}
-          </span>
-          <div className="recipe-card-coverage">
-            <div className={`recipe-card-coverage-track ${tone}`}>
-              <div className="recipe-card-coverage-bar" style={{ width: `${recipe.coveragePercent}%` }} />
-            </div>
-            <span>
-              {recipe.matchedIngredients.length}/{recipe.ingredientCount}
-            </span>
-          </div>
-        </div>
       </div>
     </article>
   );

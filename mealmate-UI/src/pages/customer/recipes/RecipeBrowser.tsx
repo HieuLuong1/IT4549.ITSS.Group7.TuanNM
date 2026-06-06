@@ -185,9 +185,10 @@ const RecipeBrowser: React.FC<RecipeBrowserProps> = ({ variant, onBack, searchVa
       return true;
     });
 
-    // Sắp xếp: điểm cao nhất trước, nếu bằng điểm thì ưu tiên có nguyên liệu sắp hết hạn
+    // Sắp xếp:
+    //   1. % khớp nguyên liệu (coveragePercent) cao nhất trước.
+    //   2. Nếu bằng % khớp → ưu tiên công thức có nguyên liệu sắp hết hạn.
     return [...filtered].sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
       if (b.coveragePercent !== a.coveragePercent) return b.coveragePercent - a.coveragePercent;
       const aExpiring = a.expiringIngredients.length > 0 ? 1 : 0;
       const bExpiring = b.expiringIngredients.length > 0 ? 1 : 0;
