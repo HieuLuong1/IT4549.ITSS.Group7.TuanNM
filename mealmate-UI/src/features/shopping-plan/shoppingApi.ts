@@ -1,5 +1,10 @@
 import api from "@/services/api";
-import type { DailyPlanCardData, Food, ShoppingListItem } from "./shopping";
+import type {
+  DailyPlanCardData,
+  Food,
+  ShoppingListItem,
+  UserSummary,
+} from "./shopping";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -129,4 +134,14 @@ export const deleteShoppingList = async (listId: number): Promise<void> => {
   if (!response.data.success) {
     throw new Error(response.data.message || "Xóa kế hoạch thất bại.");
   }
+};
+
+export const getFamilyMembers = async (): Promise<UserSummary[]> => {
+  const response = await api.get(`/api/v1/users/users/family/members`);
+  if (!response.data.success) {
+    throw new Error(
+      response.data.message || "Không thể lấy danh sách thành viên.",
+    );
+  }
+  return response.data.data;
 };

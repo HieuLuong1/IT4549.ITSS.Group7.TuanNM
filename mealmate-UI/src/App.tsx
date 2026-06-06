@@ -6,8 +6,8 @@ import Login from '@/pages/auth/Login';
 import Register from '@/pages/auth/Register';
 import ProfileDetail from '@/pages/profile/ProfileDetail';
 
-import FamilyGroup from '@/pages/customer/group/FamilyGroup';
 import MyFridge from '@/pages/customer/fridge/MyFridge';
+import FamilyGroup from '@/pages/customer/group/FamilyGroup';
 import MenuSuggestion from '@/pages/customer/MenuSuggestion';
 import RecipeLibrary from '@/pages/customer/recipes/RecipeLibrary';
 import Reports from '@/pages/customer/Reports';
@@ -17,6 +17,7 @@ import FoodManagement from '@/pages/admin/FoodManagement';
 import PerformanceManagement from '@/pages/admin/PerformanceManagement';
 import RecipeManagement from '@/pages/admin/RecipeManagement';
 import UserManagement from '@/pages/admin/UserManagement';
+import { Toaster } from 'react-hot-toast';
 
 const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -60,34 +61,37 @@ const HomeRedirect: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <Routes>
-      <Route path="/customer/fridge" element={<Navigate to="/fridge" replace />} />
-      <Route path="/customer/family" element={<Navigate to="/family" replace />} />
-      <Route path="/customer/shopping" element={<Navigate to="/shopping" replace />} />
-      <Route path="/customer/suggestions" element={<Navigate to="/suggestions" replace />} />
-      <Route path="/customer/reports" element={<Navigate to="/reports" replace />} />
+    <> <Toaster position="top-center" reverseOrder={false} />
 
-      <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
-      <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />
+      <Routes>
+        <Route path="/customer/fridge" element={<Navigate to="/fridge" replace />} />
+        <Route path="/customer/family" element={<Navigate to="/family" replace />} />
+        <Route path="/customer/shopping" element={<Navigate to="/shopping" replace />} />
+        <Route path="/customer/suggestions" element={<Navigate to="/suggestions" replace />} />
+        <Route path="/customer/reports" element={<Navigate to="/reports" replace />} />
 
-      <Route path="/profile" element={<RequireAuth><ProfileDetail /></RequireAuth>} />
+        <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
+        <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />
 
-      <Route path="/family" element={<RequireAuth><FamilyGroup /></RequireAuth>} />
-      <Route path="/shopping" element={<RequireAuth><ShoppingPlanPage /></RequireAuth>} />
-      <Route path="/fridge" element={<RequireAuth><MyFridge /></RequireAuth>} />
-      <Route path="/recipes" element={<RequireAuth><RecipeLibrary /></RequireAuth>} />
-      <Route path="/suggestions" element={<RequireAuth><MenuSuggestion /></RequireAuth>} />
-      <Route path="/reports" element={<RequireAuth><Reports /></RequireAuth>} />
+        <Route path="/profile" element={<RequireAuth><ProfileDetail /></RequireAuth>} />
 
-      {/* Admin Routes */}
-      <Route path="/admin/users" element={<RequireAdmin><UserManagement /></RequireAdmin>} />
-      <Route path="/admin/foods" element={<RequireAdmin><FoodManagement /></RequireAdmin>} />
-      <Route path="/admin/recipes" element={<RequireAdmin><RecipeManagement /></RequireAdmin>} />
-      <Route path="/admin/performance" element={<RequireAdmin><PerformanceManagement /></RequireAdmin>} />
+        <Route path="/family" element={<RequireAuth><FamilyGroup /></RequireAuth>} />
+        <Route path="/shopping" element={<RequireAuth><ShoppingPlanPage /></RequireAuth>} />
+        <Route path="/fridge" element={<RequireAuth><MyFridge /></RequireAuth>} />
+        <Route path="/recipes" element={<RequireAuth><RecipeLibrary /></RequireAuth>} />
+        <Route path="/suggestions" element={<RequireAuth><MenuSuggestion /></RequireAuth>} />
+        <Route path="/reports" element={<RequireAuth><Reports /></RequireAuth>} />
 
-      <Route path="/" element={<HomeRedirect />} />
-      <Route path="*" element={<HomeRedirect />} />
-    </Routes>
+        {/* Admin Routes */}
+        <Route path="/admin/users" element={<RequireAdmin><UserManagement /></RequireAdmin>} />
+        <Route path="/admin/foods" element={<RequireAdmin><FoodManagement /></RequireAdmin>} />
+        <Route path="/admin/recipes" element={<RequireAdmin><RecipeManagement /></RequireAdmin>} />
+        <Route path="/admin/performance" element={<RequireAdmin><PerformanceManagement /></RequireAdmin>} />
+
+        <Route path="/" element={<HomeRedirect />} />
+        <Route path="*" element={<HomeRedirect />} />
+      </Routes>
+    </>
   );
 };
 

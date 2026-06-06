@@ -116,7 +116,6 @@ const ShoppingPlanPage: React.FC = () => {
                     <Topbar
                         title="Kế hoạch đi chợ"
                     />
-                    {/* title="Kế hoạch đi chợ" */}
                     <div className="shopping-page-body">
                         {/* 3. Toolbar: DatePicker và Nút lập kế hoạch */}
                         <div className="plan-toolbar">

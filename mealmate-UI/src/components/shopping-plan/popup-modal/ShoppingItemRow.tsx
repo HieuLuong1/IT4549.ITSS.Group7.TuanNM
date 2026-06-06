@@ -1,18 +1,22 @@
 import type { ShoppingListItem } from '@/features/shopping-plan/shopping';
-import { Check, X } from 'lucide-react';
+import { Check, ChevronDown, X } from 'lucide-react';
 import React from 'react';
 import './ShoppingItemRow.css';
 interface RowProps {
     item: ShoppingListItem;
     mode: 'CREATE' | 'DETAIL';
+    members?: any[];
     onUpdate?: (id: number, fields: Partial<ShoppingListItem>) => void;
     onDelete?: (id: number) => void;
     onToggleStatus?: (id: number) => void;
 }
 
-const ShoppingItemRow: React.FC<RowProps> = ({ item, mode, onUpdate, onDelete, onToggleStatus }) => {
+const ShoppingItemRow: React.FC<RowProps> = ({ item, mode, members = [], onUpdate, onDelete, onToggleStatus }) => {
 
     if (mode === 'CREATE') {
+        const selectedMember = members.find(m => m.id === item.assignedTo);
+        const displayName = selectedMember ? selectedMember.fullName : 'Chưa giao';
+
         return (
             <div className="shopping-row-edit">
                 <span className="food-name">{item.foodName || 'Thực phẩm'}</span>
@@ -26,9 +30,26 @@ const ShoppingItemRow: React.FC<RowProps> = ({ item, mode, onUpdate, onDelete, o
                     <span className="unit-label">{item.unit}</span>
                 </div>
 
-                <div className="assignee-select">
-                    {/* Hiển thị avatar và tên người phụ trách */}
-                    <span>{item.assignee?.name || 'Chưa giao'}</span>
+                <div className="assignee-select-wrapper">
+                    <span className="assignee-display-text">{displayName}</span>
+                    <ChevronDown size={14} className="assignee-chevron" />
+                    <select
+                        className="assignee-dropdown-hidden"
+                        value={item.assignedTo || ''}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            onUpdate?.(item.id, {
+                                assignedTo: val === '' ? undefined : Number(val)
+                            });
+                        }}
+                    >
+                        <option value="">Chưa giao</option>
+                        {members.map((m: any) => (
+                            <option key={m.id} value={m.id}>
+                                {m.fullName}
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
                 <button className="delete-row-btn" onClick={() => onDelete?.(item.id)}>
