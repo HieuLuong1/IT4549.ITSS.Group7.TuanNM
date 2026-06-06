@@ -3,11 +3,7 @@ package com.mealmate.shopping.model;
 import com.mealmate.catalog.model.Food;
 import com.mealmate.common.base.BaseEntity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -32,5 +28,20 @@ public class ShoppingListItem extends BaseEntity {
     private String unit;
     private String note;
     private Long assignedTo;
+    
+    @Column(name = "is_purchased")
     private Boolean isPurchased = false;
+
+    @Column(name = "custom_name")
+    private String customName;
+
+    @Column(name = "imported_to_fridge_at")
+    private java.time.LocalDateTime importedToFridgeAt;
+
+    @OneToOne(fetch = jakarta.persistence.FetchType.LAZY)
+    @jakarta.persistence.JoinColumn(name = "fridge_item_id")
+    private com.mealmate.fridge.model.FridgeItem fridgeItem;
+
+    @Column(name = "order_number")
+    private Integer orderNumber;
 }
