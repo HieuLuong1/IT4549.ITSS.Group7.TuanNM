@@ -224,7 +224,6 @@ CREATE TABLE recipes (
     preferred_meal_time VARCHAR(20)
         CHECK (preferred_meal_time IN ('BREAKFAST', 'LUNCH', 'DINNER')), -- Bữa ưu tiên: BREAKFAST, LUNCH, DINNER
 
-    display_status VARCHAR(50) DEFAULT 'SYSTEM', -- Loại: SYSTEM (món hệ thống), CUSTOM (món tự tạo)
     image_url VARCHAR(500),                  -- Ảnh minh họa món ăn
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

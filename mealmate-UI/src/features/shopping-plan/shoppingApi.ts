@@ -12,6 +12,65 @@ interface ApiResponse<T> {
   data: T;
 }
 
+type FamilyInfo = {
+  id?: number;
+  familyId?: number;
+  name?: string;
+  familyName?: string;
+};
+
+type StoredAuthUser = {
+  id?: number;
+  userId?: number;
+  familyId?: number;
+  familyName?: string;
+};
+
+const unwrapEnvelope = <T>(payload: T | ApiResponse<T>): T | null => {
+  if (payload && typeof payload === "object" && "data" in payload) {
+    const envelope = payload as ApiResponse<T>;
+    return envelope.success === false ? null : envelope.data;
+  }
+  return payload as T;
+};
+
+const normalizeFamilyInfo = (payload?: FamilyInfo | null): FamilyInfo | null => {
+  if (!payload) return null;
+
+  const rawId = Number(payload.familyId ?? payload.id);
+  if (!Number.isFinite(rawId) || rawId <= 0) return null;
+
+  const rawName = (payload.name || payload.familyName || "Gia đình").trim();
+  const name = rawName || "Gia đình";
+
+  return {
+    ...payload,
+    id: rawId,
+    familyId: rawId,
+    name,
+    familyName: name,
+  };
+};
+
+const readStoredAuthUser = (): StoredAuthUser | null => {
+  try {
+    const rawUser = localStorage.getItem("authUser");
+    if (!rawUser) return null;
+    return JSON.parse(rawUser) as StoredAuthUser;
+  } catch {
+    return null;
+  }
+};
+
+const getFamilyFromStoredSession = (): FamilyInfo | null => {
+  const storedUser = readStoredAuthUser();
+  return normalizeFamilyInfo({
+    id: storedUser?.familyId,
+    familyId: storedUser?.familyId,
+    name: storedUser?.familyName || localStorage.getItem("currentFamilyName") || undefined,
+  });
+};
+
 export interface ShoppingItemRequest {
   foodId: number;
   quantity: number;
@@ -38,11 +97,42 @@ export const getUserFamilies = async (): Promise<any[]> => {
 };
 
 export const getCurrentFamily = async (): Promise<any | null> => {
-  const response = await api.get("/api/v1/users/familys/current");
-  if (!response.data.success) {
-    return null;
+  try {
+    const response = await api.get<ApiResponse<FamilyInfo> | FamilyInfo>("/api/v1/users/familys/current");
+    const family = normalizeFamilyInfo(unwrapEnvelope<FamilyInfo>(response.data));
+    if (family) return family;
+  } catch (error) {
+    console.warn("Không lấy được current family từ /familys/current:", error);
   }
-  return response.data.data;
+
+  try {
+    const response = await api.get<ApiResponse<StoredAuthUser> | StoredAuthUser>("/api/v1/users/users/current");
+    const currentUser = unwrapEnvelope<StoredAuthUser>(response.data);
+    const family = normalizeFamilyInfo({
+      id: currentUser?.familyId,
+      familyId: currentUser?.familyId,
+      name: localStorage.getItem("currentFamilyName") || undefined,
+    });
+    if (family) return family;
+  } catch (error) {
+    console.warn("Không lấy được current user để fallback familyId:", error);
+  }
+
+  try {
+    const response = await api.get<ApiResponse<Array<FamilyInfo>> | Array<FamilyInfo>>("/api/v1/users/users/family/members");
+    const members = unwrapEnvelope<Array<FamilyInfo>>(response.data) || [];
+    const family = normalizeFamilyInfo(members.find((member) => member.familyId));
+    if (family) return family;
+  } catch (error) {
+    console.warn("Không lấy được members để fallback familyId:", error);
+  }
+
+  const storedFamily = getFamilyFromStoredSession();
+  if (storedFamily) {
+    return storedFamily;
+  }
+
+  return null;
 };
 
 /**

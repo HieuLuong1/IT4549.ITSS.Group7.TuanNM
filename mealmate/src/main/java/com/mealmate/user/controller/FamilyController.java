@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/users/familys")
+@RequestMapping({"/api/v1/users/familys", "/api/v1/users/family"})
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class FamilyController {

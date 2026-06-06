@@ -30,14 +30,15 @@ const ShoppingPlanPage: React.FC = () => {
     const fetchFamilyInfo = async () => {
         try {
             const family = await getCurrentFamily();
-            if (family?.id) {
-                setFamilyId(Number(family.id));
-                if (family.name) {
-                    localStorage.setItem("currentFamilyName", String(family.name).trim());
+            const resolvedFamilyId = Number(family?.id ?? family?.familyId);
+            if (Number.isFinite(resolvedFamilyId) && resolvedFamilyId > 0) {
+                setFamilyId(resolvedFamilyId);
+                const resolvedFamilyName = family?.name || family?.familyName;
+                if (resolvedFamilyName) {
+                    localStorage.setItem("currentFamilyName", String(resolvedFamilyName).trim());
                 }
             } else {
                 setFamilyId(null);
-                localStorage.removeItem("currentFamilyName");
             }
         } catch (error: any) {
             console.error("Lỗi lấy gia đình:", error.message);

@@ -115,15 +115,14 @@ public class ShoppingListService {
     }
 
     private String getVietnameseDayOfWeek(LocalDate date) {
-        return switch (date.getDayOfWeek()) {
-            case MONDAY -> "Thứ 2";
-            case TUESDAY -> "Thứ 3";
-            case WEDNESDAY -> "Thứ 4";
-            case THURSDAY -> "Thứ 5";
-            case FRIDAY -> "Thứ 6";
-            case SATURDAY -> "Thứ 7";
-            case SUNDAY -> "CN";
-        };
+        DayOfWeek dayOfWeek = date.getDayOfWeek();
+        if (dayOfWeek == DayOfWeek.MONDAY) return "Thứ 2";
+        if (dayOfWeek == DayOfWeek.TUESDAY) return "Thứ 3";
+        if (dayOfWeek == DayOfWeek.WEDNESDAY) return "Thứ 4";
+        if (dayOfWeek == DayOfWeek.THURSDAY) return "Thứ 5";
+        if (dayOfWeek == DayOfWeek.FRIDAY) return "Thứ 6";
+        if (dayOfWeek == DayOfWeek.SATURDAY) return "Thứ 7";
+        return "CN";
     }
 
     @Transactional

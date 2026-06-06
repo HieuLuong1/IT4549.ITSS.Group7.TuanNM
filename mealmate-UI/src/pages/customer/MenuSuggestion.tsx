@@ -152,6 +152,9 @@ const getAuthUserId = (contextUserId?: number) => {
   }
 };
 
+const hasSavedRecipes = (days: MenuPlanDay[]) =>
+  days.some((day) => day.meals.some((meal) => meal.recipes.length > 0));
+
 const getMealFromDay = (day: MenuPlanDay | undefined, mealType: MealType): MenuPlanMeal => {
   const meal = day?.meals.find((item) => item.mealType === mealType);
   return meal || { mealType, recipes: [] };
@@ -553,7 +556,7 @@ const MenuSuggestion: React.FC = () => {
     async (familyId: number, targetUserId: number, startDate: string) => {
       if (!Number.isFinite(familyId) || !Number.isFinite(targetUserId)) {
         setMenuDays([]);
-        return;
+        return [];
       }
 
       setIsLoadingPlan(true);
@@ -561,9 +564,11 @@ const MenuSuggestion: React.FC = () => {
         const endDate = toDateOnly(addDays(parseDateOnly(startDate), 6));
         const response = await recommendationApi.getMenuPlan({ familyId, userId: targetUserId, startDate, endDate });
         setMenuDays(response.days);
+        return response.days;
       } catch {
         showToast("Không tải được thực đơn đã lưu.", "error");
         setMenuDays([]);
+        return [];
       } finally {
         setIsLoadingPlan(false);
       }
@@ -575,11 +580,22 @@ const MenuSuggestion: React.FC = () => {
     if (!userId) return;
 
     loadFamily()
-      .then((currentFamily) =>
-        loadMenuPlan(currentFamily.id, userId, weekStartDate).catch((error: unknown) =>
-          showToast(getErrorMessage(error, "Không tải được thực đơn đã lưu."), "error")
-        )
-      )
+      .then(async (currentFamily) => {
+        const currentWeekDays = await loadMenuPlan(currentFamily.id, userId, weekStartDate);
+        if (hasSavedRecipes(currentWeekDays)) return;
+
+        const nextWeekStart = toDateOnly(addDays(parseDateOnly(weekStartDate), 7));
+        const nextWeekEnd = toDateOnly(addDays(parseDateOnly(nextWeekStart), 6));
+        const nextWeekPlan = await recommendationApi
+          .getMenuPlan({ familyId: currentFamily.id, userId, startDate: nextWeekStart, endDate: nextWeekEnd })
+          .catch(() => null);
+
+        if (nextWeekPlan?.days && hasSavedRecipes(nextWeekPlan.days)) {
+          setWeekStartDate(nextWeekStart);
+          setSelectedDate(nextWeekStart);
+          setMenuDays(nextWeekPlan.days);
+        }
+      })
       .catch((error: unknown) => showToast(getErrorMessage(error, "Không xác định được gia đình hiện tại."), "error"));
   }, [loadFamily, loadMenuPlan, showToast, userId, weekStartDate]);
 
