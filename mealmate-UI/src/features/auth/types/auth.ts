@@ -26,6 +26,7 @@ export interface AuthSession {
   tokenType?: string;
   email: string;
   fullName: string;
+  familyId?: number;
   role?: string;
 }
 
