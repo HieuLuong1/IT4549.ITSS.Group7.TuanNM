@@ -82,6 +82,15 @@ public class ShoppingController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Cập nhật ghi chú thành công", null));
     }
 
+    @PatchMapping("/items/{itemId}/note")
+    public ResponseEntity<ApiResponse<Void>> updateItemNote(
+            @PathVariable Long itemId,
+            @RequestBody java.util.Map<String, String> body) {
+        String note = body.get("note");
+        service.updateItemNote(itemId, note);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Cập nhật ghi chú thực phẩm thành công", null));
+    }
+
     @GetMapping("/frequent")
     public ResponseEntity<ApiResponse<List<FrequentItemSuggestionDTO>>> getFrequent(@RequestParam Long familyId) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Lấy danh sách thực phẩm thường mua thành công",

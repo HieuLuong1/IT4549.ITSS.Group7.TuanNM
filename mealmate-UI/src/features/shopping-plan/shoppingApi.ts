@@ -167,3 +167,14 @@ export const getFamilyMembers = async (): Promise<UserSummary[]> => {
   }
   return response.data.data;
 };
+
+export const updateItemNote = async (itemId: number, note: string): Promise<void> => {
+  const response = await api.patch<ApiResponse<void>>(
+    `/api/v1/shopping/items/${itemId}/note`,
+    { note }
+  );
+  if (!response.data.success) {
+    throw new Error(response.data.message || "Cập nhật ghi chú thực phẩm thất bại.");
+  }
+};
+

@@ -22,6 +22,7 @@ public class ShoppingMapper {
         dto.setQuantity(item.getQuantity());
         dto.setUnit(item.getUnit());
         dto.setIsPurchased(item.getIsPurchased());
+        dto.setNote(item.getNote());
 
         if (item.getFood() != null) {
             dto.setFoodId(item.getFood().getId());

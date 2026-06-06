@@ -162,3 +162,35 @@
     font-weight: 600;
     white-space: nowrap;
 }
+
+.food-info-edit {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.item-note-input {
+    font-size: 12px;
+    color: #94A3B8;
+    border: 1px solid transparent;
+    background: transparent;
+    outline: none;
+    padding: 2px 4px;
+    border-radius: 4px;
+    width: 100%;
+    margin-top: 2px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    transition: all 0.2s ease;
+}
+
+.item-note-input:focus {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+}
+
+.item-note-input::placeholder {
+    color: #cbd5e1;
+    font-style: italic;
+}

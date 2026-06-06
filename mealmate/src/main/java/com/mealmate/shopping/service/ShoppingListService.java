@@ -12,8 +12,8 @@ import org.springframework.stereotype.Service;
 
 import com.mealmate.catalog.repository.CategoryRepository;
 import com.mealmate.catalog.repository.FoodRepository;
-import com.mealmate.shopping.dto.FrequentItemSuggestionDTO;
 import com.mealmate.shopping.dto.DailyPlanSummaryDTO;
+import com.mealmate.shopping.dto.FrequentItemSuggestionDTO;
 import com.mealmate.shopping.dto.ShoppingItemDTO;
 import com.mealmate.shopping.dto.ShoppingListRequestDTO;
 import com.mealmate.shopping.mapper.ShoppingMapper;
@@ -56,6 +56,9 @@ public class ShoppingListService {
                     dto.setAssigneeName(u.getFullName());
                 });
             }
+            if (item.getNote() != null) {
+                dto.setNote(item.getNote());
+            }
 
             return dto;
         }).collect(Collectors.toList());
@@ -85,7 +88,9 @@ public class ShoppingListService {
                     .plannedDate(current.toString())
                     .dayOfWeek(dayOfWeekStr)
                     .displayDate(displayDateStr)
-                    .assigneeNames(new ArrayList<>());
+                    .assigneeNames(new ArrayList<>())
+                    .listId(null)
+                    .note(null);
 
             if (listOnDate != null) {
                 List<Long> assigneeIds = listOnDate.getItems().stream()
@@ -193,6 +198,14 @@ public class ShoppingListService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy danh sách cần cập nhật ghi chú."));
         list.setNote(note);
         repository.save(list);
+    }
+
+    @Transactional
+    public void updateItemNote(Long itemId, String note) {
+        ShoppingListItem item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thực phẩm cần cập nhật ghi chú."));
+        item.setNote(note);
+        itemRepository.save(item);
     }
 
     public List<FrequentItemSuggestionDTO> getFrequentItems(Long familyId) {
