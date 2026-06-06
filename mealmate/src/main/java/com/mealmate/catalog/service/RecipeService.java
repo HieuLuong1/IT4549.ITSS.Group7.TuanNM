@@ -75,8 +75,11 @@ public class RecipeService {
         repository.delete(recipe);
     }
 
-    public List<RecipeIngredient> findIngredientsByRecipeId(Long recipeId) {
-        return recipeIngredientRepository.findByRecipeId(recipeId);
+    public List<RecipeIngredientDetailResponse> findIngredientsByRecipeId(Long recipeId) {
+        return recipeIngredientRepository.findIngredientDetailsByRecipeId(recipeId)
+                .stream()
+                .map(this::toIngredientResponse)
+                .toList();
     }
 
     @Transactional

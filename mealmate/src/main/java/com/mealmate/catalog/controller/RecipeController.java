@@ -1,10 +1,12 @@
 package com.mealmate.catalog.controller;
 
 import com.mealmate.catalog.model.Recipe;
+import com.mealmate.catalog.model.RecipeIngredient;
 import com.mealmate.catalog.model.dto.RecipeCatalogResponse;
 import com.mealmate.catalog.model.dto.RecipeCreateRequest;
 import com.mealmate.catalog.model.dto.RecipeDetailResponse;
 import com.mealmate.catalog.model.dto.RecipeImageUpdateRequest;
+import com.mealmate.catalog.model.dto.RecipeIngredientDetailResponse;
 import com.mealmate.catalog.service.RecipeService;
 import com.mealmate.common.dto.ApiResponse;
 import jakarta.validation.Valid;
@@ -15,7 +17,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
-import com.mealmate.catalog.model.RecipeIngredient;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
@@ -103,13 +104,16 @@ public class RecipeController {
     }
 
     @GetMapping("/{id}/ingredients")
-    public ResponseEntity<ApiResponse<List<RecipeIngredient>>> getIngredients(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<List<RecipeIngredientDetailResponse>>> getIngredients(@PathVariable Long id) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Success", service.findIngredientsByRecipeId(id)));
     }
 
     @PostMapping("/{id}/ingredients")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<List<RecipeIngredient>>> updateIngredients(@PathVariable Long id, @RequestBody List<RecipeIngredient> ingredients) {
+    public ResponseEntity<ApiResponse<List<RecipeIngredient>>> updateIngredients(
+            @PathVariable Long id,
+            @RequestBody List<RecipeIngredient> ingredients
+    ) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Updated Ingredients", service.saveIngredients(id, ingredients)));
     }
 
