@@ -1,0 +1,180 @@
+.received-items-container {
+    width: 100%;
+    padding: 16px;
+    background: #fffaf3;
+    border: 1px solid #f6e0c4;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 2px 8px rgba(229, 150, 70, 0.06);
+}
+
+.received-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.received-icon-box {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #fdebd3;
+    border: 1px solid #e89b4c;
+    border-radius: 8px;
+}
+
+.received-icon-inner {
+    font-size: 14px;
+}
+
+.received-title {
+    flex: 1;
+    color: #c9772a;
+    font-size: 14px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin: 0;
+}
+
+.received-clear-btn {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #f1d2ac;
+    background: #ffffff;
+    color: #c9772a;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.received-clear-btn:hover {
+    background: #fdebd3;
+    border-color: #e89b4c;
+}
+
+.received-subtitle {
+    margin: 0;
+    color: #9a7a55;
+    font-size: 11.5px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    line-height: 1.45;
+}
+
+.received-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 240px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.received-list::-webkit-scrollbar {
+    width: 6px;
+}
+.received-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+.received-list::-webkit-scrollbar-thumb {
+    background: #f6e0c4;
+    border-radius: 3px;
+}
+.received-list::-webkit-scrollbar-thumb:hover {
+    background: #e89b4c;
+}
+
+/* Row layout – đồng bộ với FrequentItems */
+.received-row {
+    padding: 6px 12px;
+    background: #ffffff;
+    border: 1px solid #f6e0c4;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.received-row:hover {
+    border-color: #e89b4c;
+    box-shadow: 0 4px 12px rgba(229, 150, 70, 0.1);
+}
+
+/* Chấm tròn – thay thế emoji chip, giống check-dot của FrequentItems */
+.received-item-check {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    background: #ffffff;
+    border: 1px solid #e89b4c;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.received-check-dot {
+    width: 6px;
+    height: 6px;
+    background: #e89b4c;
+    border-radius: 50%;
+}
+
+.received-item-name {
+    flex: 1;
+    color: #171D1A;
+    font-size: 13px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 600;
+    line-height: 1.4;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.received-item-unit {
+    flex-shrink: 0;
+    color: #9a7a55;
+    font-size: 11px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    background: #fff5e9;
+    padding: 2px 6px;
+    border-radius: 10px;
+    border: 1px solid #f6e0c4;
+}
+
+.received-add-btn {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: none;
+    background: #e89b4c;
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+    padding: 0;
+}
+
+.received-add-btn:hover {
+    background: #d4842f;
+    transform: scale(1.15);
+}

@@ -622,3 +622,39 @@
     width: calc(100vw - 48px);
   }
 }
+
+/* Nút thêm thực phẩm vào Kế hoạch đi chợ */
+.food-detail-add-shopping {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 48px;
+  border: 1px solid #44BD97;
+  border-radius: 14px;
+  background: #f0faf7;
+  color: #2f8269;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.food-detail-add-shopping:hover:not(:disabled) {
+  background: #44BD97;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(68, 189, 151, 0.22);
+}
+.food-detail-add-shopping:hover:not(:disabled) img {
+  filter: brightness(0) invert(1);
+}
+.food-detail-add-shopping:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.food-detail-add-shopping img {
+  width: 18px;
+  height: 18px;
+}

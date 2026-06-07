@@ -40,6 +40,7 @@ import {
   removeFavoriteRecipe,
 } from "./recipes/recipeApi";
 import type { RecipeFromApi, RecipeIngredientFromApi } from "./recipes/recipeTypes";
+import { addPendingShoppingItems } from "@/features/shopping-plan/shoppingSuggestions";
 
 type ToastState = {
   message: string;
@@ -520,35 +521,28 @@ const MenuSuggestion: React.FC = () => {
   );
 
   const handleAddMissingToShopping = useCallback(
-    async (recipe: RecipeFromApi, missing: RecipeIngredientFromApi[]) => {
-      if (!family?.id || !userId) {
-        showToast("Cần có gia đình và tài khoản đăng nhập để thêm danh sách đi chợ.", "error");
+    (recipe: RecipeFromApi, missing: RecipeIngredientFromApi[]) => {
+      if (missing.length === 0) {
+        showToast("Món này đã đủ nguyên liệu, không cần thêm.", "success");
         return;
       }
-      if (missing.length === 0) return;
 
-      const targetDate = detailRecipeDate || selectedDate;
-      try {
-        const response = await recommendationApi.addMissingIngredientsToShoppingList(recipe.recipeId, {
-          familyId: family.id,
-          userId,
-          date: targetDate,
-          plannedDate: targetDate,
-          note: `Thiếu nguyên liệu cho ${recipe.name}`,
-        });
+      // Đẩy nguyên liệu còn thiếu sang hàng chờ của trang Kế hoạch đi chợ.
+      addPendingShoppingItems(
+        missing.map((item) => ({
+          foodId: item.foodId,
+          foodName: item.foodName,
+          unit: item.requiredUnit || "kg",
+          quantity: item.requiredQuantity ?? 1,
+          source: "MEAL_MISSING" as const,
+          note: `Thiếu cho ${recipe.name}`,
+        }))
+      );
 
-        showToast(
-          response.addedItemCount > 0
-            ? `Đã thêm ${response.addedItemCount} nguyên liệu thiếu vào danh sách đi chợ.`
-            : "Không có nguyên liệu thiếu mới cần thêm.",
-          "success"
-        );
-        closeRecipeDetail();
-      } catch (error) {
-        showToast(getErrorMessage(error, "Không thêm được nguyên liệu thiếu vào danh sách đi chợ."), "error");
-      }
+      showToast(`Đã thêm ${missing.length} nguyên liệu thiếu vào Kế hoạch đi chợ.`, "success");
+      closeRecipeDetail();
     },
-    [closeRecipeDetail, detailRecipeDate, family?.id, selectedDate, showToast, userId]
+    [closeRecipeDetail, showToast]
   );
 
   const loadFamily = useCallback(async () => {

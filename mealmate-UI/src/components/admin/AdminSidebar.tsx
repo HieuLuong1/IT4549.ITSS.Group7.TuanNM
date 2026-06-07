@@ -29,7 +29,7 @@ const AdminSidebar: React.FC = () => {
           <div className="sidebar-logo-box">
             <img src={iconLogo} alt="Logo" className="sidebar-logo-icon" />
           </div>
-          <span className="sidebar-brand-full">MealMate</span>
+          <span className="sidebar-brand-full">Fiza</span>
         </div>
       </div>
 

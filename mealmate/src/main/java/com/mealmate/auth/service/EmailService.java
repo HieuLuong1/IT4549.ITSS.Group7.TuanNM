@@ -32,13 +32,13 @@ public class EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setTo(toEmail);
-            helper.setSubject("MealMate - Xác thực tài khoản");
+            helper.setSubject("Fiza - Xác thực tài khoản");
 
             String verificationLink = baseUrl + "/api/auth/verify?token=" + token;
 
             String htmlContent = """
                     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                        <h2 style="color: #2e7d32;">🍽️ Chào mừng đến với MealMate!</h2>
+                        <h2 style="color: #2e7d32;">🍽️ Chào mừng đến với Fiza!</h2>
                         <p>Cảm ơn bạn đã đăng ký tài khoản. Vui lòng nhấn vào nút bên dưới để xác thực email:</p>
                         <div style="text-align: center; margin: 30px 0;">
                             <a href="%s"

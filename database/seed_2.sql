@@ -60,7 +60,7 @@ INSERT INTO notifications (user_id, category, severity, title, body, is_read, cr
 -- Hệ thống (INFO)
 ((SELECT id FROM users WHERE email = 'lan.nguyen@example.com'),
  'SYSTEM', 'INFO',
- '📱 Chào mừng đến với MealMate!',
+ '📱 Chào mừng đến với Fiza!',
  'Hệ thống đã được cập nhật với nhiều tính năng mới: gợi ý công thức thông minh, cảnh báo hết hạn tự động và kế hoạch đi chợ theo tuần.',
  TRUE, NOW() - INTERVAL '7 days');
 

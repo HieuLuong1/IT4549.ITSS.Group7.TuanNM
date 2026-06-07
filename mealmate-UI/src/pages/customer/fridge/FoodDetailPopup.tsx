@@ -8,6 +8,7 @@ import iconClose from "@/assets/icon/Icon-close.svg";
 import iconInfo from "@/assets/icon/Icon-info.svg";
 import iconMinus from "@/assets/icon/Icon-minus.svg";
 import iconPlus from "@/assets/icon/Icon-plus.svg";
+import iconShopping from "@/assets/icon/Icon-shopping.svg";
 
 type FoodDetailPopupProps = {
   food: FridgeItemFromApi;
@@ -18,6 +19,8 @@ type FoodDetailPopupProps = {
     removedReason: RemoveReasonCode,
     removedReasonNote?: string
   ) => Promise<void>;
+  /** Thêm thực phẩm này vào hàng chờ Kế hoạch đi chợ. */
+  onAddToShoppingPlan?: (food: FridgeItemFromApi) => void;
 };
 
 const REMOVE_REASONS: Array<{ label: string; value: RemoveReasonCode }> = [
@@ -182,6 +185,7 @@ const FoodDetailPopup: React.FC<FoodDetailPopupProps> = ({
   onClose,
   onSaveQuantity,
   onRemoveFood,
+  onAddToShoppingPlan,
 }) => {
   const formatQuantityInput = (value: number) =>
     Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
@@ -337,6 +341,18 @@ const FoodDetailPopup: React.FC<FoodDetailPopupProps> = ({
 
             <p>{getExpiryMessage(daysLeft)}</p>
           </section>
+
+          {onAddToShoppingPlan && (
+            <button
+              type="button"
+              className="food-detail-add-shopping"
+              onClick={() => onAddToShoppingPlan(food)}
+              disabled={isSaving}
+            >
+              <img src={iconShopping} alt="" />
+              Thêm vào Kế hoạch đi chợ
+            </button>
+          )}
 
           <section className="food-detail-section">
             <h3>Hướng dẫn bảo quản</h3>

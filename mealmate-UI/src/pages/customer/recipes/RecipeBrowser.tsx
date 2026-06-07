@@ -11,6 +11,7 @@ import {
   removeFavoriteRecipe,
 } from "./recipeApi";
 import type { RecipeFromApi, RecipeIngredientFromApi } from "./recipeTypes";
+import { addPendingShoppingItems } from "@/features/shopping-plan/shoppingSuggestions";
 
 type RecipeBrowserVariant = "suggestion" | "library";
 
@@ -162,8 +163,24 @@ const RecipeBrowser: React.FC<RecipeBrowserProps> = ({ variant, onBack, searchVa
 
   const handleAddMissingToShopping = useCallback(
     (recipe: RecipeFromApi, missing: RecipeIngredientFromApi[]) => {
+      if (missing.length === 0) {
+        setToast({ message: "Món này đã đủ nguyên liệu, không cần thêm.", variant: "info" });
+        return;
+      }
+
+      addPendingShoppingItems(
+        missing.map((item) => ({
+          foodId: item.foodId,
+          foodName: item.foodName,
+          unit: item.requiredUnit || "kg",
+          quantity: item.requiredQuantity ?? 1,
+          source: "RECIPE_MISSING" as const,
+          note: `Thiếu cho ${recipe.name}`,
+        }))
+      );
+
       setToast({
-        message: `Đã ghi nhận ${missing.length} nguyên liệu thiếu của "${recipe.name}" vào danh sách đi chợ.`,
+        message: `Đã thêm ${missing.length} nguyên liệu thiếu của "${recipe.name}" vào Kế hoạch đi chợ.`,
         variant: "success",
       });
       // Đóng popup sau khi thêm

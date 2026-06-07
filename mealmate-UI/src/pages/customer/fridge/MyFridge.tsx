@@ -8,6 +8,7 @@ import api from "@/services/api";
 import AddFoodToFridgeScreen from "./AddFoodToFridgeScreen";
 import FoodDetailPopup from "./FoodDetailPopup";
 import MenuSuggestionScreen from "../recipes/MenuSuggestionScreen";
+import { addPendingShoppingItems } from "@/features/shopping-plan/shoppingSuggestions";
 
 import iconAlert from "@/assets/icon/Icon-alert.svg";
 import iconArrow from "@/assets/icon/Icon-arrow.svg";
@@ -15,6 +16,7 @@ import iconBox from "@/assets/icon/Icon-box.svg";
 import iconClock from "@/assets/icon/Icon-clock.svg";
 import iconPlus from "@/assets/icon/Icon-plus.svg";
 import iconRecipe from "@/assets/icon/Icon-recipe.svg";
+import iconShopping from "@/assets/icon/Icon-shopping.svg";
 import angryFridgeIcon from "@/assets/icon/angry-fridge.svg";
 import happyFridgeIcon from "@/assets/icon/happy-fridge.svg";
 import neutralFridgeIcon from "@/assets/icon/neutral-fridge.svg";
@@ -518,6 +520,33 @@ const MyFridge: React.FC = () => {
     setToast({ message: "Đã loại thực phẩm khỏi tủ lạnh.", variant: "success" });
   };
 
+  const handleAddFoodToShoppingPlan = useCallback((item: FridgeItemFromApi) => {
+    const daysLeft = getDaysLeft(item.expiryDate);
+    const expiryState = getExpiryState(daysLeft);
+    const note =
+      expiryState === "expired"
+        ? "Đã hết hạn – cần mua lại"
+        : expiryState === "expiring"
+          ? "Sắp hết hạn"
+          : isAlmostOut(item)
+            ? "Sắp hết – cần bổ sung"
+            : "Bổ sung từ tủ lạnh";
+
+    addPendingShoppingItems([
+      {
+        foodId: item.foodId,
+        foodName: getFoodName(item),
+        unit: item.unit || "kg",
+        quantity: 1,
+        source: "FRIDGE_EXPIRING",
+        note,
+      },
+    ]);
+
+    setSelectedFood(null);
+    setToast({ message: `Đã thêm "${getFoodName(item)}" vào Kế hoạch đi chợ. ✨`, variant: "success" });
+  }, []);
+
   const handleFoodAdded = () => {
     setRefreshKey((current) => current + 1);
     loadFridgeOverview();
@@ -763,6 +792,7 @@ const MyFridge: React.FC = () => {
           onClose={() => setSelectedFood(null)}
           onSaveQuantity={handleSaveQuantity}
           onRemoveFood={handleRemoveFood}
+          /* Nút Thêm vào kế hoạch đã chuyển sang popup cảnh báo */
         />
       )}
 
@@ -791,23 +821,42 @@ const MyFridge: React.FC = () => {
                   const daysLeft = getDaysLeft(item.expiryDate);
 
                   return (
-                    <button
-                      className="fridge-alert-item"
-                      type="button"
-                      key={item.id}
-                      onClick={() => handleSelectAlertItem(item)}
-                    >
-                      <span className="fridge-alert-item-icon" style={{ backgroundColor: getFoodIconBg(item) }}>
-                        {getFoodIcon(item)}
-                      </span>
-                      <span className="fridge-alert-item-main">
-                        <strong>{getFoodName(item)}</strong>
-                        <span>
-                          {getQuantityText(item)} · {getDaysLeftLabel(daysLeft)}
-                        </span>
-                      </span>
-                      <img src={iconArrow} alt="" />
-                    </button>
+                    <div className="fridge-alert-item" key={item.id}>
+                      <div className="fridge-alert-item-summary">
+                        <div className="fridge-alert-item-icon" style={{ backgroundColor: getFoodIconBg(item) }}>
+                          {getFoodIcon(item)}
+                        </div>
+                        <div className="fridge-alert-item-main">
+                          <strong>{getFoodName(item)}</strong>
+                          <span>
+                            {getQuantityText(item)} · {getDaysLeftLabel(daysLeft)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="fridge-alert-add-shopping"
+                        title="Thêm vào kế hoạch đi chợ"
+                        onClick={() => {
+                          handleAddFoodToShoppingPlan(item);
+                          setActiveAlertType(null);
+                        }}
+                      >
+                        <img src={iconShopping} alt="" />
+                        <span>Thêm vào kế hoạch</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="fridge-alert-detail-btn"
+                        onClick={() => handleSelectAlertItem(item)}
+                        aria-label={`Xem chi tiết ${getFoodName(item)}`}
+                        title="Xem chi tiết"
+                      >
+                        <img src={iconArrow} alt="" />
+                      </button>
+                    </div>
                   );
                 })}
             </div>

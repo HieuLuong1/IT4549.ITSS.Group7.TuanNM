@@ -5,8 +5,10 @@ import { Edit3, Filter, Plus, Search, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import FrequentItems from "../FrequentItems";
+import ReceivedItems from "../ReceivedItems";
 import AddItemPopover from "../popover-modal/AddItemPopover";
 import CategoryGroup from "./CategoryGroup";
+import { getPendingShoppingItems, type PendingShoppingItem } from "@/features/shopping-plan/shoppingSuggestions";
 import './ShoppingModal.css';
 
 interface ShoppingModalProps {
@@ -78,6 +80,10 @@ const ShoppingModal = ({ isOpen, mode, data, onModeChange, onClose, familyId, on
             getFamilyMembers().then(data => setMembers(data));
             setFilterStatus(defaultFilter);
             setToggledPendingIds({});
+            // Tự mở bảng Gợi ý nếu có nguyên liệu vừa được gửi sang từ trang khác.
+            if (getPendingShoppingItems().length > 0) {
+                setShowSuggestions(true);
+            }
         }
     }, [isOpen, defaultFilter]);
 
@@ -243,6 +249,29 @@ const ShoppingModal = ({ isOpen, mode, data, onModeChange, onClose, familyId, on
             unit: item.unit || 'kg',
             categoryName: 'Khác',
             note: 'Gợi ý thường mua',
+            assignedTo: null,
+            isPurchased: false
+        };
+
+        setLocalItems(prev => [...prev, newItem]);
+        toast.success(`Đã thêm "${item.foodName}" vào danh sách! ✨`);
+    };
+
+    const handleAddFromReceived = (item: PendingShoppingItem) => {
+        const isExist = localItems.some(i => (i.foodId || i.food?.id) === item.foodId);
+        if (isExist) {
+            toast.error(`"${item.foodName}" đã có trong danh sách.`);
+            return;
+        }
+
+        const newItem: any = {
+            id: Date.now(),
+            foodId: item.foodId,
+            foodName: item.foodName,
+            quantity: item.quantity || 1,
+            unit: item.unit || 'kg',
+            categoryName: 'Khác',
+            note: item.note || 'Bổ sung từ gợi ý',
             assignedTo: null,
             isPurchased: false
         };
@@ -528,6 +557,7 @@ const ShoppingModal = ({ isOpen, mode, data, onModeChange, onClose, familyId, on
                 <div className="modal-body-layout">
                     {showSuggestions && (
                         <div className="modal-left-column">
+                            <ReceivedItems onItemAdd={handleAddFromReceived} />
                             <FrequentItems
                                 familyId={familyId}
                                 plans={plans}

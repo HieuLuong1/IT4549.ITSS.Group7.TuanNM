@@ -1,6 +1,6 @@
-# MealMate - Hệ thống đi chợ tiện lợi
+# Fiza - Hệ thống đi chợ tiện lợi
 
-MealMate là hệ thống hỗ trợ gia đình lập kế hoạch mua sắm, quản lý thực phẩm trong tủ lạnh, theo dõi hạn sử dụng, gợi ý món ăn từ nguyên liệu sẵn có và xây dựng thực đơn theo tuần.
+Fiza là hệ thống hỗ trợ gia đình lập kế hoạch mua sắm, quản lý thực phẩm trong tủ lạnh, theo dõi hạn sử dụng, gợi ý món ăn từ nguyên liệu sẵn có và xây dựng thực đơn theo tuần.
 
 ## Chức năng chính
 

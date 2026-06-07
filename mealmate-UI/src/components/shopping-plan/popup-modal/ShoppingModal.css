@@ -16,14 +16,14 @@
 /* Khung Modal chính */
 .modal-container {
     background: #F1F5F9; /* Màu nền xám nhạt */
-    width: 750px; /* Rộng 750px theo yêu cầu */
+    width: 880px; /* Tăng chiều ngang để cột trái rộng hơn */
     min-height: 640px; /* Giữ modal dài hơn khi chưa có thực phẩm */
     max-height: 90vh;    /* Không cao quá màn hình */
-    border-radius: 32px;
+    border-radius: 24px;
     display: flex;
     flex-direction: column;
     overflow: visible;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04); /* Đổ bóng mới */
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
     position: relative; /* Dành cho FAB lơ lửng */
 }
 
@@ -469,11 +469,14 @@
 }
 
 .modal-left-column {
-    width: 32%;
+    width: 34%;
     border-right: 1px solid #f1f5f9;
     padding: 16px;
     overflow-y: auto;
     background: #f4faf7; /* Light emerald suggestion background */
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* Giãn cách nhẹ giữa 2 khối */
 }
 
 .modal-right-column {
