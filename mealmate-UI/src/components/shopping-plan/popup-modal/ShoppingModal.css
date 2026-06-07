@@ -31,8 +31,9 @@
     background: white;
     padding: 32px;
     display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
     justify-content: space-between;
-    align-items: flex-start; /* Để Tiêu đề và Search bar nằm thẳng đỉnh */
     border-bottom: 1px solid #f1f5f9;
     overflow: visible; 
 }
@@ -42,6 +43,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px; /* Khoảng cách giữa chữ và datepicker */
+    flex-shrink: 1;
 }
 
 .modal-title {
@@ -49,6 +51,13 @@
     color: #4D9A80;
     font-weight: 700;
     margin: 0;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .modal-title {
+        font-size: 24px;
+    }
 }
 
 /* Khối bên phải: Search, Filter, Close */
@@ -56,7 +65,8 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    margin-top: 40px; 
+    margin-top: 0;
+    flex-shrink: 0;
 }
 
 .modal-search-wrapper {
@@ -67,6 +77,12 @@
     align-items: center;
     gap: 10px;
     width: 220px;
+    transition: width 0.3s ease;
+}
+
+.modal-search-wrapper.compact {
+    max-width: 200px;
+    width: 200px;
 }
 
 .modal-search-wrapper input {
@@ -101,28 +117,10 @@
     margin-left: 8px;
 }
 
-/* CHỈ CHO PHÉP SCROLL Ở ĐÂY - Khắc phục lỗi 2 thanh scroll */
-.modal-body {
-    flex: 1;
-    min-height: 320px;
-    overflow-y: auto; 
-    padding: 24px 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    /* Không dùng position: relative để FAB bám theo modal-container */
-}
-
 .modal-search-outer {
     position: relative;
     overflow: visible;
     z-index: 1100;
-}
-
-/* Ẩn scrollbar dư thừa cho sang trọng */
-.modal-body::-webkit-scrollbar {
-    width: 0px;
-    background: transparent;
 }
 
 .modal-footer {
@@ -140,6 +138,9 @@
     border-radius: 99px;
     font-size: 14px;
     border: 2px dashed #cbd5e0;
+    color: #19471e;
+    cursor: pointer;
+    background-color: #e2e8f0;
 }
 .footer-actions {
     display: flex;
@@ -150,24 +151,24 @@
     background: #44BD97;
     color: white;
     padding: 10px 30px;
-    border-radius: 999px; /* Bo góc 999px cho nút */
+    border-radius: 999px; 
     border: none;
     font-weight: bold;
     cursor: pointer;
 }
 .cancel-btn {
-    background: white; /* Nền nhạt */
-    color: #171D1A; /* Text chuẩn */
+    background: white; 
+    color: #171D1A;
     padding: 10px 30px;
-    border-radius: 999px; /* Bo góc 999px cho nút */
+    border-radius: 999px; 
     border: none;
     font-weight: bold;
     cursor: pointer;
 }   
 
 .delete-list-btn {
-    background: #FEE2E2; /* Đỏ nhạt */
-    color: #EF4444;    /* Chữ đỏ đậm */
+    background: #FEE2E2; 
+    color: #EF4444;   
     padding: 10px 20px;
     border-radius: 12px;
     border: none;
@@ -190,17 +191,16 @@
 }
 
 .fab-edit-btn {
-    /* Ép kích thước tròn trịa */
     width: 56px !important;
     height: 56px !important;
     min-width: 56px !important;
     min-height: 56px !important;
-    border-radius: 999px !important; /* Bo góc 999px / hình tròn */
+    border-radius: 999px !important;
 
     /* Vị trí "ghim" lại trên khung modal */
     position: absolute;
-    bottom: 100px;  /* Cách đáy 1 chút để tránh đè footer */
-    right: 32px;   /* Cách lề phải vùng thân 32px */
+    bottom: 100px; 
+    right: 32px;  
     
     /* Hiển thị */
     background: #44BD97; /* Primary Green */
@@ -231,7 +231,7 @@
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
-    width: 280px; /* Make it slightly wider or same as popover for consistency */
+    width: 280px;
     background: white;
     border-radius: 20px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
@@ -326,3 +326,168 @@
     z-index: 1010;
     overflow: visible;
 }
+
+.modal-search-wrapper {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.modal-search-wrapper.highlight-cue {
+    border-color: #44BD97;
+    box-shadow: 0 0 0 3px rgba(68, 189, 151, 0.2);
+    transform: scale(1.02);
+}
+
+.search-active-cue {
+    position: absolute;
+    top: -35px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #44BD97;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 4px 10px rgba(68, 189, 151, 0.3);
+    animation: bounceIn 0.5s ease forwards;
+    z-index: 10;
+}
+.search-active-cue::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #44BD97;
+}
+.highlight-cue input::placeholder {
+    color: #44BD97;
+    opacity: 0.6;
+    font-style: italic;
+}
+@keyframes bounceIn {
+    0% { transform: translateX(-50%) translateY(10px); opacity: 0; }
+    50% { transform: translateX(-50%) translateY(-5px); opacity: 1; }
+    100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+/* --- Filter Dropdown Menu Styles --- */
+.filter-dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+.filter-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e2e8f0;
+    min-width: 140px;
+    z-index: 1000;
+    overflow: hidden;
+    padding: 6px;
+    animation: fadeInDropdown 0.2s ease-out;
+}
+
+@keyframes fadeInDropdown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.filter-menu-item {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    padding: 10px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.filter-menu-item:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+.filter-menu-item.active {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.filter-btn.active {
+    color: #44BD97 !important;
+    background: #ecfdf5 !important;
+    border-color: #a7f3d0 !important;
+}
+
+/* --- Layout Modal mới Side-by-Side --- */
+.modal-body-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    height: calc(100% - 140px); /* Adjust height to fit header & footer */
+    background: #ffffff;
+}
+
+.modal-left-column {
+    width: 32%;
+    border-right: 1px solid #f1f5f9;
+    padding: 16px;
+    overflow-y: auto;
+    background: #f4faf7; /* Light emerald suggestion background */
+}
+
+.modal-right-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.modal-right-column .modal-body-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+}
+
+.suggestions-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #D9EFEC;
+    color: #047857;
+    border: none;
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    transition: all 0.2s ease;
+}
+
+.suggestions-toggle-btn:hover {
+    background: #a7f3d0;
+}
+
+.suggestions-toggle-btn.active {
+    background: #047857;
+    color: #ffffff;
+}
+

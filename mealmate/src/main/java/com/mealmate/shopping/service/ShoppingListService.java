@@ -16,6 +16,7 @@ import com.mealmate.shopping.dto.DailyPlanSummaryDTO;
 import com.mealmate.shopping.dto.FrequentItemSuggestionDTO;
 import com.mealmate.shopping.dto.ShoppingItemDTO;
 import com.mealmate.shopping.dto.ShoppingListRequestDTO;
+import com.mealmate.shopping.dto.WeeklyShoppingAggregateDTO;
 import com.mealmate.shopping.mapper.ShoppingMapper;
 import com.mealmate.shopping.model.ShoppingList;
 import com.mealmate.shopping.model.ShoppingListItem;
@@ -205,6 +206,81 @@ public class ShoppingListService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thực phẩm cần cập nhật ghi chú."));
         item.setNote(note);
         itemRepository.save(item);
+    }
+
+    public List<WeeklyShoppingAggregateDTO> getWeeklyAggregation(Long familyId, LocalDate startDate) {
+        LocalDate monday = startDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate sunday = monday.plusDays(6);
+        List<ShoppingList> lists = repository.findByFamilyIdAndPlannedDateBetween(familyId, monday, sunday);
+
+        // Map foodId to list of items to aggregate
+        java.util.Map<Long, List<ShoppingListItem>> groupedByFood = lists.stream()
+                .flatMap(list -> list.getItems().stream())
+                .collect(Collectors.groupingBy(item -> item.getFood().getId()));
+
+        List<WeeklyShoppingAggregateDTO> result = new ArrayList<>();
+
+        for (java.util.Map.Entry<Long, List<ShoppingListItem>> entry : groupedByFood.entrySet()) {
+            Long foodId = entry.getKey();
+            List<ShoppingListItem> items = entry.getValue();
+
+            ShoppingListItem firstItem = items.get(0);
+            String foodName = firstItem.getFood().getName();
+            String unit = firstItem.getUnit();
+
+            // Find Category
+            final String[] categoryName = {"Khác"};
+            final String[] foodIcon = {"📦"};
+            Long catId = firstItem.getFood().getCategoryId();
+            categoryRepository.findById(catId).ifPresent(cat -> {
+                categoryName[0] = cat.getName();
+                foodIcon[0] = cat.getIconKey();
+            });
+
+            double totalQuantity = items.stream().mapToDouble(ShoppingListItem::getQuantity).sum();
+            boolean isAllPurchased = items.stream().allMatch(ShoppingListItem::getIsPurchased);
+
+            List<Long> itemIds = items.stream().map(ShoppingListItem::getId).collect(Collectors.toList());
+
+            // Collect neededDays based on plannedDate of the shopping list
+            List<String> neededDays = items.stream()
+                    .map(item -> item.getShoppingList().getPlannedDate())
+                    .distinct()
+                    .sorted()
+                    .map(this::getVietnameseDayOfWeek)
+                    .collect(Collectors.toList());
+
+            result.add(WeeklyShoppingAggregateDTO.builder()
+                    .foodId(foodId)
+                    .foodName(foodName)
+                    .categoryName(categoryName[0])
+                    .foodIcon(foodIcon[0])
+                    .totalQuantity(totalQuantity)
+                    .unit(unit)
+                    .neededDays(neededDays)
+                    .isPurchased(isAllPurchased)
+                    .itemIds(itemIds)
+                    .build());
+        }
+
+        return result;
+    }
+
+    @Transactional
+    public void toggleWeeklyItemStatus(Long familyId, Long foodId, LocalDate startDate, boolean isPurchased) {
+        LocalDate monday = startDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate sunday = monday.plusDays(6);
+        List<ShoppingList> lists = repository.findByFamilyIdAndPlannedDateBetween(familyId, monday, sunday);
+
+        List<ShoppingListItem> itemsToUpdate = lists.stream()
+                .flatMap(list -> list.getItems().stream())
+                .filter(item -> item.getFood().getId().equals(foodId))
+                .collect(Collectors.toList());
+
+        for (ShoppingListItem item : itemsToUpdate) {
+            item.setIsPurchased(isPurchased);
+        }
+        itemRepository.saveAll(itemsToUpdate);
     }
 
     public List<FrequentItemSuggestionDTO> getFrequentItems(Long familyId) {

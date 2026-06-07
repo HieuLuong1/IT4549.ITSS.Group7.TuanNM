@@ -12,6 +12,11 @@
     margin-bottom: 20px;
 }
 
+.header-left {
+    display: flex;
+    align-items: center;
+}
+
 .category-icon-wrap {
     width: 44px;
     height: 44px;

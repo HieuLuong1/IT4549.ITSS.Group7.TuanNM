@@ -100,3 +100,16 @@ export interface ShoppingProgressStats {
   totalCategories: number;
   message: string;
 }
+
+export interface WeeklyShoppingAggregate {
+  foodId: number;
+  foodName: string;
+  categoryName: string;
+  foodIcon: string;
+  totalQuantity: number;
+  unit: string;
+  neededDays: string[];
+  isPurchased: boolean;
+  itemIds: number[];
+}
+

@@ -1,16 +1,17 @@
+import type { DailyPlanCardData } from '@/features/shopping-plan/shopping';
+import { getFrequentItems, getPlanDetail, saveShoppingPlan } from '@/features/shopping-plan/shoppingApi';
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { getFrequentItems, getPlanDetail, saveShoppingPlan } from '@/features/shopping-plan/shoppingApi';
-import type { DailyPlanCardData } from '@/features/shopping-plan/shopping';
 import './FrequentItems.css';
 
 interface FrequentItemsProps {
     familyId: number | null;
     plans: DailyPlanCardData[];
     onAddSuccess?: () => void;
+    onItemAdd?: (item: any) => void;
 }
 
-const FrequentItems: React.FC<FrequentItemsProps> = ({ familyId, plans, onAddSuccess }) => {
+const FrequentItems: React.FC<FrequentItemsProps> = ({ familyId, plans, onAddSuccess, onItemAdd }) => {
     const [frequentItems, setFrequentItems] = useState<any[]>([]);
 
     useEffect(() => {
@@ -32,34 +33,34 @@ const FrequentItems: React.FC<FrequentItemsProps> = ({ familyId, plans, onAddSuc
     };
 
     const handleAddClick = async (item: any) => {
+        if (onItemAdd) {
+            onItemAdd(item);
+            return;
+        }
+
         if (!familyId) {
             toast.error("Không tìm thấy thông tin gia đình.");
             return;
         }
 
         const todayDate = getTodayDateString();
-        
+
         try {
             toast.loading(`Đang thêm ${item.foodName}...`, { id: "frequent-add" });
-            
-            // Tìm xem ngày hôm nay đã có kế hoạch chưa
             const todayPlan = plans.find(p => p.plannedDate === todayDate);
             let existingItems: any[] = [];
-            
+
             if (todayPlan && todayPlan.listId) {
                 // Fetch danh sách hiện tại của hôm nay
                 const details = await getPlanDetail(familyId, todayDate);
                 existingItems = details || [];
             }
-
-            // Kiểm tra xem món ăn này đã có sẵn trong danh sách hôm nay chưa
             const isExist = existingItems.some((ex: any) => (ex.foodId || ex.food?.id) === item.id);
             if (isExist) {
                 toast.error(`"${item.foodName}" đã có trong danh sách hôm nay rồi.`, { id: "frequent-add" });
                 return;
             }
 
-            // Map danh sách hiện tại thành DTO payload
             const formattedExisting = existingItems.map((ex: any) => ({
                 foodId: Number(ex.foodId || ex.food?.id),
                 quantity: Number(ex.quantity),
@@ -87,7 +88,7 @@ const FrequentItems: React.FC<FrequentItemsProps> = ({ familyId, plans, onAddSuc
 
             await saveShoppingPlan(payload);
             toast.success(`Đã thêm "${item.foodName}" vào hôm nay! ✨`, { id: "frequent-add" });
-            
+
             if (onAddSuccess) {
                 onAddSuccess();
             }
@@ -117,23 +118,18 @@ const FrequentItems: React.FC<FrequentItemsProps> = ({ familyId, plans, onAddSuc
             <div className="frequent-list">
                 {displayItems.map((item) => (
                     <div key={item.id} className="frequent-row">
-                        <div className="frequent-row-left">
-                            <div className="frequent-item-check">
-                                <div className="check-dot"></div>
-                            </div>
-                            <span className="frequent-item-name">{item.foodName}</span>
+                        <div className="frequent-item-check">
+                            <div className="check-dot"></div>
                         </div>
-
-                        <div className="frequent-row-right">
-                            <span className="frequent-item-unit">{item.unit}</span>
-                            <button
-                                className="frequent-add-btn"
-                                onClick={() => handleAddClick(item)}
-                                title="Thêm vào hôm nay"
-                            >
-                                +
-                            </button>
-                        </div>
+                        <span className="frequent-item-name">{item.foodName}</span>
+                        <span className="frequent-item-unit">{item.unit}</span>
+                        <button
+                            className="frequent-add-btn"
+                            onClick={() => handleAddClick(item)}
+                            title="Thêm vào danh sách"
+                        >
+                            +
+                        </button>
                     </div>
                 ))}
             </div>

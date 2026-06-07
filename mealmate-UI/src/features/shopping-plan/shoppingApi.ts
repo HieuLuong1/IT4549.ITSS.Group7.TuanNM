@@ -4,6 +4,7 @@ import type {
   Food,
   ShoppingListItem,
   UserSummary,
+  WeeklyShoppingAggregate,
 } from "./shopping";
 
 interface ApiResponse<T> {
@@ -34,7 +35,9 @@ const unwrapEnvelope = <T>(payload: T | ApiResponse<T>): T | null => {
   return payload as T;
 };
 
-const normalizeFamilyInfo = (payload?: FamilyInfo | null): FamilyInfo | null => {
+const normalizeFamilyInfo = (
+  payload?: FamilyInfo | null,
+): FamilyInfo | null => {
   if (!payload) return null;
 
   const rawId = Number(payload.familyId ?? payload.id);
@@ -67,7 +70,10 @@ const getFamilyFromStoredSession = (): FamilyInfo | null => {
   return normalizeFamilyInfo({
     id: storedUser?.familyId,
     familyId: storedUser?.familyId,
-    name: storedUser?.familyName || localStorage.getItem("currentFamilyName") || undefined,
+    name:
+      storedUser?.familyName ||
+      localStorage.getItem("currentFamilyName") ||
+      undefined,
   });
 };
 
@@ -98,15 +104,21 @@ export const getUserFamilies = async (): Promise<any[]> => {
 
 export const getCurrentFamily = async (): Promise<any | null> => {
   try {
-    const response = await api.get<ApiResponse<FamilyInfo> | FamilyInfo>("/api/v1/users/familys/current");
-    const family = normalizeFamilyInfo(unwrapEnvelope<FamilyInfo>(response.data));
+    const response = await api.get<ApiResponse<FamilyInfo> | FamilyInfo>(
+      "/api/v1/users/familys/current",
+    );
+    const family = normalizeFamilyInfo(
+      unwrapEnvelope<FamilyInfo>(response.data),
+    );
     if (family) return family;
   } catch (error) {
     console.warn("Không lấy được current family từ /familys/current:", error);
   }
 
   try {
-    const response = await api.get<ApiResponse<StoredAuthUser> | StoredAuthUser>("/api/v1/users/users/current");
+    const response = await api.get<
+      ApiResponse<StoredAuthUser> | StoredAuthUser
+    >("/api/v1/users/users/current");
     const currentUser = unwrapEnvelope<StoredAuthUser>(response.data);
     const family = normalizeFamilyInfo({
       id: currentUser?.familyId,
@@ -119,9 +131,13 @@ export const getCurrentFamily = async (): Promise<any | null> => {
   }
 
   try {
-    const response = await api.get<ApiResponse<Array<FamilyInfo>> | Array<FamilyInfo>>("/api/v1/users/users/family/members");
+    const response = await api.get<
+      ApiResponse<Array<FamilyInfo>> | Array<FamilyInfo>
+    >("/api/v1/users/users/family/members");
     const members = unwrapEnvelope<Array<FamilyInfo>>(response.data) || [];
-    const family = normalizeFamilyInfo(members.find((member) => member.familyId));
+    const family = normalizeFamilyInfo(
+      members.find((member) => member.familyId),
+    );
     if (family) return family;
   } catch (error) {
     console.warn("Không lấy được members để fallback familyId:", error);
@@ -135,9 +151,7 @@ export const getCurrentFamily = async (): Promise<any | null> => {
   return null;
 };
 
-/**
- * 1. Lấy tóm tắt 7 ngày trong tuần (cho Grid)
- */
+// 1. Lấy tóm tắt 7 ngày trong tuần (cho Grid)
 export const getWeeklySummary = async (
   familyId: number,
   startDate: string,
@@ -156,9 +170,8 @@ export const getWeeklySummary = async (
   return response.data.data;
 };
 
-/**
- * 2. Lấy chi tiết món ăn của 1 ngày (cho Modal)
- */
+// 2. Lấy chi tiết món ăn của 1 ngày (cho Modal)
+
 export const getPlanDetail = async (
   familyId: number,
   date: string,
@@ -179,9 +192,8 @@ export const getPlanDetail = async (
   return response.data.data;
 };
 
-/**
- * 3. Đánh dấu đã mua / chưa mua (cho Checkbox)
- */
+// 3. Đánh dấu đã mua / chưa mua (cho Checkbox)
+
 export const toggleItemStatus = async (itemId: number): Promise<void> => {
   const response = await api.patch<ApiResponse<void>>(
     `/api/v1/shopping/items/${itemId}/toggle`,
@@ -192,9 +204,8 @@ export const toggleItemStatus = async (itemId: number): Promise<void> => {
   }
 };
 
-/**
- * 4. Tìm kiếm thực phẩm (cho Popover thêm đồ)
- */
+// 4. Tìm kiếm thực phẩm (cho Popover thêm đồ)
+
 export const searchFoods = async (query: string): Promise<Food[]> => {
   const response = await api.get<ApiResponse<Food[]>>(
     "/api/v1/shopping/foods/search",
@@ -210,9 +221,8 @@ export const searchFoods = async (query: string): Promise<Food[]> => {
   return response.data.data;
 };
 
-/**
- * 5. Lưu kế hoạch (Tạo mới hoặc Cập nhật)
- */
+// 5. Lưu kế hoạch (Tạo mới hoặc Cập nhật)
+
 export const saveShoppingPlan = async (
   payload: SaveShoppingPlanRequest,
 ): Promise<void> => {
@@ -235,10 +245,13 @@ export const deleteShoppingList = async (listId: number): Promise<void> => {
   }
 };
 
-export const updateShoppingListNote = async (listId: number, note: string): Promise<void> => {
+export const updateShoppingListNote = async (
+  listId: number,
+  note: string,
+): Promise<void> => {
   const response = await api.patch<ApiResponse<void>>(
     `/api/v1/shopping/${listId}/note`,
-    { note }
+    { note },
   );
   if (!response.data.success) {
     throw new Error(response.data.message || "Cập nhật ghi chú thất bại.");
@@ -248,10 +261,12 @@ export const updateShoppingListNote = async (listId: number, note: string): Prom
 export const getFrequentItems = async (familyId: number): Promise<any[]> => {
   const response = await api.get<ApiResponse<any[]>>(
     "/api/v1/shopping/frequent",
-    { params: { familyId } }
+    { params: { familyId } },
   );
   if (!response.data.success) {
-    throw new Error(response.data.message || "Lấy danh sách thực phẩm thường mua thất bại.");
+    throw new Error(
+      response.data.message || "Lấy danh sách thực phẩm thường mua thất bại.",
+    );
   }
   return response.data.data;
 };
@@ -266,13 +281,58 @@ export const getFamilyMembers = async (): Promise<UserSummary[]> => {
   return response.data.data;
 };
 
-export const updateItemNote = async (itemId: number, note: string): Promise<void> => {
+// Cập nhật note
+
+export const updateItemNote = async (
+  itemId: number,
+  note: string,
+): Promise<void> => {
   const response = await api.patch<ApiResponse<void>>(
     `/api/v1/shopping/items/${itemId}/note`,
-    { note }
+    { note },
   );
   if (!response.data.success) {
-    throw new Error(response.data.message || "Cập nhật ghi chú thực phẩm thất bại.");
+    throw new Error(
+      response.data.message || "Cập nhật ghi chú thực phẩm thất bại.",
+    );
   }
 };
 
+export const getWeeklyAggregate = async (
+  familyId: number,
+  startDate: string,
+): Promise<WeeklyShoppingAggregate[]> => {
+  const response = await api.get<ApiResponse<WeeklyShoppingAggregate[]>>(
+    "/api/v1/shopping/weekly/aggregate",
+    {
+      params: { familyId, startDate },
+    },
+  );
+
+  if (!response.data.success) {
+    throw new Error(
+      response.data.message || "Không thể lấy dữ liệu gộp tuần.",
+    );
+  }
+
+  return response.data.data;
+};
+
+export const toggleWeeklyItemStatus = async (
+  familyId: number,
+  foodId: number,
+  startDate: string,
+  isPurchased: boolean,
+): Promise<void> => {
+  const response = await api.patch<ApiResponse<void>>(
+    "/api/v1/shopping/weekly/toggle",
+    null,
+    {
+      params: { familyId, foodId, startDate, isPurchased },
+    },
+  );
+
+  if (!response.data.success) {
+    throw new Error(response.data.message || "Cập nhật trạng thái gộp thất bại.");
+  }
+};

@@ -1,108 +1,136 @@
-.note-section-container {
+.note-container {
     width: 100%;
-    min-height: 270px;
-    height: auto;
-    padding: 18px;
-    background: #fff8f0;
-    border: 1px solid #e8cdb9;
-    border-radius: 18px;
+    min-height: 180px;
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 24px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
     position: relative;
-    box-shadow: none;
-    margin-top: 0px;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+/* Hiệu ứng trượt lề trái chuyên nghiệp */
+.note-container::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    background: #44BD97;
+    opacity: 0.8;
+}
+
+.note-container.is-editing {
+    box-shadow: 0 15px 50px -10px rgba(68, 189, 151, 0.15);
+    border-color: rgba(68, 189, 151, 0.3);
+    transform: translateY(-2px);
 }
 
 .note-header {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    width: 100%;
-    position: relative;
-    margin-top: 0;
+    justify-content: space-between;
 }
 
-.note-icon-wrapper {
-    position: absolute;
-    top: -38px;
-    left: 0;
+.note-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.note-floating-icon {
-    width: 61px;
-    height: 61px;
-    filter: none;
+.note-accent-dot {
+    width: 8px;
+    height: 8px;
+    background: #44BD97;
+    border-radius: 50%;
 }
 
 .note-title {
-    color: #A2400B;
-    font-size: 15px;
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-weight: 700;
+    color: #1f2937;
+    font-size: 13px;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
+    letter-spacing: 1.5px;
     margin: 0;
 }
 
-.note-content-box {
-    align-self: stretch;
-    padding: 16px;
-    background: #fffdf8;
-    border-radius: 14px;
-    border: 1px solid #f0dcc9;
-    border-left: 4px #d98b59 solid;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.note-body {
     flex: 1;
 }
 
-.note-line {
-    color: #171D1A;
-    font-size: 14px;
+.note-text-line {
+    color: #4b5563;
+    font-size: 15px;
+    line-height: 1.7;
+    margin: 0 0 4px 0;
     font-family: 'Plus Jakarta Sans', sans-serif;
-    font-weight: 500;
-    line-height: 20px;
-    word-wrap: break-word;
 }
 
-.note-line:last-child {
-    color: black;
+.note-placeholder {
+    color: #9ca3af;
+    font-style: italic;
+    font-size: 14px;
 }
 
-.note-actions {
-    position: absolute;
-    top: 0;
-    right: 0;
-}
-
-.note-edit-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 4px;
+/* Nút bấm tinh tế hơn */
+.note-btn {
     display: flex;
     align-items: center;
-    justify-content: center;
-    transition: transform 0.1s ease;
+    gap: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-.note-edit-btn:hover {
-    transform: scale(1.1);
+.note-btn.edit {
+    background: #f8fafc;
+    color: #64748b;
+    padding: 8px;
+    border-radius: 12px;
+}
+
+.note-btn.edit:hover {
+    background: #f1f5f9;
+    color: #44BD97;
+}
+
+.note-btn.save {
+    background: #44BD97;
+    color: white;
+    padding: 6px 16px;
+    border-radius: 99px;
+    font-weight: 700;
+    font-size: 12px;
+    box-shadow: 0 4px 10px rgba(68, 189, 151, 0.3);
+}
+
+.note-btn.save:hover {
+    background: #047857;
+    transform: scale(1.05);
 }
 
 .note-textarea {
     width: 100%;
-    height: 100%;
-    min-height: 120px;
     border: none;
     outline: none;
-    background: transparent;
+    background: #f9fafb;
+    padding: 12px;
+    border-radius: 16px;
     font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 20px;
-    color: #171D1A;
+    font-size: 15px;
+    color: #111827;
     resize: none;
+    line-height: 1.6;
+    transition: background 0.2s;
+}
+
+.note-textarea:focus {
+    background: #f3f4f6;
 }

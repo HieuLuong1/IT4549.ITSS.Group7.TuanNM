@@ -11,6 +11,13 @@ interface WeeklyItemRowProps {
     onToggle: () => void;
 }
 
+const mapDayToShort = (day: string) => {
+    if (day.startsWith("Thứ")) {
+        return "T" + day.split(" ")[1];
+    }
+    return day; // e.g. CN
+};
+
 const WeeklyItemRow: React.FC<WeeklyItemRowProps> = ({ name, quantity, unit, usageDays, isPurchased, onToggle }) => {
     return (
         <div className={`weekly-item-row ${isPurchased ? 'completed' : ''}`}>
@@ -20,7 +27,11 @@ const WeeklyItemRow: React.FC<WeeklyItemRowProps> = ({ name, quantity, unit, usa
 
             <div className="item-info">
                 <span className="item-name">{name}</span>
-                <span className="item-usage">Cần cho: {usageDays.join(', ')}</span>
+                <div className="item-days">
+                    {usageDays.map((day) => (
+                        <span key={day} className="day-dot">{mapDayToShort(day)}</span>
+                    ))}
+                </div>
             </div>
 
             <div className="item-badge">

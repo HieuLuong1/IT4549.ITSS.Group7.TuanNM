@@ -22,6 +22,7 @@ import com.mealmate.shopping.dto.FrequentItemSuggestionDTO;
 import com.mealmate.shopping.dto.DailyPlanSummaryDTO;
 import com.mealmate.shopping.dto.ShoppingItemDTO;
 import com.mealmate.shopping.dto.ShoppingListRequestDTO;
+import com.mealmate.shopping.dto.WeeklyShoppingAggregateDTO;
 import com.mealmate.shopping.service.ShoppingListService;
 
 import lombok.RequiredArgsConstructor;
@@ -95,5 +96,23 @@ public class ShoppingController {
     public ResponseEntity<ApiResponse<List<FrequentItemSuggestionDTO>>> getFrequent(@RequestParam Long familyId) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Lấy danh sách thực phẩm thường mua thành công",
                 service.getFrequentItems(familyId)));
+    }
+
+    @GetMapping("/weekly/aggregate")
+    public ResponseEntity<ApiResponse<List<WeeklyShoppingAggregateDTO>>> getWeeklyAggregate(
+            @RequestParam Long familyId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Lấy danh sách gộp tuần thành công",
+                service.getWeeklyAggregation(familyId, startDate)));
+    }
+
+    @PatchMapping("/weekly/toggle")
+    public ResponseEntity<ApiResponse<Void>> toggleWeeklyItem(
+            @RequestParam Long familyId,
+            @RequestParam Long foodId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam boolean isPurchased) {
+        service.toggleWeeklyItemStatus(familyId, foodId, startDate, isPurchased);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Cập nhật trạng thái thành công", null));
     }
 }
