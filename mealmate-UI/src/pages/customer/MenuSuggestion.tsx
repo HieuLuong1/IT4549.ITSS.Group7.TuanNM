@@ -105,6 +105,14 @@ const mealMeta: Record<MealType, { label: string; time: string; icon: React.Reac
   },
 };
 
+const getMealDisplayLabel = (mealType?: string | null) => {
+  if (mealType === "BREAKFAST" || mealType === "LUNCH" || mealType === "DINNER") {
+    return mealMeta[mealType].label;
+  }
+
+  return mealType || "Món tự chọn";
+};
+
 const weekdayShort = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const weekdayLong = ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"];
 
@@ -1129,7 +1137,7 @@ const MenuSuggestion: React.FC = () => {
                 <p>Hệ thống ưu tiên nguyên liệu có trong tủ, hạn sử dụng, bữa ăn, món yêu thích và tránh lặp món gần đây.</p>
                 <button className="menu-primary-btn" type="button" onClick={() => openCreateModal("WEEK", selectedDate)}>
                   <Sparkles size={18} />
-                  Tạo thực đơn tuần
+                  Tạo thực đơn tự động
                 </button>
               </section>
             </aside>
@@ -1417,7 +1425,7 @@ const MenuSuggestion: React.FC = () => {
                           onClick={() => selectDraftRecipe(catalogRecipeToRecommendation(recipe))}
                         >
                           <strong>{recipe.name}</strong>
-                          <span>{recipe.preferredMealTime || recipe.displayStatus || "Món tự chọn"}</span>
+                          <span>{getMealDisplayLabel(recipe.preferredMealTime || recipe.displayStatus)}</span>
                         </button>
                       ))}
                   </div>
