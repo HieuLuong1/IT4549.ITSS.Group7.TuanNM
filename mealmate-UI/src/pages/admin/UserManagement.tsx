@@ -24,6 +24,8 @@ import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { AUTH_ROLES, getAuthRoleName, getRoleId, getRoleLabel } from '../../features/auth/role';
 
+const placeholderAvatar =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><rect width="120" height="120" rx="24" fill="%23f1f5f9"/><circle cx="60" cy="46" r="20" fill="%23cbd5e1"/><path d="M25 104c5-22 22-34 35-34s30 12 35 34" fill="%23cbd5e1"/></svg>';
 
 interface Role {
   id: number;
@@ -38,7 +40,6 @@ export interface User {
   phone?: string;
   gender?: 'MALE' | 'FEMALE' | 'OTHER';
   avatarUrl?: string;
-  emailVerified?: boolean;
   familyId?: number;
   familyName?: string;
   role?: Role;
@@ -90,7 +91,6 @@ const UserManagement: React.FC = () => {
   // Modals state
   const [showAddModal, setShowAddModal] = useState(false);
   const [viewUser, setViewUser] = useState<User | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<User | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
@@ -137,6 +137,7 @@ const UserManagement: React.FC = () => {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+  const visiblePages = getVisiblePages(currentPage, totalPages);
 
   const handleDelete = async (id: number) => {
     const targetUser = users.find((user) => user.id === id);
@@ -158,31 +159,6 @@ const UserManagement: React.FC = () => {
   const handleEditClick = (user: User) => {
     setViewUser(user);
     setEditData({ ...user });
-    setIsEditing(false);
-  };
-
-  const handleSaveEdit = async () => {
-    if (editData) {
-      try {
-        const payload = {
-          fullName: editData.fullName,
-          email: editData.email,
-          phone: editData.phone,
-          gender: editData.gender,
-          role: editData.role
-        };
-        const response = await api.put(`/api/v1/users/users/${editData.id}`, payload);
-        if (response.data?.success) {
-          const updatedUser = response.data.data;
-          setUsers(users.map(u => u.id === editData.id ? updatedUser : u));
-          setViewUser(updatedUser);
-          setIsEditing(false);
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Cập nhật thông tin thất bại.');
-      }
-    }
   };
 
   const handleAddUser = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -195,7 +171,8 @@ const UserManagement: React.FC = () => {
       email: formData.get('email') as string,
       phone: formData.get('phone') as string,
       gender: formData.get('gender') as string,
-      passwordHash: 'dummy_hash', // Mật khẩu tạm thời cho admin tạo
+      avatarUrl: formData.get('avatarUrl') as string,
+      passwordHash: formData.get('password') as string,
       role: {
         id: getRoleId(roleName),
         name: roleName
@@ -222,8 +199,8 @@ const UserManagement: React.FC = () => {
       <div className="um-main unshifted">
         <header className="um-header">
           <div className="um-header-left">
-            <h1 className="um-title">Quản lý người dùng</h1>
-            <p className="um-subtitle">Quản trị danh sách tài khoản toàn hệ thống</p>
+            <h1 className="um-title">Người dùng</h1>
+            <p className="um-subtitle">Tài khoản hệ thống</p>
           </div>
           <div className="um-header-right">
             <NotificationPanel variant="admin" />
@@ -298,7 +275,7 @@ const UserManagement: React.FC = () => {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden' }}>
                               <img 
-                                src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.fullName}`} 
+                                src={user.avatarUrl || placeholderAvatar} 
                                 alt="" 
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                               />
@@ -355,13 +332,13 @@ const UserManagement: React.FC = () => {
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   />
-                  {[...Array(totalPages)].map((_, i) => (
+                  {visiblePages.map((page) => (
                     <PageNum 
-                      key={i + 1} 
-                      active={currentPage === i + 1}
-                      onClick={() => setCurrentPage(i + 1)}
+                      key={page} 
+                      active={currentPage === page}
+                      onClick={() => setCurrentPage(page)}
                     >
-                      {i + 1}
+                      {page}
                     </PageNum>
                   ))}
                   <PageArrow 
@@ -384,6 +361,7 @@ const UserManagement: React.FC = () => {
                   <FormGroup label="Họ tên" name="name" placeholder="VD: Nguyễn Văn A" required />
                   <FormGroup label="Số điện thoại" name="phone" placeholder="090..." required />
                   <FormGroup label="Email" name="email" type="email" placeholder="email@example.com" required />
+                  <FormGroup label="Mật khẩu" name="password" type="password" placeholder="Mật khẩu đăng nhập" required />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Vai trò</label>
                     <select name="role" className="um-search-input" style={{ paddingLeft: '1rem' }}>
@@ -400,9 +378,8 @@ const UserManagement: React.FC = () => {
                       <option value="OTHER">Khác</option>
                     </select>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Ảnh đại diện</label>
-                    <input type="file" name="avatar" className="um-search-input" style={{ paddingLeft: '1rem', paddingTop: '0.5rem' }} accept="image/*" />
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <FormGroup label="Ảnh đại diện (URL)" name="avatarUrl" placeholder="VD: https://..." />
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
@@ -414,95 +391,20 @@ const UserManagement: React.FC = () => {
           )}
 
           {viewUser && editData && (
-            <SharedModal title={isEditing ? "Chỉnh sửa người dùng" : "Chi tiết người dùng"} onClose={() => { setViewUser(null); setIsEditing(false); }}>
+            <SharedModal title="Chi tiết người dùng" onClose={() => { setViewUser(null); }}>
               <div style={{ display: 'flex', gap: '2rem' }}>
                 <div style={{ width: '120px', height: '120px', borderRadius: '24px', overflow: 'hidden', backgroundColor: '#F1FAF6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <img src={viewUser.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${viewUser.fullName}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={viewUser.avatarUrl || placeholderAvatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
                 <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <DetailItem label="Mã người dùng" value={viewUser.id} readOnly />
-                  {isEditing ? (
-                    <>
-                      <FormGroup 
-                        label="Họ tên" 
-                        value={editData.fullName} 
-                        onChange={(e: any) => setEditData({ ...editData, fullName: e.target.value })} 
-                      />
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Vai trò</label>
-                        <select 
-                          className="um-search-input" 
-                          style={{ paddingLeft: '1rem' }}
-                          value={editData.role?.name}
-                          onChange={(e) => setEditData({ 
-                            ...editData, 
-                            role: { id: getRoleId(e.target.value), name: e.target.value }
-                          })}
-                        >
-                          {ROLE_OPTIONS.map((role) => (
-                            <option key={role.value} value={role.value}>{role.label}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Giới tính</label>
-                        <select 
-                          className="um-search-input" 
-                          style={{ paddingLeft: '1rem' }}
-                          value={editData.gender}
-                          onChange={(e) => setEditData({ ...editData, gender: e.target.value as any })}
-                        >
-                          <option value="MALE">Nam</option>
-                          <option value="FEMALE">Nữ</option>
-                          <option value="OTHER">Khác</option>
-                        </select>
-                      </div>
-                      <FormGroup 
-                        label="Số điện thoại" 
-                        value={editData.phone} 
-                        onChange={(e: any) => setEditData({ ...editData, phone: e.target.value })} 
-                      />
-                      <FormGroup 
-                        label="Email" 
-                        value={editData.email} 
-                        onChange={(e: any) => setEditData({ ...editData, email: e.target.value })} 
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <DetailItem label="Họ tên" value={viewUser.fullName} />
-                      <DetailItem label="Vai trò" value={getRoleLabel(viewUser.role ?? viewUser.roleName)} isBadge />
-                      <DetailItem label="Giới tính" value={viewUser.gender === 'MALE' ? 'Nam' : viewUser.gender === 'FEMALE' ? 'Nữ' : 'Khác'} />
-                      <DetailItem label="Số điện thoại" value={viewUser.phone} />
-                      <DetailItem label="Email" value={viewUser.email} />
-                    </>
-                  )}
+                  <DetailItem label="Họ tên" value={viewUser.fullName} />
+                  <DetailItem label="Vai trò" value={getRoleLabel(viewUser.role ?? viewUser.roleName)} isBadge />
+                  <DetailItem label="Giới tính" value={viewUser.gender === 'MALE' ? 'Nam' : viewUser.gender === 'FEMALE' ? 'Nữ' : 'Khác'} />
+                  <DetailItem label="Số điện thoại" value={viewUser.phone} />
+                  <DetailItem label="Email" value={viewUser.email} />
+                  <DetailItem label="Gia đình" value={viewUser.familyName || viewUser.familyId} />
                 </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
-                {isEditing ? (
-                  <>
-                    <button 
-                      onClick={() => setIsEditing(false)} 
-                      style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600, cursor: 'pointer' }}
-                    >
-                      Hủy
-                    </button>
-                    <button 
-                      onClick={handleSaveEdit} 
-                      className="um-btn-primary"
-                    >
-                      Lưu thay đổi
-                    </button>
-                  </>
-                ) : (
-                  <button 
-                    onClick={() => setIsEditing(true)} 
-                    className="um-btn-primary"
-                  >
-                    Chỉnh sửa thông tin
-                  </button>
-                )}
               </div>
             </SharedModal>
           )}
@@ -621,6 +523,15 @@ function PageArrow({ icon, disabled, onClick }: any) {
       {icon}
     </button>
   );
+}
+
+function getVisiblePages(currentPage: number, totalPages: number) {
+  if (totalPages <= 3) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+  if (currentPage <= 2) return [1, 2, 3];
+  if (currentPage >= totalPages - 1) return [totalPages - 2, totalPages - 1, totalPages];
+  return [currentPage - 1, currentPage, currentPage + 1];
 }
 
 export default UserManagement;

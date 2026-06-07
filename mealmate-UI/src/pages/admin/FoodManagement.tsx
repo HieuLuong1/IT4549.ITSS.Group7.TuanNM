@@ -25,6 +25,8 @@ import NotificationPanel from '../../components/common/NotificationPanel';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
+const placeholderImage =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" rx="18" fill="%23f1f5f9"/><path d="M49 102h62L94 79 80 95 69 84z" fill="%23cbd5e1"/><circle cx="63" cy="62" r="10" fill="%23cbd5e1"/></svg>';
 
 interface Category {
   id: number;
@@ -89,7 +91,7 @@ const FoodManagement: React.FC = () => {
         name: item.name,
         unit: item.unit || 'g',
         synonyms: item.synonyms ? item.synonyms.split(',').map((s: string) => s.trim()) : [],
-        imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500',
+        imageUrl: item.imageUrl || '',
         isSystem: item.isSystem ?? true
       }));
       setFoods(mappedFoods);
@@ -116,6 +118,7 @@ const FoodManagement: React.FC = () => {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentFoods = filteredFoods.slice(startIndex, startIndex + itemsPerPage);
+  const visiblePages = getVisiblePages(currentPage, totalPages);
 
   const handleEditClick = (food: Food) => {
     setViewFood(food);
@@ -169,7 +172,7 @@ const FoodManagement: React.FC = () => {
       categoryId: catId,
       unit: formData.get('unit') as string,
       synonyms: formData.get('synonyms') as string,
-      imageUrl: 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'
+      imageUrl: formData.get('imageUrl') as string
     };
 
     try {
@@ -181,7 +184,7 @@ const FoodManagement: React.FC = () => {
         name: response.data.name,
         unit: response.data.unit,
         synonyms: response.data.synonyms ? response.data.synonyms.split(',').map((s: string) => s.trim()) : [],
-        imageUrl: response.data.imageUrl || payload.imageUrl,
+        imageUrl: response.data.imageUrl || '',
         isSystem: response.data.isSystem ?? true
       };
       setFoods([newFood, ...foods]);
@@ -210,8 +213,8 @@ const FoodManagement: React.FC = () => {
       <div className="um-main unshifted">
         <header className="um-header">
           <div className="um-header-left">
-            <h1 className="um-title">Quản lý thực phẩm</h1>
-            <p className="um-subtitle">Danh mục nguyên liệu và thực phẩm hệ thống</p>
+            <h1 className="um-title">Thực phẩm</h1>
+            <p className="um-subtitle">Danh mục nguyên liệu</p>
           </div>
           <div className="um-header-right">
             <NotificationPanel variant="admin" />
@@ -246,10 +249,10 @@ const FoodManagement: React.FC = () => {
                     <tr>
                       <th style={{ width: '80px' }}>ID</th>
                       <th>Thực phẩm</th>
-                      <th>Nhóm</th>
-                      <th>Đơn vị</th>
+                      <th style={{ width: '150px' }}>Nhóm</th>
+                      <th style={{ width: '90px' }}>Đơn vị</th>
                       <th>Tên gọi khác</th>
-                      <th style={{ textAlign: 'center' }}>Thao tác</th>
+                      <th style={{ textAlign: 'center', width: '120px' }}>Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -258,15 +261,17 @@ const FoodManagement: React.FC = () => {
                         <td style={{ fontWeight: 700, color: '#94a3b8' }}>{food.id}</td>
                         <td style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                           <div style={{ width: '40px', height: '40px', borderRadius: '10px', overflow: 'hidden' }}>
-                            <img src={food.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img src={food.imageUrl || placeholderImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           </div>
                           <span style={{ fontWeight: 700 }}>{food.name}</span>
                         </td>
-                        <td><span className="um-role-badge">{food.categoryName}</span></td>
                         <td>
-                          <div style={{ display: 'flex', gap: '0.25rem' }}>
-                            <span style={{ fontSize: '12px', padding: '2px 8px', background: '#f1f5f9', borderRadius: '4px' }}>{food.unit}</span>
-                          </div>
+                          <span style={{ display: 'inline-flex', maxWidth: '130px', alignItems: 'center', padding: '0.25rem 0.65rem', borderRadius: '9999px', background: '#ecfdf5', color: 'var(--fiza-primary)', fontSize: '0.75rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {food.categoryName}
+                          </span>
+                        </td>
+                        <td>
+                          <span style={{ display: 'inline-flex', minWidth: '42px', justifyContent: 'center', fontSize: '0.8125rem', fontWeight: 700, padding: '0.25rem 0.55rem', background: '#f1f5f9', color: '#334155', borderRadius: '0.5rem' }}>{food.unit}</span>
                         </td>
                         <td style={{ color: '#64748b', fontSize: '0.875rem' }}>{food.synonyms.join(', ')}</td>
                         <td>
@@ -286,7 +291,7 @@ const FoodManagement: React.FC = () => {
                 <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8' }}>Hiển thị {startIndex+1}-{Math.min(startIndex+itemsPerPage, totalItems)} / {totalItems}</p>
                 <div style={{ display: 'flex', gap: '0.25rem' }}>
                   <PageArrow icon={<ChevronLeft size={18} />} disabled={currentPage === 1} onClick={() => setCurrentPage(c => c - 1)} />
-                  {[...Array(totalPages)].map((_, i) => <PageNum key={i+1} active={currentPage === i+1} onClick={() => setCurrentPage(i+1)}>{i+1}</PageNum>)}
+                  {visiblePages.map((page) => <PageNum key={page} active={currentPage === page} onClick={() => setCurrentPage(page)}>{page}</PageNum>)}
                   <PageArrow icon={<ChevronRight size={18} />} disabled={currentPage === totalPages} onClick={() => setCurrentPage(c => c + 1)} />
                 </div>
               </div>
@@ -300,7 +305,7 @@ const FoodManagement: React.FC = () => {
             <SharedModal title={isEditing ? "Cập nhật thực phẩm" : "Thông tin thực phẩm"} onClose={() => setViewFood(null)}>
               <div style={{ display: 'flex', gap: '2.5rem' }}>
                 <div style={{ width: '150px', height: '150px', borderRadius: '32px', overflow: 'hidden', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }}>
-                  <img src={viewFood.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={viewFood.imageUrl || placeholderImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
                 <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
                   <DetailItem label="Mã thực phẩm" value={viewFood.id} />
@@ -308,7 +313,7 @@ const FoodManagement: React.FC = () => {
                     <>
                       <FormGroup label="Tên thực phẩm" value={editData.name} onChange={(e: any) => setEditData({...editData, name: e.target.value})} />
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Chủng loại</label>
+                        <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Nhóm</label>
                         <select 
                           className="um-search-input" 
                           value={editData.categoryId} 
@@ -320,6 +325,9 @@ const FoodManagement: React.FC = () => {
                       </div>
                       <div style={{ gridColumn: 'span 2' }}>
                         <FormGroup label="Đơn vị" value={editData.unit} onChange={(e: any) => setEditData({...editData, unit: e.target.value})} />
+                      </div>
+                      <div style={{ gridColumn: 'span 2' }}>
+                        <FormGroup label="Ảnh thực phẩm (URL)" value={editData.imageUrl || ''} onChange={(e: any) => setEditData({...editData, imageUrl: e.target.value})} />
                       </div>
                       <div style={{ gridColumn: 'span 2' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
@@ -373,7 +381,9 @@ const FoodManagement: React.FC = () => {
                   ) : (
                     <>
                       <DetailItem label="Tên thực phẩm" value={viewFood.name} />
-                      <DetailItem label="Đơn vị đo" value={viewFood.unit} />
+                      <DetailItem label="Nhóm" value={viewFood.categoryName} />
+                      <DetailItem label="Đơn vị" value={viewFood.unit} />
+                      <DetailItem label="Dữ liệu hệ thống" value={viewFood.isSystem ? 'Có' : 'Không'} />
                       <div style={{ gridColumn: 'span 2' }}>
                         <DetailItem label="Tên gọi khác" value={viewFood.synonyms.join(', ') || 'Chưa có'} />
                       </div>
@@ -399,13 +409,16 @@ const FoodManagement: React.FC = () => {
               <form onSubmit={handleAddFood} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
                  <FormGroup label="Tên thực phẩm" name="name" required />
                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                   <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Chủng loại</label>
+                   <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Nhóm</label>
                    <select name="categoryId" className="um-search-input" style={{ paddingLeft: '1rem' }}>
                      {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                    </select>
                  </div>
-                 <FormGroup label="Đơn vị (kg, g, cái...)" name="unit" required />
+                 <FormGroup label="Đơn vị" name="unit" required />
                  <FormGroup label="Tên gọi khác" name="synonyms" />
+                 <div style={{ gridColumn: 'span 2' }}>
+                   <FormGroup label="Ảnh thực phẩm (URL)" name="imageUrl" placeholder="VD: https://..." />
+                 </div>
                  <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
                    <button type="button" onClick={() => setShowAddModal(false)} style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600 }}>Hủy</button>
                    <button type="submit" className="um-btn-primary">Tạo mới</button>
@@ -484,6 +497,15 @@ function PageNum({ children, active, onClick }: any) {
 
 function PageArrow({ icon, disabled, onClick }: any) {
   return <button disabled={disabled} onClick={onClick} style={{ border: 'none', background: 'transparent', opacity: disabled ? 0.3 : 1 }}>{icon}</button>;
+}
+
+function getVisiblePages(currentPage: number, totalPages: number) {
+  if (totalPages <= 3) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+  if (currentPage <= 2) return [1, 2, 3];
+  if (currentPage >= totalPages - 1) return [totalPages - 2, totalPages - 1, totalPages];
+  return [currentPage - 1, currentPage, currentPage + 1];
 }
 
 export default FoodManagement;

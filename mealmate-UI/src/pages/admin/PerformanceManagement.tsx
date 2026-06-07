@@ -37,6 +37,9 @@ import {
 import Modal from '../../components/admin/Modal';
 import api from '../../services/api';
 
+const placeholderImage =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" rx="18" fill="%23f1f5f9"/><path d="M49 102h62L94 79 80 95 69 84z" fill="%23cbd5e1"/><circle cx="63" cy="62" r="10" fill="%23cbd5e1"/></svg>';
+
 export interface UnidentifiedItem {
   id: string;
   type: 'meat' | 'ingredient';
@@ -62,15 +65,12 @@ const PerformanceManagement: React.FC = () => {
     userActivity: []
   });
   
-  // Unidentified items (kept local since it's a review queue)
-  const [unidentifiedItems, setUnidentifiedItems] = useState<UnidentifiedItem[]>([
-    { id: 'ui-1', type: 'meat', generalName: 'Thịt chung 1', actualName: 'Thịt cá sấu', note: 'Mua tại chợ đầu mối, cần cách chế biến phù hợp', submittedBy: 'Nguyễn Văn A', submittedAt: '2026-05-15' },
-    { id: 'ui-2', type: 'meat', generalName: 'Thịt chung 2', actualName: 'Thịt lươn đồng', note: 'Đặc sản vùng quê', submittedBy: 'Trần Thị B', submittedAt: '2026-05-16' },
-    { id: 'ui-3', type: 'ingredient', generalName: 'Nguyên liệu chung 1', actualName: 'Gia vị Tây Bắc', note: 'Mắc khén, hạt dổi hỗn hợp', submittedBy: 'Lê Văn C', submittedAt: '2026-05-14' },
-  ]);
+  const [unidentifiedItems, setUnidentifiedItems] = useState<UnidentifiedItem[]>([]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [uiSearchQuery, setUiSearchQuery] = useState('');
+  const [synonymPage, setSynonymPage] = useState(1);
+  const [synonymRowsPerPage, setSynonymRowsPerPage] = useState(10);
   const [inlineAdding, setInlineAdding] = useState<number | null>(null);
   const [inlineValue, setInlineValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -94,16 +94,21 @@ const PerformanceManagement: React.FC = () => {
   const [approveCategory, setApproveCategory] = useState<number>(1);
   const [approveUnit, setApproveUnit] = useState('kg');
   const [approveSynonyms, setApproveSynonyms] = useState('');
+  const [approveImageUrl, setApproveImageUrl] = useState('');
 
 
   const fetchStats = async () => {
     try {
       const response = await api.get('/api/v1/admin/stats');
-      if (response.data?.success) {
-        setStats(response.data.data);
-      } else {
-        setStats(response.data || {});
-      }
+      const payload = response.data?.success ? response.data.data : response.data;
+      setStats({
+        totalUsers: Number(payload?.totalUsers ?? 0),
+        totalFamilies: Number(payload?.totalFamilies ?? 0),
+        totalFoods: Number(payload?.totalFoods ?? 0),
+        totalRecipes: Number(payload?.totalRecipes ?? 0),
+        foodStats: Array.isArray(payload?.foodStats) ? payload.foodStats : [],
+        userActivity: Array.isArray(payload?.userActivity) ? payload.userActivity : [],
+      });
     } catch (err) {
       console.error('Lỗi khi tải thống kê:', err);
     }
@@ -155,10 +160,16 @@ const PerformanceManagement: React.FC = () => {
           imageUrl: food.imageUrl,
           synonyms: updatedVariants
         };
-        await api.put(`/api/foods/${foodId}`, payload);
+        const response = await api.put(`/api/foods/${foodId}`, payload);
+        const updatedFood = response.data || { ...food, synonyms: updatedVariants };
+        setFoods((currentFoods) => currentFoods.map((item) => item.id === foodId ? {
+          ...item,
+          ...updatedFood,
+          categoryName: updatedFood.categoryName || item.categoryName,
+          category: updatedFood.category || item.category,
+        } : item));
         setInlineValue('');
         setInlineAdding(null);
-        fetchFoods();
       } catch (err) {
         console.error(err);
         alert('Lỗi khi thêm tên gọi khác.');
@@ -180,8 +191,14 @@ const PerformanceManagement: React.FC = () => {
         imageUrl: food.imageUrl,
         synonyms: updatedVariants
       };
-      await api.put(`/api/foods/${foodId}`, payload);
-      fetchFoods();
+      const response = await api.put(`/api/foods/${foodId}`, payload);
+      const updatedFood = response.data || { ...food, synonyms: updatedVariants };
+      setFoods((currentFoods) => currentFoods.map((item) => item.id === foodId ? {
+        ...item,
+        ...updatedFood,
+        categoryName: updatedFood.categoryName || item.categoryName,
+        category: updatedFood.category || item.category,
+      } : item));
     } catch (err) {
       console.error(err);
       alert('Lỗi khi xóa tên gọi khác.');
@@ -219,11 +236,18 @@ const PerformanceManagement: React.FC = () => {
         name: food.name,
         categoryId: food.categoryId,
         unit: food.unit,
-        imageUrl: food.imageUrl,
+        imageUrl: food.imageUrl || '',
         synonyms: ''
       };
-      await api.put(`/api/foods/${foodId}`, payload);
-      fetchFoods();
+      const response = await api.put(`/api/foods/${foodId}`, payload);
+      const updatedFood = response.data || { ...food, synonyms: '' };
+      setFoods((currentFoods) => currentFoods.map((item) => item.id === foodId ? {
+        ...item,
+        ...updatedFood,
+        synonyms: '',
+        categoryName: updatedFood.categoryName || item.categoryName,
+        category: updatedFood.category || item.category,
+      } : item));
     } catch (err) {
       console.error(err);
       alert('Không thể xóa tên gọi địa phương.');
@@ -244,6 +268,7 @@ const PerformanceManagement: React.FC = () => {
     setApproveCategory(item.type === 'meat' ? 1 : 6);
     setApproveUnit('kg');
     setApproveSynonyms(item.generalName);
+    setApproveImageUrl('');
   };
 
   const handleSaveApproval = async () => {
@@ -254,7 +279,7 @@ const PerformanceManagement: React.FC = () => {
         categoryId: approveCategory,
         unit: approveUnit,
         synonyms: approveSynonyms,
-        imageUrl: 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'
+        imageUrl: approveImageUrl
       };
       await api.post('/api/foods', payload);
       alert(`Đã duyệt thực phẩm "${approveName}" vào hệ thống.`);
@@ -307,7 +332,7 @@ const PerformanceManagement: React.FC = () => {
   const foodSynonyms = foods.filter(f => f.synonyms && (f.synonyms as string).trim().length > 0).map(f => ({
     id: f.id,
     originalName: f.name,
-    type: 'food',
+    type: f.categoryName || f.category?.name || 'Chưa phân loại',
     variants: (f.synonyms as string).split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0)
   }));
 
@@ -315,6 +340,10 @@ const PerformanceManagement: React.FC = () => {
     s.originalName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.variants.some(v => v.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+  const synonymTotalPages = Math.max(1, Math.ceil(filteredSynonyms.length / synonymRowsPerPage));
+  const synonymStartIndex = (synonymPage - 1) * synonymRowsPerPage;
+  const pagedSynonyms = filteredSynonyms.slice(synonymStartIndex, synonymStartIndex + synonymRowsPerPage);
+  const visibleSynonymPages = getVisiblePages(synonymPage, synonymTotalPages);
 
   const itemsToSelect = foods.filter(f => 
     (!f.synonyms || f.synonyms.trim().length === 0) &&
@@ -330,8 +359,8 @@ const PerformanceManagement: React.FC = () => {
       <div className="um-main unshifted">
         <header className="um-header">
           <div className="um-header-left">
-            <h1 className="um-title">Quản lý hiệu suất</h1>
-            <p className="um-subtitle">Theo dõi báo cáo và tối ưu hóa hệ thống</p>
+            <h1 className="um-title">Hiệu suất</h1>
+            <p className="um-subtitle">Số liệu hệ thống</p>
           </div>
           <div className="um-header-right">
             <NotificationPanel variant="admin" />
@@ -385,7 +414,7 @@ const PerformanceManagement: React.FC = () => {
             {/* Charts Section */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="um-card" style={{ height: '400px' }}>
-                <h3 style={{ marginBottom: '1.5rem', fontSize: '1rem', fontWeight: 800, color: 'var(--fiza-primary)' }}>Lượt truy cập trong tuần</h3>
+                <h3 style={{ marginBottom: '1.5rem', fontSize: '1rem', fontWeight: 800, color: 'var(--fiza-primary)' }}>Lượt truy cập</h3>
                 <ResponsiveContainer width="100%" height="85%">
                   <BarChart data={stats.userActivity}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -445,8 +474,8 @@ const PerformanceManagement: React.FC = () => {
                     <tr>
                       <th style={{ width: '120px' }}>Phân loại</th>
                       <th style={{ width: '150px' }}>Tên loại chung</th>
-                      <th>Cụ thể (Người dùng nhập)</th>
-                      <th>Ghi chú / Chú thích</th>
+                      <th>Cụ thể</th>
+                      <th>Ghi chú</th>
                       <th>Người gửi</th>
                       <th>Ngày gửi</th>
                       <th style={{ textAlign: 'center', width: '100px' }}>Hành động</th>
@@ -519,8 +548,8 @@ const PerformanceManagement: React.FC = () => {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="um-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', gap: '2rem' }}>
                 <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--fiza-primary)' }}>Quản lý tên gọi địa phương</h3>
-                  <p style={{ fontSize: '0.875rem', color: '#64748b' }}>Đồng nhất tên gọi thực phẩm cho các vùng miền</p>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--fiza-primary)' }}>Tên gọi địa phương</h3>
+                  <p style={{ fontSize: '0.875rem', color: '#64748b' }}>Tên gọi khác theo nhóm</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', flex: 1, justifyContent: 'flex-end' }}>
                   <div className="um-search-container" style={{ maxWidth: '300px' }}>
@@ -530,9 +559,25 @@ const PerformanceManagement: React.FC = () => {
                       placeholder="Tìm kiếm tên gọi..." 
                       className="um-search-input"
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setSynonymPage(1);
+                      }}
                     />
                   </div>
+                  <select 
+                    className="um-search-input"
+                    value={synonymRowsPerPage}
+                    onChange={(e) => {
+                      setSynonymRowsPerPage(Number(e.target.value));
+                      setSynonymPage(1);
+                    }}
+                    style={{ width: '120px', paddingLeft: '0.875rem', fontWeight: 700, color: 'var(--fiza-primary)' }}
+                  >
+                    <option value={10}>10 dòng</option>
+                    <option value={20}>20 dòng</option>
+                    <option value={50}>50 dòng</option>
+                  </select>
                   <button onClick={() => { setSelectedItem(null); setStep(2); setShowAddModal(true); }} className="um-btn-primary">
                     <Plus size={20} />
                     Thêm từ đồng nghĩa
@@ -549,12 +594,12 @@ const PerformanceManagement: React.FC = () => {
                       <tr>
                         <th>Tên chuẩn</th>
                         <th style={{ width: '120px' }}>Loại</th>
-                        <th>Các biến thể / Tên gọi khác</th>
+                        <th>Tên gọi khác</th>
                         <th style={{ textAlign: 'center', width: '120px' }}>Hành động</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredSynonyms.map(item => (
+                      {pagedSynonyms.map(item => (
                         <tr key={item.id}>
                           <td style={{ fontWeight: 800, color: 'var(--fiza-primary)' }}>{item.originalName}</td>
                           <td>
@@ -565,9 +610,9 @@ const PerformanceManagement: React.FC = () => {
                               fontWeight: 800, 
                               textTransform: 'uppercase',
                               backgroundColor: '#E1F2EB',
-                              color: 'var(--mint-green)'
+                              color: 'var(--fiza-primary)'
                             }}>
-                              Thực phẩm
+                              {item.type}
                             </span>
                           </td>
                           <td>
@@ -651,6 +696,38 @@ const PerformanceManagement: React.FC = () => {
                   </table>
                 </div>
               )}
+              {filteredSynonyms.length > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', gap: '1rem' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>
+                    Hiển thị {synonymStartIndex + 1} - {Math.min(synonymStartIndex + synonymRowsPerPage, filteredSynonyms.length)} trên {filteredSynonyms.length} dòng
+                  </p>
+                  <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                    <button
+                      disabled={synonymPage === 1}
+                      onClick={() => setSynonymPage((page) => Math.max(1, page - 1))}
+                      style={{ padding: '0.5rem 0.75rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', color: '#64748b', fontWeight: 800, cursor: synonymPage === 1 ? 'default' : 'pointer', opacity: synonymPage === 1 ? 0.45 : 1 }}
+                    >
+                      Trước
+                    </button>
+                    {visibleSynonymPages.map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => setSynonymPage(page)}
+                        style={{ width: '34px', height: '34px', borderRadius: '50%', border: 'none', background: page === synonymPage ? 'var(--mint-green)' : 'transparent', color: page === synonymPage ? 'white' : '#64748b', fontWeight: 800, cursor: 'pointer' }}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button
+                      disabled={synonymPage === synonymTotalPages}
+                      onClick={() => setSynonymPage((page) => Math.min(synonymTotalPages, page + 1))}
+                      style={{ padding: '0.5rem 0.75rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', color: '#64748b', fontWeight: 800, cursor: synonymPage === synonymTotalPages ? 'default' : 'pointer', opacity: synonymPage === synonymTotalPages ? 0.45 : 1 }}
+                    >
+                      Sau
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
 
           </main>
@@ -694,7 +771,7 @@ const PerformanceManagement: React.FC = () => {
                         onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                       >
                         <div style={{ width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#f1f5f9' }}>
-                          <img src={item.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={item.imageUrl || placeholderImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
                         <div style={{ flex: 1 }}>
                           <p style={{ fontWeight: 700, color: 'var(--fiza-primary)', fontSize: '0.9375rem' }}>{item.name}</p>
@@ -715,7 +792,7 @@ const PerformanceManagement: React.FC = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <div style={{ width: '48px', height: '48px', borderRadius: '12px', overflow: 'hidden' }}>
-                        <img src={selectedItem.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src={selectedItem.imageUrl || placeholderImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
                       <div>
                         <p style={{ fontWeight: 800, color: 'var(--fiza-primary)' }}>{selectedItem.name}</p>
@@ -812,6 +889,18 @@ const PerformanceManagement: React.FC = () => {
                   className="um-search-input" 
                   style={{ paddingLeft: '1rem' }}
                   placeholder="VD: Lợn nái, Heo nái..." 
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Ảnh thực phẩm (URL)</label>
+                <input
+                  type="text"
+                  value={approveImageUrl}
+                  onChange={(e) => setApproveImageUrl(e.target.value)}
+                  className="um-search-input"
+                  style={{ paddingLeft: '1rem' }}
+                  placeholder="VD: https://..."
                 />
               </div>
 
@@ -920,7 +1009,7 @@ const PerformanceManagement: React.FC = () => {
                   <DetailItem label="Ngày gửi" value={viewingItem.submittedAt} />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.5rem' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Ghi chú / Chú thích của người dùng</span>
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Ghi chú</span>
                   <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '1rem', border: '1px solid #e2e8f0', fontSize: '0.875rem', color: '#475569', lineHeight: 1.5 }}>
                     {viewingItem.note || 'Không có ghi chú.'}
                   </div>
@@ -1034,6 +1123,15 @@ function DetailItem({ label, value, isBadge }: any) {
       )}
     </div>
   );
+}
+
+function getVisiblePages(currentPage: number, totalPages: number) {
+  if (totalPages <= 3) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+  if (currentPage <= 2) return [1, 2, 3];
+  if (currentPage >= totalPages - 1) return [totalPages - 2, totalPages - 1, totalPages];
+  return [currentPage - 1, currentPage, currentPage + 1];
 }
 
 export default PerformanceManagement;
