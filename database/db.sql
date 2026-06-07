@@ -222,7 +222,7 @@ CREATE TABLE recipes (
     author VARCHAR(255),                     -- Tác giả công thức
 
     preferred_meal_time VARCHAR(20)
-    CHECK (preferred_meal_time IN ('BREAKFAST', 'LUNCH', 'DINNER')),         -- Bữa ăn phù hợp: BREAKFAST, LUNCH, DINNER
+        CHECK (preferred_meal_time IN ('BREAKFAST', 'LUNCH', 'DINNER')), -- Bữa ưu tiên: BREAKFAST, LUNCH, DINNER
 
     image_url VARCHAR(500),                  -- Ảnh minh họa món ăn
 
@@ -298,10 +298,11 @@ CREATE TABLE meal_items (
 -- 8. DỮ LIỆU MẶC ĐỊNH
 -- ==========================================
 
--- Tạo 2 vai trò mặc định
+-- Tạo 3 vai trò mặc định
 INSERT INTO roles (name, description) VALUES
 ('ADMIN', 'Quản trị viên hệ thống - toàn quyền truy cập'),
-('CUSTOMER', 'Khách hàng / thành viên gia đình');
+('CUSTOMER', 'Khách hàng / thành viên gia đình'),
+('HOUSEKEEPER', 'Chủ nhà hoặc người nội trợ chính, quản lý gia đình và kế hoạch ăn uống');
 
 CREATE TABLE invitations (
     id SERIAL PRIMARY KEY,
@@ -315,3 +316,21 @@ CREATE TABLE invitations (
     CONSTRAINT fk_invite_receiver FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+
+-- ==========================================
+-- NOTIFICATIONS
+-- ==========================================
+CREATE TABLE IF NOT EXISTS notifications (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    category    VARCHAR(30)  NOT NULL CHECK (category IN ('FRIDGE','SHOPPING','MEAL','GROUP','SYSTEM')),
+    severity    VARCHAR(20)  NOT NULL DEFAULT 'NORMAL' CHECK (severity IN ('INFO','NORMAL','MEDIUM','HIGH')),
+    title       VARCHAR(255) NOT NULL,
+    body        TEXT,
+    is_read     BOOLEAN      NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id    ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_is_read    ON notifications(user_id, is_read);

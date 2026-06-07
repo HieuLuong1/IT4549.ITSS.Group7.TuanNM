@@ -18,8 +18,11 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NavLink } from 'react-router-dom';
+import AdminSidebar from '../../components/admin/AdminSidebar';
 import SharedModal from '../../components/admin/Modal';
+import NotificationPanel from '../../components/common/NotificationPanel';
 import api from '../../services/api';
+import { uploadFile } from '../../features/uploads/uploadApi';
 import { useAuth } from '../../context/AuthContext';
 
 
@@ -63,6 +66,13 @@ const RecipeManagement: React.FC = () => {
 
   // New Recipe State for Add Modal
   const [newIngredients, setNewIngredients] = useState<Ingredient[]>([{ name: '', amount: '' }]);
+
+  // Image upload state for Add Modal
+  const [addImageMode, setAddImageMode]       = useState<'url' | 'upload'>('url');
+  const [addImageUrl, setAddImageUrl]         = useState('');
+  const [addImageUploaded, setAddImageUploaded] = useState('');
+  const [addImageUploading, setAddImageUploading] = useState(false);
+  const addImageInputRef = React.useRef<HTMLInputElement>(null);
 
   // Regional names inline adding state
   const [inlineAdding, setInlineAdding] = useState(false);
@@ -227,6 +237,23 @@ const RecipeManagement: React.FC = () => {
     }
   };
 
+  const handleAddRecipeImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { alert('Chỉ chấp nhận file ảnh!'); return; }
+    if (file.size > 8 * 1024 * 1024) { alert('Ảnh không được vượt quá 8 MB!'); return; }
+    setAddImageUploading(true);
+    try {
+      const res = await uploadFile(file, 'mealmate/recipes');
+      setAddImageUploaded(res.url);
+    } catch {
+      alert('Không tải được ảnh lên Cloudinary. Vui lòng thử lại!');
+    } finally {
+      setAddImageUploading(false);
+      if (addImageInputRef.current) addImageInputRef.current.value = '';
+    }
+  };
+
   const handleAddRecipe = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -256,13 +283,14 @@ const RecipeManagement: React.FC = () => {
 
     try {
       const defaultImage = 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500';
+      const resolvedImageUrl = (addImageMode === 'upload' ? addImageUploaded : addImageUrl).trim() || defaultImage;
       const recipePayload = {
         name: formData.get('name') as string,
         instructions: formData.get('instructions') as string,
         referenceLink: formData.get('referenceLink') as string,
         author: (formData.get('author') as string) || 'Admin',
         preferredMealTime: formData.get('preferredMealTime') as any,
-        imageUrl: (formData.get('imageUrl') as string) || defaultImage
+        imageUrl: resolvedImageUrl
       };
 
       // 1. Create Recipe
@@ -277,6 +305,9 @@ const RecipeManagement: React.FC = () => {
       alert('Thêm món ăn thành công!');
       setShowAddModal(false);
       setNewIngredients([{ name: '', amount: '' }]);
+      setAddImageMode('url');
+      setAddImageUrl('');
+      setAddImageUploaded('');
       fetchRecipes();
     } catch (err) {
       console.error(err);
@@ -315,61 +346,17 @@ const RecipeManagement: React.FC = () => {
   return (
     <div className="um-layout">
       {/* Sidebar - Consistent with UserManagement */}
-      <aside 
-        onMouseEnter={() => setIsSidebarHovered(true)}
-        onMouseLeave={() => setIsSidebarHovered(false)}
-        className={`um-sidebar ${isSidebarHovered ? "expanded" : "collapsed"}`}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', marginBottom: '3rem', padding: isSidebarHovered ? '0 1.25rem' : '0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: isSidebarHovered ? 'flex-start' : 'center' }}>
-            <div style={{ width: '48px', height: '48px', backgroundColor: 'var(--fiza-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '20px', flexShrink: 0, margin: isSidebarHovered ? '0' : '0 auto' }}>
-              <Leaf color="white" fill="white" size={28} />
-            </div>
-            <AnimatePresence>
-              {isSidebarHovered && (
-                <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--mint-green)', marginLeft: '0.75rem', whiteSpace: 'nowrap' }}>
-                  Fiza
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-
-        <nav style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <SidebarLink icon={<Users size={22} />} label="Quản lý người dùng" to="/admin/users" isExpanded={isSidebarHovered} />
-          <SidebarLink icon={<UtensilsCrossed size={22} />} label="Quản lý thực phẩm" to="/admin/foods" isExpanded={isSidebarHovered} />
-          <SidebarLink icon={<BookOpen size={22} />} label="Quản lý món ăn" to="/admin/recipes" isExpanded={isSidebarHovered} active />
-          <SidebarLink icon={<BarChart3 size={22} />} label="Quản lý hiệu suất" to="/admin/performance" isExpanded={isSidebarHovered} />
-          <SidebarLink icon={<LogOut size={22} />} label="Đăng xuất" to="#" isExpanded={isSidebarHovered} onClick={logout} />
-        </nav>
-
-
-        <div style={{ width: '100%', paddingTop: '1.5rem', borderTop: '1px solid #f1f5f9' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.5rem 1rem', margin: '0.5rem 0.5rem 0', borderRadius: '1rem', cursor: 'pointer' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', border: '1px solid var(--fiza-primary)', flexShrink: 0, margin: isSidebarHovered ? '0' : '0 auto' }}>
-              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Admin" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            </div>
-            <AnimatePresence>
-              {isSidebarHovered && (
-                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} style={{ marginLeft: '0.75rem' }}>
-                  <p style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1e293b' }}>Admin Fiza</p>
-                  <p style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Super Admin</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-      </aside>
+      <AdminSidebar />
 
       {/* Main Content */}
-      <div className={`um-main ${isSidebarHovered ? 'shifted' : 'unshifted'}`}>
+      <div className="um-main unshifted">
         <header className="um-header">
           <div className="um-header-left">
             <h1 className="um-title">Quản lý món ăn</h1>
             <p className="um-subtitle">Danh mục công thức nấu ăn của hệ thống</p>
           </div>
           <div className="um-header-right">
-            <HeaderBtn icon={<Bell size={20} />} hasBadge />
+            <NotificationPanel variant="admin" />
             <HeaderBtn icon={<Settings size={20} />} />
           </div>
         </header>
@@ -480,6 +467,90 @@ const RecipeManagement: React.FC = () => {
           {showAddModal && (
             <SharedModal title="Thêm món ăn mới" onClose={() => setShowAddModal(false)} width="800px">
               <form onSubmit={handleAddRecipe} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+                {/* ── Hình ảnh món ăn (lên đầu) ── */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Hình ảnh món ăn</label>
+
+                  {/* Toggle URL / Upload */}
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {(['url', 'upload'] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setAddImageMode(mode)}
+                        style={{
+                          padding: '6px 18px',
+                          borderRadius: '9999px',
+                          border: '1.5px solid',
+                          borderColor: addImageMode === mode ? '#006b55' : '#e2e8f0',
+                          background: addImageMode === mode ? 'rgba(0,107,85,0.08)' : '#fff',
+                          color: addImageMode === mode ? '#006b55' : '#64748b',
+                          fontWeight: 700,
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          transition: 'all 150ms ease',
+                        }}
+                      >
+                        {mode === 'url' ? '🔗 Nhập link URL' : '📁 Tải ảnh lên'}
+                      </button>
+                    ))}
+                  </div>
+
+                  {addImageMode === 'url' ? (
+                    <input
+                      className="um-search-input"
+                      style={{ paddingLeft: '1rem' }}
+                      placeholder="VD: https://images.unsplash.com/photo-..."
+                      value={addImageUrl}
+                      onChange={(e) => setAddImageUrl(e.target.value)}
+                    />
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <input
+                        ref={addImageInputRef}
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={handleAddRecipeImageUpload}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addImageInputRef.current?.click()}
+                        disabled={addImageUploading}
+                        style={{
+                          padding: '8px 20px',
+                          borderRadius: '9999px',
+                          border: '1.5px solid #006b55',
+                          background: addImageUploading ? '#f1f5f9' : '#fff',
+                          color: '#006b55',
+                          fontWeight: 700,
+                          fontSize: '13px',
+                          cursor: addImageUploading ? 'wait' : 'pointer',
+                        }}
+                      >
+                        {addImageUploading ? '⏳ Đang tải lên...' : '📤 Chọn ảnh từ máy tính'}
+                      </button>
+                      {addImageUploaded && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <img
+                            src={addImageUploaded}
+                            alt="preview"
+                            style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', border: '2px solid #6dd4b4' }}
+                          />
+                          <span style={{ fontSize: 12, color: '#006b55', fontWeight: 600 }}>✅ Đã tải lên</span>
+                          <button
+                            type="button"
+                            onClick={() => setAddImageUploaded('')}
+                            style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', fontWeight: 700 }}
+                          >✕</button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Các trường còn lại ── */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
                   <FormGroup label="Tên món ăn" name="name" placeholder="VD: Sườn xào chua ngọt" required />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -492,9 +563,6 @@ const RecipeManagement: React.FC = () => {
                   </div>
                   <FormGroup label="Tác giả" name="author" placeholder="Bỏ trống để mặc định là Admin" />
                   <FormGroup label="Nguồn trích dẫn (Link)" name="referenceLink" placeholder="VD: https://food-source.com" />
-                  <div style={{ gridColumn: 'span 2' }}>
-                    <FormGroup label="Hình ảnh món ăn (URL)" name="imageUrl" placeholder="VD: https://images.unsplash.com/photo-..." />
-                  </div>
                   <div style={{ gridColumn: 'span 2' }}>
                     <FormGroup label="Tên gọi khác / Từ đồng nghĩa (phân cách bằng dấu phẩy)" name="regionalNames" placeholder="VD: Nem rán, Chả giò" />
                   </div>

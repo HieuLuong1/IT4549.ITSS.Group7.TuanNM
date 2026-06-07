@@ -20,11 +20,16 @@ import com.mealmate.fridge.model.dto.ShoppingImportCandidateResponse;
 import com.mealmate.fridge.model.dto.UpdateFridgeItemRequest;
 import com.mealmate.fridge.repository.FridgeItemProjection;
 import com.mealmate.fridge.repository.FridgeItemRepository;
+import com.mealmate.notification.model.NotificationCategory;
+import com.mealmate.notification.model.NotificationSeverity;
+import com.mealmate.notification.service.NotificationService;
 import com.mealmate.shopping.model.ShoppingListItem;
 import com.mealmate.shopping.repository.ShoppingImportCandidateProjection;
 import com.mealmate.shopping.repository.ShoppingListItemRepository;
 import com.mealmate.user.model.User;
+import com.mealmate.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -51,19 +56,38 @@ public class FridgeItemService {
     private final ShoppingListItemRepository shoppingListItemRepository;
     private final RecipeIngredientRepository recipeIngredientRepository;
     private final UserFavoriteRecipeRepository userFavoriteRecipeRepository;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     public FridgeItemService(
             FridgeItemRepository fridgeItemRepository,
             FridgeItemMapper fridgeItemMapper,
             ShoppingListItemRepository shoppingListItemRepository,
             RecipeIngredientRepository recipeIngredientRepository,
-            UserFavoriteRecipeRepository userFavoriteRecipeRepository
+            UserFavoriteRecipeRepository userFavoriteRecipeRepository,
+            NotificationService notificationService,
+            UserRepository userRepository
     ) {
         this.fridgeItemRepository = fridgeItemRepository;
         this.fridgeItemMapper = fridgeItemMapper;
         this.shoppingListItemRepository = shoppingListItemRepository;
         this.recipeIngredientRepository = recipeIngredientRepository;
         this.userFavoriteRecipeRepository = userFavoriteRecipeRepository;
+        this.notificationService = notificationService;
+        this.userRepository = userRepository;
+    }
+
+    /** Gửi thông báo tủ lạnh đến tất cả thành viên trong gia đình (trừ người thực hiện). */
+    private void notifyFamilyExcept(Long familyId, Long excludeUserId,
+                                    String severity, String title, String body) {
+        try {
+            userRepository.findByFamily_IdOrderByIdAsc(familyId).stream()
+                    .filter(u -> !u.getId().equals(excludeUserId))
+                    .forEach(u -> notificationService.push(
+                            u.getId(), NotificationCategory.FRIDGE, severity, title, body));
+        } catch (Exception ex) {
+            // Không để lỗi notification làm sập luồng chính
+        }
     }
 
     public List<FridgeItemResponse> getStoredItems() {
@@ -100,11 +124,23 @@ public class FridgeItemService {
     public FridgeItemResponse create(CreateFridgeItemRequest request) {
         validateCreateRequest(request);
 
+        User currentUser = getCurrentUserOrThrow();
+        Long familyId = currentUser.getFamilyId();
+        if (familyId == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No family");
+
         FridgeItem item = fridgeItemMapper.toEntity(request);
-        item.setFamilyId(getCurrentFamilyIdOrThrow());
+        item.setFamilyId(familyId);
         item.setStatus(FridgeItemStatus.STORED);
 
         FridgeItem saved = fridgeItemRepository.save(item);
+
+        // Thông báo cho các thành viên còn lại trong gia đình
+        String itemName = saved.getCustomName() != null ? saved.getCustomName() : "một thực phẩm";
+        notifyFamilyExcept(familyId, currentUser.getId(),
+                NotificationSeverity.NORMAL,
+                "🧊 Tủ lạnh được cập nhật",
+                currentUser.getFullName() + " đã thêm \"" + itemName + "\" vào tủ lạnh.");
+
         return toDetailedResponse(saved);
     }
 
@@ -170,6 +206,14 @@ public class FridgeItemService {
         item.setRemovedAt(LocalDateTime.now());
 
         FridgeItem saved = fridgeItemRepository.save(item);
+
+        // Thông báo cho các thành viên còn lại
+        String removedName = saved.getCustomName() != null ? saved.getCustomName() : "một thực phẩm";
+        notifyFamilyExcept(saved.getFamilyId(), currentUser.getId(),
+                NotificationSeverity.NORMAL,
+                "🗑️ Thực phẩm đã được lấy ra",
+                currentUser.getFullName() + " đã lấy \"" + removedName + "\" ra khỏi tủ lạnh.");
+
         return toDetailedResponse(saved);
     }
 
@@ -239,12 +283,10 @@ public class FridgeItemService {
                 today
         );
 
-        Set<Long> favoriteRecipeIds = new HashSet<>(
-                userFavoriteRecipeRepository.findRecipeIdsByUserId(getCurrentUserOrThrow().getId())
-        );
+        Set<Long> favoriteRecipeIds = loadFavoriteRecipeIdsSafely();
 
         Map<Long, RecipeSuggestionDraft> draftsByRecipeId = new LinkedHashMap<>();
-        recipeIngredientRepository.findRecipeSuggestionRows().forEach(row -> {
+        findRecipeSuggestionRowsSafely().forEach(row -> {
             RecipeSuggestionDraft draft = draftsByRecipeId.computeIfAbsent(
                     row.getRecipeId(),
                     recipeId -> new RecipeSuggestionDraft(row)
@@ -274,6 +316,22 @@ public class FridgeItemService {
                 )
                 .limit(normalizedLimit)
                 .toList();
+    }
+
+    private List<RecipeSuggestionProjection> findRecipeSuggestionRowsSafely() {
+        try {
+            return recipeIngredientRepository.findRecipeSuggestionRows();
+        } catch (DataAccessException error) {
+            return recipeIngredientRepository.findRecipeSuggestionRowsLegacy();
+        }
+    }
+
+    private Set<Long> loadFavoriteRecipeIdsSafely() {
+        try {
+            return new HashSet<>(userFavoriteRecipeRepository.findRecipeIdsByUserId(getCurrentUserOrThrow().getId()));
+        } catch (DataAccessException error) {
+            return Set.of();
+        }
     }
 
     @Transactional

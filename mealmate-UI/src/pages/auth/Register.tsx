@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthInput, AuthButton } from '@/components/auth/AuthComponents';
 import { register as registerRequest } from '@/features/auth/api/authApi';
+import kitchenImg from '@/assets/kitchen.png';
 import './Register.css';
 
 const Register: React.FC = () => {
@@ -95,7 +96,10 @@ const Register: React.FC = () => {
 
   return (
     <div className="register-overlay">
-      <div className="register-bg-layer" />
+      <div
+        className="register-bg-layer"
+        style={{ backgroundImage: `url(${kitchenImg})` }}
+      />
 
       <div className="register-modal">
         <button onClick={() => navigate(-1)} className="close-btn">✕</button>

@@ -85,33 +85,6 @@
   margin-top: 18px;
 }
 
-.recipe-browser-search {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 42px;
-  padding: 0 16px;
-  border-radius: 12px;
-  background: #f1f5f9;
-  color: #94a3b8;
-  max-width: 360px;
-}
-
-.recipe-browser-search input {
-  flex: 1;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: #1e293b;
-  font-size: 13.5px;
-  font-weight: 500;
-  font-family: inherit;
-}
-
-.recipe-browser-search input::placeholder {
-  color: #94a3b8;
-}
-
 .recipe-browser-filter-groups {
   display: flex;
   flex-wrap: wrap;
@@ -393,3 +366,4 @@
   background: rgba(29,78,216,0.1);
   color: #1d4ed8;
 }
+

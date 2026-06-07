@@ -1,12 +1,17 @@
 package com.mealmate.user.controller;
 
+import com.mealmate.notification.model.NotificationCategory;
+import com.mealmate.notification.model.NotificationSeverity;
+import com.mealmate.notification.service.NotificationService;
 import com.mealmate.user.model.User;
 import com.mealmate.user.model.Invitation;
 import com.mealmate.user.model.Family;
+import com.mealmate.user.model.dto.UserMemberResponse;
+import com.mealmate.user.model.dto.UserResponse;
 import com.mealmate.user.service.UserService;
 import com.mealmate.user.service.FamilyService;
 import com.mealmate.user.repository.InvitationRepository;
-import com.mealmate.user.repository.UserRepository; 
+import com.mealmate.user.repository.UserRepository;
 import com.mealmate.common.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -29,13 +34,28 @@ public class UserController {
     private final UserService service;
     private final InvitationRepository invitationRepository;
     private final FamilyService familyService;
-    private final UserRepository userRepository; 
+    private final UserRepository userRepository;
+    private final NotificationService notificationService;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<List<User>>> getAll() {
-        return ResponseEntity.ok(new ApiResponse<>(true, "Success", service.findAll()));
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getAll() {
+        List<UserResponse> users = userRepository.findAllWithFamilyAndRole().stream()
+                .map(user -> UserResponse.builder()
+                        .id(user.getId())
+                        .email(user.getEmail())
+                        .fullName(user.getFullName())
+                        .phone(user.getPhone())
+                        .gender(user.getGender())
+                        .avatarUrl(user.getAvatarUrl())
+                        .emailVerified(user.getEmailVerified())
+                        .familyId(user.getFamilyId())
+                        .familyName(user.getFamily() != null ? user.getFamily().getName() : null)
+                        .roleName(user.getRole() != null ? user.getRole().getName() : null)
+                        .build())
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(new ApiResponse<>(true, "Success", users));
     }
 
     @PostMapping
@@ -57,6 +77,16 @@ public class UserController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Deleted", null));
     }
 
+    @GetMapping("/current")
+    public ResponseEntity<ApiResponse<UserMemberResponse>> getCurrentUser() {
+        User currentUser = resolveCurrentUser();
+        if (currentUser == null) {
+            return ResponseEntity.status(401).body(new ApiResponse<>(false, "Chua dang nhap", null));
+        }
+
+        return ResponseEntity.ok(new ApiResponse<>(true, "Success", toUserMemberResponse(currentUser)));
+    }
+
     // =========================================================================
     // 🎯 API LẤY DANH SÁCH THÀNH VIÊN TRONG GIA ĐÌNH ĐỘNG THEO TOKEN
     // =========================================================================
@@ -74,6 +104,8 @@ public class UserController {
             if (cleanCurrentUser == null || cleanCurrentUser.getFamilyId() == null) {
                 return ResponseEntity.ok(new ApiResponse<>(true, "Chưa tham gia gia đình nào", List.of()));
             }
+
+            Family currentFamily = familyService.findByFamilyId(cleanCurrentUser.getFamilyId());
             
             List<Object[]> rawRows = userRepository.findRawMembersByFamilyId(cleanCurrentUser.getFamilyId());
             
@@ -86,6 +118,9 @@ public class UserController {
                 map.put("gender", row[4] != null ? row[4].toString() : "OTHER");
                 map.put("avatarUrl", row[5] != null ? row[5].toString() : "");
                 map.put("roleName", row[6] != null ? row[6].toString() : "Thành viên");
+                map.put("familyId", currentFamily.getId());
+                map.put("familyName", currentFamily.getName());
+                map.put("housekeeperId", currentFamily.getHousekeeperId());
                 return map;
             }).collect(Collectors.toList());
             
@@ -211,10 +246,23 @@ public class UserController {
 
                 // 3. Lưu User cập nhật nhà mới xuống DB
                 userRepository.save(currentUser);
-                
+
+                // 4. Thông báo: housekeeper biết có người vào nhà
+                try {
+                    Family joinedFamily = familyService.findByFamilyId(familyId);
+                    if (joinedFamily != null && joinedFamily.getHousekeeperId() != null
+                            && !joinedFamily.getHousekeeperId().equals(currentUser.getId())) {
+                        notificationService.push(
+                                joinedFamily.getHousekeeperId(),
+                                NotificationCategory.GROUP, NotificationSeverity.NORMAL,
+                                "🎉 Thành viên mới vào nhóm",
+                                currentUser.getFullName() + " đã chấp nhận lời mời và gia nhập gia đình của bạn.");
+                    }
+                } catch (Exception ignored) {}
+
                 return ResponseEntity.ok(new ApiResponse<>(true, "Đồng ý gia nhập thành công!", null));
             }
-            
+
             return ResponseEntity.status(404).body(new ApiResponse<>(false, "Không tìm thấy lời mời hợp lệ", null));
         
         } catch (Exception e) {
@@ -247,7 +295,7 @@ public class UserController {
     }
 
     @PostMapping("/remove-member")
-    @org.springframework.transaction.annotation.Transactional // Bắt buộc để chạy lệnh ghi DB
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<ApiResponse<Void>> removeMemberFromFamily(@RequestBody Map<String, Object> body) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -258,25 +306,71 @@ public class UserController {
             if (body == null || !body.containsKey("userId") || body.get("userId") == null) {
                 return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Thiếu tham số userId", null));
             }
-            Long targetUserId = Long.valueOf(body.get("userId").toString()); // Người bị xóa (ID = 5)
 
-            // 1. Dò tìm chính xác ID của ngôi nhà mà người này đứng tên quản lý (Sẽ trả ra số 3)
-            Long targetFamilyId = userRepository.findActualFamilyIdByHousekeeperId(targetUserId);
+            Long targetUserId = Long.valueOf(body.get("userId").toString());
+            String currentEmail = authentication.getName();
+            User currentUser = userRepository.findByEmail(currentEmail).orElse(null);
+            User targetUser = userRepository.findById(targetUserId).orElse(null);
 
-            // 🎯 IN LOG ĐỂ KIỂM TRÁI CHUẨN XÁC CON SỐ TRÊN CONSOLE SERVER
-            System.out.println("====== 🔍 TRỤC XUẤT DEBUG ======");
-            System.out.println("-> Người bị xóa (targetUserId): " + targetUserId);
-            System.out.println("-> ID Nhà gốc bốc được từ DB (targetFamilyId): " + targetFamilyId);
-            System.out.println("=================================");
+            if (currentUser == null || targetUser == null) {
+                return ResponseEntity.status(404).body(new ApiResponse<>(false, "Không tìm thấy người dùng", null));
+            }
 
-            // 2. Kích hoạt câu lệnh UPDATE thô native xuống PostgreSQL
-            // Gán family_id = 3 (targetFamilyId), role_id = 3 (BOSS) cho user_id = 5
-            userRepository.updateFamilyAndRoleDirectlyNative(targetUserId, targetFamilyId, 3L);
+            Long currentFamilyId = currentUser.getFamilyId();
+            Long targetCurrentFamilyId = targetUser.getFamilyId();
+            if (currentFamilyId == null || targetCurrentFamilyId == null || !currentFamilyId.equals(targetCurrentFamilyId)) {
+                return ResponseEntity.status(403).body(new ApiResponse<>(false, "Người dùng không thuộc cùng nhóm gia đình", null));
+            }
 
-            return ResponseEntity.ok(new ApiResponse<>(true, "Đã trục xuất thành viên và trả về làm chủ nhà gốc thành công!", null));
+            Family currentFamily = familyService.findByFamilyId(currentFamilyId);
+            boolean isSelfLeave = currentUser.getId().equals(targetUserId);
+            boolean isHousekeeper = currentFamily.getHousekeeperId() != null
+                    && currentFamily.getHousekeeperId().equals(currentUser.getId());
+
+            if (!isSelfLeave && !isHousekeeper) {
+                return ResponseEntity.status(403).body(new ApiResponse<>(false, "Chỉ chủ nhà mới có quyền xóa thành viên", null));
+            }
+            if (currentFamily.getHousekeeperId() != null && currentFamily.getHousekeeperId().equals(targetUserId)) {
+                return ResponseEntity.status(400).body(new ApiResponse<>(false, "Chủ nhà không thể rời nhóm bằng thao tác này", null));
+            }
+
+            Long restoredFamilyId = userRepository.findActualFamilyIdByHousekeeperId(targetUserId);
+            if (restoredFamilyId == null || restoredFamilyId.equals(currentFamilyId)) {
+                Family personalFamily = new Family();
+                personalFamily.setName("Gia đình " + targetUser.getFullName());
+                personalFamily.setHousekeeperId(targetUserId);
+                restoredFamilyId = familyService.save(personalFamily).getId();
+            }
+
+            userRepository.updateFamilyAndRoleDirectlyNative(targetUserId, restoredFamilyId, 3L);
+
+            // Thông báo cho người bị/tự rời nhóm
+            try {
+                if (isSelfLeave) {
+                    // Báo cho các thành viên còn lại biết có người rời nhóm
+                    userRepository.findByFamily_IdOrderByIdAsc(currentFamilyId).stream()
+                            .filter(u -> !u.getId().equals(targetUserId))
+                            .forEach(u -> notificationService.push(
+                                    u.getId(), NotificationCategory.GROUP, NotificationSeverity.MEDIUM,
+                                    "👋 Thành viên rời nhóm",
+                                    targetUser.getFullName() + " vừa rời khỏi nhóm gia đình."));
+                } else {
+                    // Báo cho người bị kick
+                    notificationService.push(
+                            targetUserId, NotificationCategory.GROUP, NotificationSeverity.HIGH,
+                            "🚪 Bạn đã bị xoá khỏi nhóm",
+                            "Bạn đã bị xoá khỏi nhóm gia đình bởi " + currentUser.getFullName() + ".");
+                }
+            } catch (Exception ignored) {}
+
+            return ResponseEntity.ok(new ApiResponse<>(
+                    true,
+                    isSelfLeave ? "Đã rời nhóm thành công!" : "Đã xóa thành viên khỏi nhóm thành công!",
+                    null
+            ));
 
         } catch (Exception e) {
-            System.err.println("❌ LỖI API TRỤC XUẤT THÀNH VIÊN: " + e.getMessage());
+            System.err.println("Lỗi API remove-member: " + e.getMessage());
             return ResponseEntity.status(500).body(new ApiResponse<>(false, "Lỗi hệ thống khi xóa: " + e.getMessage(), null));
         }
     }
@@ -306,8 +400,9 @@ public class UserController {
                             : body.containsKey("phone_number") ? body.get("phone_number").toString() 
                             : null;
                             
-            String newGender = body.containsKey("gender") ? body.get("gender").toString() : null;
-            String newPassword = body.containsKey("password") ? body.get("password").toString() : null;
+            String newGender    = body.containsKey("gender")    ? body.get("gender").toString()    : null;
+            String newPassword  = body.containsKey("password")  ? body.get("password").toString()  : null;
+            String newAvatarUrl = body.containsKey("avatarUrl") ? body.get("avatarUrl").toString() : null;
 
             // 3. Tiến hành gán cập nhật dữ liệu vào thực thể User
             if (newFullName != null && !newFullName.trim().isEmpty()) {
@@ -317,30 +412,60 @@ public class UserController {
                 currentUser.setPhone(newPhone.trim());
             }
             if (newGender != null && !newGender.trim().isEmpty()) {
-                currentUser.setGender(newGender.trim().toUpperCase()); // Lưu 'MALE', 'FEMALE', 'OTHER'
+                currentUser.setGender(newGender.trim().toUpperCase());
             }
-            
-            // 🎯 XỬ LÝ MẬT KHẨU MỚI: Nếu Front-end có truyền lên chuỗi mật khẩu hợp lệ thì tiến hành băm mã hóa
+            // Lưu avatar URL mới từ Cloudinary (nếu có)
+            if (newAvatarUrl != null && !newAvatarUrl.trim().isEmpty()) {
+                currentUser.setAvatarUrl(newAvatarUrl.trim());
+            }
+
+            // Xử lý mật khẩu mới
             if (newPassword != null && newPassword.trim().length() >= 6) {
                 currentUser.setPasswordHash(passwordEncoder.encode(newPassword.trim()));
-                System.out.println("🎉 Đã băm mã hóa và cập nhật mật khẩu mới thành công cho user: " + currentEmail);
             }
 
-            // 4. Lưu ghi đè dữ liệu xuống Database
+            // 4. Lưu xuống Database
             userRepository.save(currentUser);
 
-            // Đóng gói thông tin mới phản hồi về cho React nhận diện
+            // Phản hồi đầy đủ (bao gồm avatarUrl mới) để frontend cập nhật localStorage ngay
             Map<String, Object> result = new java.util.HashMap<>();
-            result.put("email", currentUser.getEmail());
-            result.put("fullName", currentUser.getFullName());
-            result.put("phone", currentUser.getPhone());
-            result.put("gender", currentUser.getGender());
+            result.put("email",     currentUser.getEmail());
+            result.put("fullName",  currentUser.getFullName());
+            result.put("phone",     currentUser.getPhone());
+            result.put("gender",    currentUser.getGender());
+            result.put("avatarUrl", currentUser.getAvatarUrl() != null ? currentUser.getAvatarUrl() : "");
 
-            return ResponseEntity.ok(new ApiResponse<>(true, "🎉 Cập nhật thông tin tài khoản thành công!", result));
+            return ResponseEntity.ok(new ApiResponse<>(true, "Cập nhật thông tin tài khoản thành công!", result));
 
         } catch (Exception e) {
             System.err.println("❌ LỖI SẬP TẠI API PUT PROFILE CONTROLLER: " + e.getMessage());
             return ResponseEntity.status(500).body(new ApiResponse<>(false, "Lỗi hệ thống khi cập nhật: " + e.getMessage(), null));
         }
+    }
+
+    private User resolveCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof User user) {
+            return user;
+        }
+
+        return userRepository.findByEmail(authentication.getName()).orElse(null);
+    }
+
+    private UserMemberResponse toUserMemberResponse(User user) {
+        return UserMemberResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .roleId(user.getRole() != null ? user.getRole().getId() : null)
+                .roleName(user.getRole() != null ? user.getRole().getName() : null)
+                .familyId(user.getFamilyId())
+                .avatarUrl(user.getAvatarUrl())
+                .build();
     }
 }

@@ -4,7 +4,32 @@ import api from "@/services/api";
 import "./Topbar.css";
 
 import iconSearch from "@/assets/icon/Icon-search.svg";
-import ReceiveInviteModal from "@/pages/customer/group/ReceiveInviteModal"; 
+import ReceiveInviteModal from "@/pages/customer/group/ReceiveInviteModal";
+import NotificationPanel from "@/components/common/NotificationPanel";
+
+const getStoredFamilyName = () => {
+  const cachedName = localStorage.getItem("currentFamilyName");
+  if (hasRealFamilyName(cachedName || undefined)) return cachedName as string;
+
+  const authUserString = localStorage.getItem("authUser");
+  if (!authUserString) return "";
+  try {
+    const authUser = JSON.parse(authUserString);
+    return authUser.familyName || "";
+  } catch {
+    return "";
+  }
+};
+
+const hasRealFamilyName = (value?: string) => {
+  return Boolean(
+    value &&
+    !value.includes("Đang tải") &&
+    !value.includes("Äang") &&
+    !value.includes("Chưa có gia đình") &&
+    !value.includes("ChÆ°a")
+  );
+};
 
 interface TopbarProps {
   title?: string;
@@ -24,7 +49,7 @@ const Topbar: React.FC<TopbarProps> = ({
   showSearch = true
 }) => {
   const navigate = useNavigate();
-  const [localFamilyName, setLocalFamilyName] = useState<string>("Gia đình Fiza");
+  const [localFamilyName, setLocalFamilyName] = useState<string>(() => (hasRealFamilyName(familyName) ? familyName as string : getStoredFamilyName() || "Chưa có gia đình"));
   const [inviteInfo, setInviteInfo] = useState<{ isOpen: boolean; familyName: string; familyId: number | null }>({
     isOpen: false,
     familyName: "",
@@ -36,8 +61,8 @@ const Topbar: React.FC<TopbarProps> = ({
 
   // Luồng lấy tên gia đình hiện tại
   useEffect(() => {
-    if (familyName && familyName !== "Đang tải...") {
-      setLocalFamilyName(familyName);
+    if (hasRealFamilyName(familyName)) {
+      setLocalFamilyName(familyName as string);
       return;
     }
 
@@ -51,14 +76,20 @@ const Topbar: React.FC<TopbarProps> = ({
       if (response.data) {
         if (response.data.success && response.data.data && response.data.data.name) {
           setLocalFamilyName(response.data.data.name);
+          localStorage.setItem("currentFamilyName", response.data.data.name);
         } else if (response.data.name) {
           setLocalFamilyName(response.data.name);
+          localStorage.setItem("currentFamilyName", response.data.name);
+        } else {
+          const storedFamilyName = getStoredFamilyName();
+          setLocalFamilyName(storedFamilyName || "Chưa có gia đình");
         }
       }
     })
     .catch(error => {
       console.error("Topbar tự gọi API lấy tên gia đình bị lỗi:", error);
-      setLocalFamilyName("Gia đình Fiza"); 
+      const storedFamilyName = getStoredFamilyName();
+      setLocalFamilyName(storedFamilyName || "Chưa có gia đình");
     });
   }, [familyName]);
 
@@ -220,15 +251,7 @@ const Topbar: React.FC<TopbarProps> = ({
           </div>
         )}
 
-        <button type="button" className="topbar-notification" aria-label="Thông báo" title="Thông báo">
-          {/* Bell SVG mập mạp */}
-          <svg className="topbar-bell-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2C11.1716 2 10.5 2.67157 10.5 3.5V4.07089C7.9145 4.55612 6 6.77185 6 9.5V14.5L4 16.5V17.5H20V16.5L18 14.5V9.5C18 6.77185 16.0855 4.55612 13.5 4.07089V3.5C13.5 2.67157 12.8284 2 12 2Z"/>
-            <path d="M9.26756 18.5C9.61337 19.6411 10.7066 20.5 12 20.5C13.2934 20.5 14.3866 19.6411 14.7324 18.5H9.26756Z"/>
-          </svg>
-          {/* Chấm đỏ thông báo */}
-          <span className="topbar-notification-dot" aria-hidden="true" />
-        </button>
+        <NotificationPanel variant="user" />
 
         <div className="topbar-family-button">
           <div>{localFamilyName}</div>
