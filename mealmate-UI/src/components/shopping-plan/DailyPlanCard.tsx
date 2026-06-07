@@ -10,6 +10,11 @@ const DailyPlanCard = ({ data, isActive, onClick }: DailyPlanCardProps) => {
     return (
         <div className={`shopping-card-container ${isActive ? 'active' : ''}`}
             onClick={onClick}>
+            {isActive && (
+                <div className="active-card-hint">
+                    Nhấn lại để xem chi tiết
+                </div>
+            )}
             <div className={`shopping-card-date-badge ${isActive ? 'active' : ''}`}>
                 <span className={`shopping-card-day-text ${isActive ? 'active' : ''}`}>
                     {data.dayOfWeek}

@@ -1,8 +1,9 @@
 package com.mealmate.user.mapper;
 
+import org.springframework.stereotype.Component;
+
 import com.mealmate.user.model.Family;
 import com.mealmate.user.model.dto.FamilyResponse;
-import org.springframework.stereotype.Component;
 
 @Component
 public class FamilyMapper {
@@ -14,7 +15,6 @@ public class FamilyMapper {
         return new FamilyResponse(
                 family.getId(),
                 family.getName(),
-                family.getHousekeeperId()
-        );
+                family.getHousekeeperId());
     }
 }

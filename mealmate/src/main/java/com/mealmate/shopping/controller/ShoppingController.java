@@ -22,6 +22,7 @@ import com.mealmate.shopping.dto.FrequentItemSuggestionDTO;
 import com.mealmate.shopping.dto.DailyPlanSummaryDTO;
 import com.mealmate.shopping.dto.ShoppingItemDTO;
 import com.mealmate.shopping.dto.ShoppingListRequestDTO;
+import com.mealmate.shopping.dto.WeeklyShoppingAggregateDTO;
 import com.mealmate.shopping.service.ShoppingListService;
 
 import lombok.RequiredArgsConstructor;
@@ -82,9 +83,36 @@ public class ShoppingController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Cập nhật ghi chú thành công", null));
     }
 
+    @PatchMapping("/items/{itemId}/note")
+    public ResponseEntity<ApiResponse<Void>> updateItemNote(
+            @PathVariable Long itemId,
+            @RequestBody java.util.Map<String, String> body) {
+        String note = body.get("note");
+        service.updateItemNote(itemId, note);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Cập nhật ghi chú thực phẩm thành công", null));
+    }
+
     @GetMapping("/frequent")
     public ResponseEntity<ApiResponse<List<FrequentItemSuggestionDTO>>> getFrequent(@RequestParam Long familyId) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Lấy danh sách thực phẩm thường mua thành công",
                 service.getFrequentItems(familyId)));
+    }
+
+    @GetMapping("/weekly/aggregate")
+    public ResponseEntity<ApiResponse<List<WeeklyShoppingAggregateDTO>>> getWeeklyAggregate(
+            @RequestParam Long familyId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Lấy danh sách gộp tuần thành công",
+                service.getWeeklyAggregation(familyId, startDate)));
+    }
+
+    @PatchMapping("/weekly/toggle")
+    public ResponseEntity<ApiResponse<Void>> toggleWeeklyItem(
+            @RequestParam Long familyId,
+            @RequestParam Long foodId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam boolean isPurchased) {
+        service.toggleWeeklyItemStatus(familyId, foodId, startDate, isPurchased);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Cập nhật trạng thái thành công", null));
     }
 }

@@ -93,6 +93,31 @@ const DailyPlanGrid: React.FC<DailyPlanGridProps> = ({ plans, activeDate, onCard
         };
     }, [plans, activeDate, updateFocusState, scheduleFocusUpdate]);
 
+    useEffect(() => {
+        if (!activeDate || plans.length === 0) return;
+        const activeIndex = plans.findIndex(p => p.plannedDate === activeDate);
+        if (activeIndex === -1) return;
+
+        const scroller = scrollRef.current;
+        if (!scroller) return;
+
+        // Tự động cuộn lướt tới card đang active
+        const cardShells = scroller.querySelectorAll<HTMLElement>('.daily-plan-card-shell');
+        const targetShell = cardShells[activeIndex];
+        if (!targetShell) return;
+
+        const scrollerWidth = scroller.clientWidth;
+        const targetLeft = targetShell.offsetLeft;
+        const targetWidth = targetShell.offsetWidth;
+
+        const newScrollLeft = targetLeft - (scrollerWidth / 2) + (targetWidth / 2);
+
+        scroller.scrollTo({
+            left: newScrollLeft,
+            behavior: 'smooth'
+        });
+    }, [activeDate, plans]);
+
     const scrollByCard = (direction: 'left' | 'right') => {
         const scroller = scrollRef.current;
         if (!scroller) return;

@@ -14,4 +14,5 @@ public class ShoppingItemDTO {
     private Long assignedTo;
     private String assigneeName;
     private Boolean isPurchased;
+    private String note;
 }

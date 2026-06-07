@@ -11,10 +11,7 @@
   cursor: pointer;
   background: #fffdf8;
   box-shadow: none;
-  transition:
-    transform 220ms ease,
-    box-shadow 220ms ease,
-    background 220ms ease;
+  transition: all 0.3s ease;
 }
 
 .shopping-card-container::before {
@@ -48,13 +45,14 @@
 
 .shopping-card-container:hover {
   transform: translateY(-8px);
-  box-shadow: none;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.04);
 }
 
 .shopping-card-container.active {
   background: #ffffff;
-  box-shadow: none;
-  border-color: rgba(68, 189, 151, 0.55);
+  border-color: #44BD97;
+  transform: translateY(-8px);
+  box-shadow: 0 15px 35px rgba(68, 189, 151, 0.12);
 }
 
 .shopping-card-body {
@@ -220,5 +218,46 @@
   .shopping-card-date-badge {
     left: 16px;
     right: 16px;
+  }
+}
+
+.active-card-hint {
+  position: absolute;
+  bottom: -36px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #44BD97;
+  color: #ffffff;
+  font-size: 11px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+  box-shadow: 0 6px 20px rgba(68, 189, 151, 0.35);
+  pointer-events: none;
+  z-index: 10;
+  animation: floatUp 0.3s ease-out forwards;
+}
+
+.active-card-hint::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent #44BD97 transparent;
+}
+
+@keyframes floatUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
   }
 }

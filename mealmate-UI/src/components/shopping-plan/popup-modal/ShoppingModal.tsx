@@ -1,11 +1,12 @@
 import DatePicker from "@/components/common/DatePicker";
 import { useAuth } from "@/context/AuthContext";
-import { deleteShoppingList, getFamilyMembers, saveShoppingPlan, searchFoods, toggleItemStatus } from "@/features/shopping-plan/shoppingApi";
+import { deleteShoppingList, getFamilyMembers, getPlanDetail, saveShoppingPlan, searchFoods, toggleItemStatus } from "@/features/shopping-plan/shoppingApi";
 import { Edit3, Filter, Plus, Search, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import AddItemPopover from "../popover-modal/AddItemPopover";
 import CategoryGroup from "./CategoryGroup";
+import FrequentItems from "../FrequentItems";
 import './ShoppingModal.css';
 
 interface ShoppingModalProps {
@@ -16,9 +17,11 @@ interface ShoppingModalProps {
     onClose: () => void;
     familyId: number | null;
     onSuccess: () => void;
+    plans: any[];
+    defaultFilter?: 'ALL' | 'PENDING' | 'DONE';
 }
 
-const ShoppingModal = ({ isOpen, mode, data, onModeChange, onClose, familyId, onSuccess }: ShoppingModalProps) => {
+const ShoppingModal = ({ isOpen, mode, data, onModeChange, onClose, familyId, onSuccess, plans, defaultFilter = 'ALL' }: ShoppingModalProps) => {
     if (!isOpen) return null;
     const { user } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
@@ -29,9 +32,29 @@ const ShoppingModal = ({ isOpen, mode, data, onModeChange, onClose, familyId, on
     const [note, setNote] = useState('');
     const searchRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const filterRef = useRef<HTMLDivElement>(null);
     const [members, setMembers] = useState<any[]>([]);
     const [localItems, setLocalItems] = useState<any[]>([]);
     const isHousekeeper = user?.role === 'HOUSEKEEPER';
+    const [showSearchCue, setShowSearchCue] = useState(false);
+    const [filterStatus, setFilterStatus] = useState<'ALL' | 'PENDING' | 'DONE'>('ALL');
+    const [showFilterMenu, setShowFilterMenu] = useState(false);
+    const [toggledPendingIds, setToggledPendingIds] = useState<Record<number, boolean>>({});
+    const [showSuggestions, setShowSuggestions] = useState(false);
+
+    const placeholderText = showSearchCue
+        ? `Nhập thực phẩm muốn thêm cho hôm nay...`
+        : (isHousekeeper ? "Tìm để thêm món mới..." : "Tìm món trong danh sách...");
+
+    const handleTriggerAddFood = () => {
+        if (searchInputRef.current) {
+            searchInputRef.current.focus();
+            setShowSearchCue(true);
+
+            // Tự động ẩn cue sau 3 giây để không làm phiền user
+            setTimeout(() => setShowSearchCue(false), 3000);
+        }
+    };
 
     useEffect(() => {
         if (data && data.items) {
@@ -53,8 +76,10 @@ const ShoppingModal = ({ isOpen, mode, data, onModeChange, onClose, familyId, on
     useEffect(() => {
         if (isOpen) {
             getFamilyMembers().then(data => setMembers(data));
+            setFilterStatus(defaultFilter);
+            setToggledPendingIds({});
         }
-    }, [isOpen]);
+    }, [isOpen, defaultFilter]);
 
     const categoryIcons: Record<string, string> = {
         'Rau củ': '🥦',
@@ -86,11 +111,34 @@ const ShoppingModal = ({ isOpen, mode, data, onModeChange, onClose, familyId, on
     }, [searchTerm, isHousekeeper]);
 
     const getFilteredLocalItems = () => {
-        if (!searchTerm.trim()) return localItems;
+        let items = localItems;
 
-        return localItems.filter(item =>
-            item.foodName?.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        // 1. Search term filter
+        if (searchTerm.trim()) {
+            items = items.filter(item =>
+                item.foodName?.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+
+        // 2. Status filter
+        items = items.filter(item => {
+            if (filterStatus === 'PENDING') {
+                return !item.isPurchased || toggledPendingIds[item.id];
+            }
+            if (filterStatus === 'DONE') {
+                return item.isPurchased;
+            }
+            return true;
+        });
+
+        // 3. Sort by purchased status (unpurchased first)
+        items = [...items].sort((a, b) => {
+            const aVal = a.isPurchased ? 1 : 0;
+            const bVal = b.isPurchased ? 1 : 0;
+            return aVal - bVal;
+        });
+
+        return items;
     };
     const groupedItems = getFilteredLocalItems().reduce((acc: any, item: any) => {
         const category = item.categoryName || item.category || 'Khác';
@@ -102,10 +150,53 @@ const ShoppingModal = ({ isOpen, mode, data, onModeChange, onClose, familyId, on
         setSearchTerm(e.target.value);
     };
 
+    const handleDateChange = async (newDate: string) => {
+        setCurrentDate(newDate);
+        if (!familyId) return;
+
+        // Check if there is an existing plan for this new date
+        const existingPlan = plans.find(p => p.plannedDate === newDate);
+        if (existingPlan && existingPlan.listId) {
+            const confirmMerge = window.confirm('Ngày này đã có kế hoạch. Bạn có muốn chỉnh sửa kế hoạch cũ không?');
+            if (confirmMerge) {
+                try {
+                    const loadToastId = toast.loading("Đang tải kế hoạch cũ...");
+                    const items = await getPlanDetail(familyId, newDate);
+                    setLocalItems(items || []);
+                    setNote(existingPlan.note || '');
+                    if (data) {
+                        data.listId = existingPlan.listId;
+                        data.note = existingPlan.note || '';
+                    }
+                    toast.success("Đã tải kế hoạch cũ! ✨", { id: loadToastId });
+                } catch (error: any) {
+                    toast.error("Lỗi tải kế hoạch cũ: " + error.message);
+                }
+            } else {
+                setLocalItems([]);
+                setNote('');
+                if (data) {
+                    data.listId = null;
+                    data.note = '';
+                }
+            }
+        } else {
+            setLocalItems([]);
+            setNote('');
+            if (data) {
+                data.listId = null;
+                data.note = '';
+            }
+        }
+    };
+
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
                 setShowResults(false);
+            }
+            if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
+                setShowFilterMenu(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -137,6 +228,29 @@ const ShoppingModal = ({ isOpen, mode, data, onModeChange, onClose, familyId, on
         setSearchTerm(''); // Xóa ô search
     };
 
+    const handleAddFromSuggestions = (item: any) => {
+        const isExist = localItems.some(i => (i.foodId || i.food?.id) === item.id);
+        if (isExist) {
+            toast.error(`"${item.foodName}" đã có trong danh sách.`);
+            return;
+        }
+
+        const newItem: any = {
+            id: Date.now(),
+            foodId: item.id,
+            foodName: item.foodName,
+            quantity: 1,
+            unit: item.unit || 'kg',
+            categoryName: 'Khác',
+            note: 'Gợi ý thường mua',
+            assignedTo: null,
+            isPurchased: false
+        };
+
+        setLocalItems(prev => [...prev, newItem]);
+        toast.success(`Đã thêm "${item.foodName}" vào danh sách! ✨`);
+    };
+
     const handleUpdateItem = (id: number, fields: Partial<any>) => {
         setLocalItems(prev => prev.map(item => item.id === id ? { ...item, ...fields } : item));
     };
@@ -146,7 +260,24 @@ const ShoppingModal = ({ isOpen, mode, data, onModeChange, onClose, familyId, on
     };
 
     const handleToggleItemStatus = async (itemId: number) => {
-        setLocalItems(prev => prev.map(item => item.id === itemId ? { ...item, isPurchased: !item.isPurchased } : item));
+        const itemToToggle = localItems.find(item => item.id === itemId);
+        if (!itemToToggle) return;
+
+        const willBePurchased = !itemToToggle.isPurchased;
+
+        // If filtering in 'PENDING' mode and toggling to completed (purchased)
+        if (filterStatus === 'PENDING' && willBePurchased) {
+            setToggledPendingIds(prev => ({ ...prev, [itemId]: true }));
+            setTimeout(() => {
+                setToggledPendingIds(prev => {
+                    const copy = { ...prev };
+                    delete copy[itemId];
+                    return copy;
+                });
+            }, 1000);
+        }
+
+        setLocalItems(prev => prev.map(item => item.id === itemId ? { ...item, isPurchased: willBePurchased } : item));
         if (mode === 'DETAIL') {
             try {
                 console.log("toggle itemId:", itemId);
@@ -156,6 +287,12 @@ const ShoppingModal = ({ isOpen, mode, data, onModeChange, onClose, familyId, on
                 setLocalItems(prev => prev.map(item =>
                     item.id === itemId ? { ...item, isPurchased: !item.isPurchased } : item
                 ));
+                // Remove from toggledPendingIds if API failed so it reverts immediately
+                setToggledPendingIds(prev => {
+                    const copy = { ...prev };
+                    delete copy[itemId];
+                    return copy;
+                });
             }
         }
     };
@@ -253,7 +390,7 @@ const ShoppingModal = ({ isOpen, mode, data, onModeChange, onClose, familyId, on
                         <div className="modal-datepicker-wrapper">
                             <DatePicker
                                 value={currentDate}
-                                onChange={(newDate) => setCurrentDate(newDate)}
+                                onChange={handleDateChange}
                             />
                         </div>
                     </div>
@@ -261,17 +398,26 @@ const ShoppingModal = ({ isOpen, mode, data, onModeChange, onClose, familyId, on
                     <div className="modal-header-right">
                         {/* Wrapper search cần position: relative */}
                         <div className="modal-search-outer" ref={searchRef}>
-                            <div className="modal-search-wrapper">
+                            <div className={`modal-search-wrapper ${showSuggestions ? 'compact' : ''}`}>
                                 <Search className="search-icon" size={18} />
                                 <input
                                     ref={searchInputRef}
                                     type="text"
-                                    placeholder={isHousekeeper ? "Tìm để thêm món mới..." : "Tìm món trong danh sách..."}
+                                    placeholder={placeholderText}
                                     value={searchTerm}
                                     onChange={handleSearchChange}
-                                    onFocus={() => isHousekeeper && searchTerm.length > 1 && setShowResults(true)}
+                                    onFocus={() => {
+                                        if (isHousekeeper && searchTerm.length > 1) setShowResults(true);
+                                        setShowSearchCue(false);
+                                    }}
                                 />
+                                {showSearchCue && (
+                                    <div className="search-active-cue">
+                                        ✨ Hãy nhập tên món bạn muốn mua vào đây
+                                    </div>
+                                )}
                                 {searchTerm && <X size={14} className="clear-search" onClick={() => setSearchTerm('')} />}
+                                {/* {searchTerm && <X size={14} className="clear-search" onClick={() => setSearchTerm('')} />} */}
                             </div>
 
                             {/* 3. RENDER SEARCH RESULTS (Dropdown nổi) */}
@@ -309,8 +455,42 @@ const ShoppingModal = ({ isOpen, mode, data, onModeChange, onClose, familyId, on
                                 </div>
                             )}
                         </div>
-                        <button className="filter-btn">
-                            <Filter size={20} />
+                        <div className="filter-dropdown-container" ref={filterRef}>
+                            <button 
+                                className={`filter-btn ${filterStatus !== 'ALL' ? 'active' : ''}`}
+                                onClick={() => setShowFilterMenu(prev => !prev)}
+                            >
+                                <Filter size={20} />
+                            </button>
+                            {showFilterMenu && (
+                                <div className="filter-menu-dropdown">
+                                    <div 
+                                        className={`filter-menu-item ${filterStatus === 'ALL' ? 'active' : ''}`}
+                                        onClick={() => { setFilterStatus('ALL'); setShowFilterMenu(false); }}
+                                    >
+                                        Tất cả
+                                    </div>
+                                    <div 
+                                        className={`filter-menu-item ${filterStatus === 'PENDING' ? 'active' : ''}`}
+                                        onClick={() => { setFilterStatus('PENDING'); setShowFilterMenu(false); }}
+                                    >
+                                        Chưa mua
+                                    </div>
+                                    <div 
+                                        className={`filter-menu-item ${filterStatus === 'DONE' ? 'active' : ''}`}
+                                        onClick={() => { setFilterStatus('DONE'); setShowFilterMenu(false); }}
+                                    >
+                                        Đã mua
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <button 
+                            className={`suggestions-toggle-btn ${showSuggestions ? 'active' : ''}`}
+                            onClick={() => setShowSuggestions(prev => !prev)}
+                            title="Bật/Tắt Gợi ý thực phẩm"
+                        >
+                            💡 Gợi ý
                         </button>
                         <button className="close-btn-top" onClick={onClose}>
                             <X size={24} />
@@ -318,40 +498,52 @@ const ShoppingModal = ({ isOpen, mode, data, onModeChange, onClose, familyId, on
                     </div>
                 </div>
 
-                {/* Content: Scrollable */}
-                <div className="modal-body">
-                    <div className="modal-body-scroll">
-                        {groupedItems && Object.keys(groupedItems).map(categoryName => (
-                            <CategoryGroup
-                                key={categoryName}
-                                categoryName={categoryName}
-                                mode={mode}
-                                members={members}
-                                items={groupedItems[categoryName]}
-                                icon={categoryIcons[categoryName] || '📦'}
-                                onUpdate={handleUpdateItem}
-                                onDelete={handleDeleteItem}
-                                onToggleStatus={handleToggleItemStatus}
+                {/* Content: Scrollable side-by-side columns layout */}
+                <div className="modal-body-layout">
+                    {showSuggestions && (
+                        <div className="modal-left-column">
+                            <FrequentItems
+                                familyId={familyId}
+                                plans={plans}
+                                onItemAdd={handleAddFromSuggestions}
                             />
-                        ))}
-
-                        {mode === 'CREATE' && isHousekeeper && (
-                            <button className="add-food-dashed-btn" onClick={() => searchInputRef.current?.focus()}>
-                                + Thêm thực phẩm
-                            </button>
-                        )}
-                        {/* Tạo một khoảng trống ở cuối để nội dung cuối cùng không bị nút che mất */}
-                        <div style={{ height: '80px' }}></div>
-                    </div>
-                    {mode === 'DETAIL' && isHousekeeper && (
-                        <button
-                            className="fab-edit-btn"
-                            onClick={() => onModeChange?.('CREATE')}
-                        >
-                            <Edit3 size={24} />
-                        </button>
+                        </div>
                     )}
+                    
+                    <div className="modal-right-column">
+                        <div className="modal-body-scroll">
+                            {groupedItems && Object.keys(groupedItems).map(categoryName => (
+                                <CategoryGroup
+                                    key={categoryName}
+                                    categoryName={categoryName}
+                                    mode={mode}
+                                    members={members}
+                                    items={groupedItems[categoryName]}
+                                    icon={categoryIcons[categoryName] || '📦'}
+                                    onUpdate={handleUpdateItem}
+                                    onDelete={handleDeleteItem}
+                                    onToggleStatus={handleToggleItemStatus}
+                                    filterStatus={filterStatus}
+                                />
+                            ))}
+
+                            {mode === 'CREATE' && isHousekeeper && (
+                                <button className="add-food-dashed-btn" onClick={handleTriggerAddFood}>
+                                    + Thêm thực phẩm
+                                </button>
+                            )}
+                            <div style={{ height: '80px' }}></div>
+                        </div>
+                    </div>
                 </div>
+                {mode === 'DETAIL' && isHousekeeper && (
+                    <button
+                        className="fab-edit-btn"
+                        onClick={() => onModeChange?.('CREATE')}
+                    >
+                        <Edit3 size={24} />
+                    </button>
+                )}
 
                 {/* Footer: Khác biệt theo Mode */}
                 <div className="modal-footer">

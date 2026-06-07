@@ -1,24 +1,42 @@
-.category-card {
-    background: white;
-    border-radius: 32px; /* Tất cả Card dùng 32px */
-    padding: 24px;
-    margin-bottom: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+.category-group-flat {
+    background: transparent;
+    margin-bottom: 24px;
+    width: 100%;
 }
 
-.category-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 15px;
-}
-
-.category-title {
+.category-header-flat {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    background: #D9EFEC; /* light mint green */
+    padding: 8px 16px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    color: #236e5a; /* primary green text */
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.category-title h4 {
-    margin: 0;
-    font-size: 18px;
+.category-icon-flat {
+    font-size: 16px;
+}
+
+.category-title-text {
+    flex: 1;
+}
+
+.category-item-count {
+    font-size: 11px;
+    background: rgba(35, 110, 90, 0.1);
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-weight: 600;
+}
+
+.category-items-list-flat {
+    display: flex;
+    flex-direction: column;
 }

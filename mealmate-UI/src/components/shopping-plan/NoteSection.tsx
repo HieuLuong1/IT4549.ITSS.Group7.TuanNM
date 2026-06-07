@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Edit3, Check } from 'lucide-react';
-import toast from 'react-hot-toast';
 import { updateShoppingListNote } from '@/features/shopping-plan/shoppingApi';
+import { Check, Edit3 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import './NoteSection.css';
 
 interface NoteSectionProps {
@@ -13,10 +13,19 @@ interface NoteSectionProps {
 const NoteSection: React.FC<NoteSectionProps> = ({ note = '', listId, onSaveSuccess }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [tempNote, setTempNote] = useState(note);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     useEffect(() => {
         setTempNote(note || '');
     }, [note]);
+
+    useEffect(() => {
+        if (isEditing && textareaRef.current) {
+            textareaRef.current.focus();
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+        }
+    }, [isEditing]);
 
     const handleSave = async () => {
         if (!listId) {
@@ -41,44 +50,49 @@ const NoteSection: React.FC<NoteSectionProps> = ({ note = '', listId, onSaveSucc
     ]);
 
     return (
-        <div className="note-section-container">
+        <div className={`note-container ${isEditing ? 'is-editing' : ''}`}>
             <div className="note-header">
-                <div className="note-icon-wrapper">
-                    <img
-                        src="https://cdn-icons-png.flaticon.com/512/1201/1201111.png"
-                        alt="note-icon"
-                        className="note-floating-icon"
-                    />
+                <div className="note-title-group">
+                    <div className="note-accent-dot"></div>
+                    <h3 className="note-title">Ghi chú</h3>
                 </div>
-                <h3 className="note-title">Ghi chú</h3>
                 <div className="note-actions">
                     {isEditing ? (
-                        <button className="note-edit-btn" onClick={handleSave} title="Lưu ghi chú">
-                            <Check size={18} color="#44BD97" />
+                        <button className="note-btn save" onClick={handleSave}>
+                            <Check size={16} />
+                            <span>Lưu</span>
                         </button>
                     ) : (
-                        <button className="note-edit-btn" onClick={() => setIsEditing(true)} title="Sửa ghi chú">
-                            <Edit3 size={18} color="#6E7A74" />
+                        <button className="note-btn edit" onClick={() => setIsEditing(true)}>
+                            <Edit3 size={16} />
                         </button>
                     )}
                 </div>
             </div>
 
-            <div className="note-content-box">
+            <div className="note-body">
                 {isEditing ? (
                     <textarea
+                        ref={textareaRef}
                         className="note-textarea"
                         value={tempNote}
-                        onChange={(e) => setTempNote(e.target.value)}
-                        placeholder="Nhập ghi chú..."
-                        rows={5}
+                        onChange={(e) => {
+                            setTempNote(e.target.value);
+                            e.target.style.height = 'auto';
+                            e.target.style.height = e.target.scrollHeight + 'px';
+                        }}
+                        placeholder="Nhập nội dung cần ghi chú..."
                     />
                 ) : (
-                    noteLines.map((line, index) => (
-                        <div key={index} className="note-line">
-                            {line}
-                        </div>
-                    ))
+                    <div className="note-display">
+                        {tempNote ? (
+                            tempNote.split('\n').map((line, i) => (
+                                <p key={i} className="note-text-line">{line}</p>
+                            ))
+                        ) : (
+                            <p className="note-placeholder">Không có ghi chú cho ngày này.</p>
+                        )}
+                    </div>
                 )}
             </div>
         </div>
