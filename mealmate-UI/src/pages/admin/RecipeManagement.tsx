@@ -13,8 +13,7 @@ import {
   ChevronRight,
   Leaf,
   BarChart3,
-  LogOut,
-  X
+  LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NavLink } from 'react-router-dom';
@@ -23,22 +22,36 @@ import SharedModal from '../../components/admin/Modal';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
+const placeholderImage =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" rx="18" fill="%23f1f5f9"/><path d="M49 102h62L94 79 80 95 69 84z" fill="%23cbd5e1"/><circle cx="63" cy="62" r="10" fill="%23cbd5e1"/></svg>';
 
 export interface Ingredient {
   name: string;
   amount: string;
 }
 
+type RecipeIngredientDetail = {
+  foodId?: number;
+  foodName?: string;
+  quantity?: number;
+  unit?: string;
+};
+
 export interface Recipe {
   id: number;
   name: string;
+  description?: string;
   instructions: string;
   referenceLink?: string;
   author?: string;
   preferredMealTime: 'BREAKFAST' | 'LUNCH' | 'DINNER';
+  cookingTimeMinutes?: number;
+  servings?: number;
+  calories?: number;
+  difficulty?: string;
+  displayStatus?: string;
   imageUrl?: string;
   ingredients: Ingredient[];
-  regionalNames?: string[];
 }
 
 const RecipeManagement: React.FC = () => {
@@ -64,11 +77,6 @@ const RecipeManagement: React.FC = () => {
 
   // New Recipe State for Add Modal
   const [newIngredients, setNewIngredients] = useState<Ingredient[]>([{ name: '', amount: '' }]);
-
-  // Regional names inline adding state
-  const [inlineAdding, setInlineAdding] = useState(false);
-  const [inlineValue, setInlineValue] = useState('');
-
 
   const fetchRecipes = async () => {
     setIsLoading(true);
@@ -127,6 +135,7 @@ const RecipeManagement: React.FC = () => {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentRecipes = filteredRecipes.slice(startIndex, startIndex + itemsPerPage);
+  const visiblePages = getVisiblePages(currentPage, totalPages);
 
   const handleDelete = async (id: number) => {
     try {
@@ -141,17 +150,18 @@ const RecipeManagement: React.FC = () => {
 
   const handleEditClick = async (recipe: Recipe) => {
     try {
-      const response = await api.get(`/api/v1/catalogs/recipes/${recipe.id}/ingredients`);
-      const backendIngredients = response.data?.data || response.data || [];
-      const mappedIngredients = backendIngredients.map((ri: any) => ({
-        name: ri.food?.name || '',
-        amount: `${ri.quantity} ${ri.unit || ''}`.trim()
+      const response = await api.get(`/api/v1/catalogs/recipes/${recipe.id}/detail`);
+      const detail = response.data?.data || response.data || recipe;
+      const backendIngredients = detail.ingredients || [];
+      const mappedIngredients = backendIngredients.map((ri: RecipeIngredientDetail) => ({
+        name: ri.foodName || '',
+        amount: `${ri.quantity ?? ''} ${ri.unit || ''}`.trim()
       }));
 
       const updatedRecipe = {
         ...recipe,
-        ingredients: mappedIngredients,
-        regionalNames: recipe.regionalNames || []
+        ...detail,
+        ingredients: mappedIngredients
       };
       setViewRecipe(updatedRecipe);
       setEditData(JSON.parse(JSON.stringify(updatedRecipe)));
@@ -162,19 +172,6 @@ const RecipeManagement: React.FC = () => {
       alert('Không thể tải danh sách nguyên liệu.');
     }
   };
-
-  const handleAddInlineRegional = () => {
-    if (inlineValue.trim() && editData) {
-      const current = editData.regionalNames || [];
-      if (!current.includes(inlineValue.trim())) {
-        const updated = [...current, inlineValue.trim()];
-        setEditData({ ...editData, regionalNames: updated });
-      }
-      setInlineValue('');
-      setInlineAdding(false);
-    }
-  };
-
 
   const handleSaveEdit = async () => {
     if (!editData) return;
@@ -206,10 +203,16 @@ const RecipeManagement: React.FC = () => {
       // 1. Update recipe details
       const recipePayload = {
         name: editData.name,
+        description: editData.description || '',
         instructions: editData.instructions,
         referenceLink: editData.referenceLink || '',
         author: editData.author || 'Admin',
         preferredMealTime: editData.preferredMealTime,
+        cookingTimeMinutes: editData.cookingTimeMinutes || null,
+        servings: editData.servings || null,
+        calories: editData.calories || null,
+        difficulty: editData.difficulty || '',
+        displayStatus: editData.displayStatus || '',
         imageUrl: editData.imageUrl || ''
       };
 
@@ -256,14 +259,19 @@ const RecipeManagement: React.FC = () => {
     }
 
     try {
-      const defaultImage = 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500';
       const recipePayload = {
         name: formData.get('name') as string,
+        description: formData.get('description') as string,
         instructions: formData.get('instructions') as string,
         referenceLink: formData.get('referenceLink') as string,
         author: (formData.get('author') as string) || 'Admin',
         preferredMealTime: formData.get('preferredMealTime') as any,
-        imageUrl: (formData.get('imageUrl') as string) || defaultImage
+        cookingTimeMinutes: Number(formData.get('cookingTimeMinutes')) || null,
+        servings: Number(formData.get('servings')) || null,
+        calories: Number(formData.get('calories')) || null,
+        difficulty: formData.get('difficulty') as string,
+        displayStatus: formData.get('displayStatus') as string,
+        imageUrl: (formData.get('imageUrl') as string) || ''
       };
 
       // 1. Create Recipe
@@ -322,8 +330,8 @@ const RecipeManagement: React.FC = () => {
       <div className="um-main unshifted">
         <header className="um-header">
           <div className="um-header-left">
-            <h1 className="um-title">Quản lý món ăn</h1>
-            <p className="um-subtitle">Danh mục công thức nấu ăn của hệ thống</p>
+            <h1 className="um-title">Món ăn</h1>
+            <p className="um-subtitle">Công thức hệ thống</p>
           </div>
           <div className="um-header-right">
             <HeaderBtn icon={<Bell size={20} />} hasBadge />
@@ -346,7 +354,7 @@ const RecipeManagement: React.FC = () => {
                     />
                   </div>
                   <div className="um-role-badge" style={{ padding: '0.5rem 1.25rem', flexShrink: 0 }}>
-                    <span style={{ color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', fontSize: '10px', marginRight: '0.5rem' }}>Loại bữa ăn:</span>
+                    <span style={{ color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', fontSize: '10px', marginRight: '0.5rem' }}>Bữa ăn</span>
                     <select 
                       style={{ background: 'transparent', border: 'none', color: 'var(--fiza-primary)', fontWeight: 700, fontSize: '0.875rem', outline: 'none', cursor: 'pointer' }}
                       value={categoryFilter}
@@ -386,7 +394,7 @@ const RecipeManagement: React.FC = () => {
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                               <div style={{ width: '48px', height: '48px', borderRadius: '12px', overflow: 'hidden' }}>
-                                <img src={recipe.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={recipe.imageUrl || placeholderImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                               </div>
                               <span style={{ fontWeight: 700, color: '#1e293b' }}>{recipe.name}</span>
                             </div>
@@ -422,8 +430,8 @@ const RecipeManagement: React.FC = () => {
                 </p>
                 <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
                   <PageArrow icon={<ChevronLeft size={18} />} disabled={currentPage === 1} onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} />
-                  {[...Array(totalPages)].map((_, i) => (
-                    <PageNum key={i + 1} active={currentPage === i + 1} onClick={() => setCurrentPage(i + 1)}>{i + 1}</PageNum>
+                  {visiblePages.map((page) => (
+                    <PageNum key={page} active={currentPage === page} onClick={() => setCurrentPage(page)}>{page}</PageNum>
                   ))}
                   <PageArrow icon={<ChevronRight size={18} />} disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} />
                 </div>
@@ -435,7 +443,7 @@ const RecipeManagement: React.FC = () => {
         {/* MODALS */}
         <AnimatePresence mode="wait">
           {showAddModal && (
-            <SharedModal title="Thêm món ăn mới" onClose={() => setShowAddModal(false)} width="800px">
+            <SharedModal title="Thêm món ăn mới" onClose={() => setShowAddModal(false)} width="960px">
               <form onSubmit={handleAddRecipe} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
                   <FormGroup label="Tên món ăn" name="name" placeholder="VD: Sườn xào chua ngọt" required />
@@ -448,12 +456,25 @@ const RecipeManagement: React.FC = () => {
                     </select>
                   </div>
                   <FormGroup label="Tác giả" name="author" placeholder="Bỏ trống để mặc định là Admin" />
-                  <FormGroup label="Nguồn trích dẫn (Link)" name="referenceLink" placeholder="VD: https://food-source.com" />
-                  <div style={{ gridColumn: 'span 2' }}>
-                    <FormGroup label="Hình ảnh món ăn (URL)" name="imageUrl" placeholder="VD: https://images.unsplash.com/photo-..." />
+                  <FormGroup label="Nguồn (link)" name="referenceLink" placeholder="VD: https://food-source.com" />
+                  <FormGroup label="Thời gian nấu (phút)" name="cookingTimeMinutes" type="number" min="0" placeholder="VD: 30" />
+                  <FormGroup label="Khẩu phần" name="servings" type="number" min="0" placeholder="VD: 4" />
+                  <FormGroup label="Calories" name="calories" type="number" min="0" placeholder="VD: 520" />
+                  <FormGroup label="Độ khó" name="difficulty" placeholder="VD: Dễ / Trung bình / Khó" />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Trạng thái hiển thị</label>
+                    <select name="displayStatus" className="um-search-input" style={{ paddingLeft: '1rem' }} defaultValue="SYSTEM">
+                      <option value="SYSTEM">SYSTEM</option>
+                      <option value="CUSTOM">CUSTOM</option>
+                      <option value="HIDDEN">HIDDEN</option>
+                    </select>
                   </div>
                   <div style={{ gridColumn: 'span 2' }}>
-                    <FormGroup label="Tên gọi khác / Từ đồng nghĩa (phân cách bằng dấu phẩy)" name="regionalNames" placeholder="VD: Nem rán, Chả giò" />
+                  <FormGroup label="Ảnh món ăn (URL)" name="imageUrl" placeholder="VD: https://..." />
+                  </div>
+                  <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Mô tả</label>
+                    <textarea name="description" className="um-textarea" style={{ height: '90px', resize: 'vertical' }} placeholder="Mô tả ngắn về món ăn..." />
                   </div>
                 </div>
 
@@ -518,11 +539,11 @@ const RecipeManagement: React.FC = () => {
           )}
 
           {viewRecipe && editData && (
-            <SharedModal title={isEditing ? "Chỉnh sửa món ăn" : "Chi tiết món ăn"} onClose={() => { setViewRecipe(null); setIsEditing(false); }} width="1000px">
-              <div style={{ display: 'flex', gap: '2.5rem' }}>
-                <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <SharedModal title={isEditing ? "Chỉnh sửa món ăn" : "Chi tiết món ăn"} onClose={() => { setViewRecipe(null); setIsEditing(false); }} width="1080px">
+              <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+                <div style={{ width: '240px', flex: '0 0 240px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   <div style={{ width: '220px', height: '220px', borderRadius: '32px', overflow: 'hidden', backgroundColor: '#F1FAF6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }}>
-                    <img src={viewRecipe.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={viewRecipe.imageUrl || placeholderImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                   <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '1.5rem', border: '1px solid #e2e8f0' }}>
                     <p style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '1rem' }}>Thông tin chung</p>
@@ -534,11 +555,14 @@ const RecipeManagement: React.FC = () => {
                         isBadge 
                       />
                       <DetailItem label="Tác giả" value={viewRecipe.author || 'Admin'} />
+                      <DetailItem label="Thời gian nấu" value={viewRecipe.cookingTimeMinutes ? `${viewRecipe.cookingTimeMinutes} phút` : 'N/A'} />
+                      <DetailItem label="Khẩu phần" value={viewRecipe.servings ? `${viewRecipe.servings} phần` : 'N/A'} />
+                      <DetailItem label="Độ khó" value={viewRecipe.difficulty || 'N/A'} />
                     </div>
                   </div>
                 </div>
 
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5rem', height: '600px', overflowY: 'auto', paddingRight: '1rem' }}>
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem', maxHeight: '620px', overflowY: 'auto', paddingRight: '1rem' }}>
                   {isEditing ? (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
                       <FormGroup label="Tên món ăn" value={editData.name} onChange={(e: any) => setEditData({ ...editData, name: e.target.value })} />
@@ -552,58 +576,26 @@ const RecipeManagement: React.FC = () => {
                       </div>
                       <FormGroup label="Tác giả" value={editData.author} onChange={(e: any) => setEditData({ ...editData, author: e.target.value })} />
                       <FormGroup label="Nguồn (Link)" value={editData.referenceLink} onChange={(e: any) => setEditData({ ...editData, referenceLink: e.target.value })} />
-                      <div style={{ gridColumn: 'span 2' }}>
-                        <FormGroup label="Hình ảnh món ăn (URL)" value={editData.imageUrl} onChange={(e: any) => setEditData({ ...editData, imageUrl: e.target.value })} />
+                      <FormGroup label="Thời gian nấu (phút)" type="number" min="0" value={editData.cookingTimeMinutes ?? ''} onChange={(e: any) => setEditData({ ...editData, cookingTimeMinutes: e.target.value ? Number(e.target.value) : undefined })} />
+                      <FormGroup label="Khẩu phần" type="number" min="0" value={editData.servings ?? ''} onChange={(e: any) => setEditData({ ...editData, servings: e.target.value ? Number(e.target.value) : undefined })} />
+                      <FormGroup label="Calories" type="number" min="0" value={editData.calories ?? ''} onChange={(e: any) => setEditData({ ...editData, calories: e.target.value ? Number(e.target.value) : undefined })} />
+                      <FormGroup label="Độ khó" value={editData.difficulty || ''} onChange={(e: any) => setEditData({ ...editData, difficulty: e.target.value })} />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Trạng thái</label>
+                        <select className="um-search-input" value={editData.displayStatus || ''} onChange={(e: any) => setEditData({ ...editData, displayStatus: e.target.value })} style={{ paddingLeft: '1rem' }}>
+                          <option value="">Chưa đặt</option>
+                          <option value="SYSTEM">SYSTEM</option>
+                          <option value="CUSTOM">CUSTOM</option>
+                          <option value="HIDDEN">HIDDEN</option>
+                        </select>
                       </div>
                       <div style={{ gridColumn: 'span 2' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                          <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Tên gọi khác / Từ đồng nghĩa</label>
-                        </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem', background: '#f8fafc', padding: '1.25rem', borderRadius: '1.5rem', border: '1px solid #e2e8f0', alignItems: 'center' }}>
-                          {editData.regionalNames?.map((name, idx) => (
-                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.25rem 0.85rem', backgroundColor: '#E1F2EB', borderRadius: '9999px', border: '1px solid #6DD4B4' }}>
-                              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--fiza-primary)' }}>{name}</span>
-                              <button 
-                                type="button"
-                                onClick={() => {
-                                  const updated = editData.regionalNames?.filter((_, i) => i !== idx) || [];
-                                  setEditData({ ...editData, regionalNames: updated });
-                                }}
-                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', padding: 0 }}
-                              >
-                                <X size={14} color="var(--fiza-primary)" />
-                              </button>
-                            </div>
-                          ))}
-                          {inlineAdding ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <input 
-                                autoFocus
-                                value={inlineValue}
-                                onChange={(e) => setInlineValue(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleAddInlineRegional()}
-                                onBlur={() => {
-                                  if (!inlineValue.trim()) setInlineAdding(false);
-                                  else handleAddInlineRegional();
-                                }}
-                                placeholder="Nhập tên..."
-                                className="um-search-input"
-                                style={{ width: '130px', height: '28px', paddingLeft: '0.5rem', fontSize: '12px', background: 'white' }}
-                              />
-                            </div>
-                          ) : (
-                            <button 
-                              type="button" 
-                              onClick={() => { setInlineAdding(true); setInlineValue(''); }}
-                              className="um-btn-add"
-                              style={{ padding: '0.25rem 0.75rem', height: '28px', fontSize: '10px' }}
-                            >
-                              <Plus size={12} /> Thêm
-                            </button>
-                          )}
-                        </div>
+                        <FormGroup label="Ảnh món ăn (URL)" value={editData.imageUrl || ''} onChange={(e: any) => setEditData({ ...editData, imageUrl: e.target.value })} />
                       </div>
-
+                      <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Mô tả</label>
+                        <textarea value={editData.description || ''} onChange={(e) => setEditData({ ...editData, description: e.target.value })} className="um-textarea" style={{ height: '90px', resize: 'vertical' }} />
+                      </div>
                       <div style={{ gridColumn: 'span 2' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                           <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Nguyên liệu & Định mức</label>
@@ -654,11 +646,15 @@ const RecipeManagement: React.FC = () => {
                     </div>
                   ) : (
                     <>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1.5rem' }}>
                         <DetailItem label="Tên món ăn" value={viewRecipe.name} />
                         <DetailItem label="Tác giả" value={viewRecipe.author || 'Admin'} />
-                        <DetailItem label="Nguồn" value={viewRecipe.referenceLink || 'Nội bộ'} />
-                        <DetailItem label="Tên gọi khác" value={viewRecipe.regionalNames?.join(', ') || 'Không có'} />
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <SourceLink value={viewRecipe.referenceLink} />
+                        </div>
+                        <DetailItem label="Mô tả" value={viewRecipe.description || 'Chưa có mô tả'} />
+                        <DetailItem label="Calories" value={viewRecipe.calories ? `${viewRecipe.calories} kcal` : 'N/A'} />
+                        <DetailItem label="Trạng thái hiển thị" value={viewRecipe.displayStatus || 'N/A'} />
                       </div>
 
                       
@@ -749,12 +745,32 @@ function FormGroup({ label, ...props }: any) {
 
 function DetailItem({ label, value, isBadge }: any) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0 }}>
       <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{label}</span>
       {isBadge ? (
         <span className="um-role-badge" style={{ alignSelf: 'flex-start' }}>{value}</span>
       ) : (
-        <span style={{ fontWeight: 600, color: '#1e293b' }}>{value || 'N/A'}</span>
+        <span style={{ fontWeight: 600, color: '#1e293b', overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.45 }}>{value || 'N/A'}</span>
+      )}
+    </div>
+  );
+}
+
+function SourceLink({ value }: { value?: string }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0 }}>
+      <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Nguồn</span>
+      {value ? (
+        <a
+          href={value}
+          target="_blank"
+          rel="noreferrer"
+          style={{ fontWeight: 700, color: 'var(--fiza-primary)', overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.45 }}
+        >
+          {value}
+        </a>
+      ) : (
+        <span style={{ fontWeight: 600, color: '#1e293b' }}>Nội bộ</span>
       )}
     </div>
   );
@@ -802,6 +818,15 @@ function PageArrow({ icon, disabled, onClick }: any) {
   return (
     <button disabled={disabled} onClick={onClick} style={{ width: '36px', height: '36px', borderRadius: '50%', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: disabled ? 'default' : 'pointer', color: '#94a3b8', opacity: disabled ? 0.3 : 1 }}>{icon}</button>
   );
+}
+
+function getVisiblePages(currentPage: number, totalPages: number) {
+  if (totalPages <= 3) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+  if (currentPage <= 2) return [1, 2, 3];
+  if (currentPage >= totalPages - 1) return [totalPages - 2, totalPages - 1, totalPages];
+  return [currentPage - 1, currentPage, currentPage + 1];
 }
 
 export default RecipeManagement;

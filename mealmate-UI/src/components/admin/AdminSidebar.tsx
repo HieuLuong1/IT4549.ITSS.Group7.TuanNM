@@ -5,6 +5,9 @@ import { useAuth } from '@/context/AuthContext';
 import '@/components/layout/Sidebar.css';
 import iconLogo from '@/assets/icon/Icon-logo.svg';
 
+const placeholderAvatar =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="48" fill="%23f1f5f9"/><circle cx="48" cy="37" r="16" fill="%23cbd5e1"/><path d="M20 84c4-18 17-27 28-27s24 9 28 27" fill="%23cbd5e1"/></svg>';
+
 const adminLinks = [
   { to: '/admin/users', label: 'Quản lý người dùng', icon: Users },
   { to: '/admin/foods', label: 'Quản lý thực phẩm', icon: UtensilsCrossed },
@@ -54,7 +57,7 @@ const AdminSidebar: React.FC = () => {
             <div className="sidebar-avatar">
               <div className="sidebar-avatar-line" />
               <img
-                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user?.email || 'Admin')}`}
+                src={user?.avatarUrl || placeholderAvatar}
                 alt="Admin"
               />
             </div>
