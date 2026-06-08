@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import { NavLink } from 'react-router-dom';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import SharedModal from '../../components/admin/Modal';
+import ProfileModal from '../../components/layout/ProfileModal';
 import NotificationPanel from '../../components/common/NotificationPanel';
 import { useAuth } from '../../context/AuthContext';
 import { AUTH_ROLES, getAuthRoleName, getRoleId, getRoleLabel } from '../../features/auth/role';
@@ -68,8 +69,7 @@ const readUsersResponse = (payload: any): User[] => {
 };
 
 const UserManagement: React.FC = () => {
-  const { logout } = useAuth();
-  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const { logout, user: loggedInAdmin } = useAuth(); // Trích xuất thông tin admin đang đăng nhập
   const [users, setUsers] = useState<User[]>([]);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -83,9 +83,8 @@ const UserManagement: React.FC = () => {
 
   // Modals state
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [viewUser, setViewUser] = useState<User | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState<User | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
   const fetchUsers = async () => {
@@ -151,32 +150,7 @@ const UserManagement: React.FC = () => {
 
   const handleEditClick = (user: User) => {
     setViewUser(user);
-    setEditData({ ...user });
-    setIsEditing(false);
-  };
-
-  const handleSaveEdit = async () => {
-    if (editData) {
-      try {
-        const payload = {
-          fullName: editData.fullName,
-          email: editData.email,
-          phone: editData.phone,
-          gender: editData.gender,
-          role: editData.role
-        };
-        const response = await api.put(`/api/v1/users/users/${editData.id}`, payload);
-        if (response.data?.success) {
-          const updatedUser = response.data.data;
-          setUsers(users.map(u => u.id === editData.id ? updatedUser : u));
-          setViewUser(updatedUser);
-          setIsEditing(false);
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Cập nhật thông tin thất bại.');
-      }
-    }
+    setShowProfileModal(true); // Cứ bấm vào mắt là kích hoạt hiện ProfileModal lên
   };
 
   const handleAddUser = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -217,6 +191,10 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  // Trích xuất ID admin đăng nhập bằng phương thức an toàn để so sánh
+  const myAdminData = loggedInAdmin as any;
+  const loggedInAdminId = Number(myAdminData?.id || myAdminData?.userId || 0);
+
   return (
     <div className="um-layout">
       {/* Sidebar - Consistent with RecipeManagement */}
@@ -227,7 +205,6 @@ const UserManagement: React.FC = () => {
         <header className="um-header">
           <div className="um-header-left">
             <h1 className="um-title">Quản lý người dùng</h1>
-            <p className="um-subtitle">Quản trị danh sách tài khoản toàn hệ thống</p>
           </div>
           <div className="um-header-right">
             <NotificationPanel variant="admin" />
@@ -325,6 +302,7 @@ const UserManagement: React.FC = () => {
                               icon={<Eye size={18} />}
                               hoverColor="var(--fiza-primary)"
                               onClick={() => handleEditClick(user)}
+                              title={Number(user.id) === loggedInAdminId ? "Chỉnh sửa thông tin cá nhân" : "Xem chi tiết"}
                             />
                             {getAuthRoleName(user.role ?? user.roleName) !== AUTH_ROLES.ADMIN && (
                               <ActionBtn
@@ -418,100 +396,6 @@ const UserManagement: React.FC = () => {
             </SharedModal>
           )}
 
-          {viewUser && editData && (
-            <SharedModal title={isEditing ? "Chỉnh sửa người dùng" : "Chi tiết người dùng"} onClose={() => { setViewUser(null); setIsEditing(false); }}>
-              <div style={{ display: 'flex', gap: '2rem' }}>
-                <div style={{ width: '120px', height: '120px', borderRadius: '24px', overflow: 'hidden', backgroundColor: '#F1FAF6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <img src={viewUser.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${viewUser.fullName}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
-                <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <DetailItem label="Mã người dùng" value={viewUser.id} readOnly />
-                  {isEditing ? (
-                    <>
-                      <FormGroup
-                        label="Họ tên"
-                        value={editData.fullName}
-                        onChange={(e: any) => setEditData({ ...editData, fullName: e.target.value })}
-                      />
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Vai trò</label>
-                        <select
-                          className="um-search-input"
-                          style={{ paddingLeft: '1rem' }}
-                          value={editData.role?.name}
-                          onChange={(e) => setEditData({
-                            ...editData,
-                            role: { id: getRoleId(e.target.value), name: e.target.value }
-                          })}
-                        >
-                          {ROLE_OPTIONS.map((role) => (
-                            <option key={role.value} value={role.value}>{role.label}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Giới tính</label>
-                        <select
-                          className="um-search-input"
-                          style={{ paddingLeft: '1rem' }}
-                          value={editData.gender}
-                          onChange={(e) => setEditData({ ...editData, gender: e.target.value as any })}
-                        >
-                          <option value="MALE">Nam</option>
-                          <option value="FEMALE">Nữ</option>
-                          <option value="OTHER">Khác</option>
-                        </select>
-                      </div>
-                      <FormGroup
-                        label="Số điện thoại"
-                        value={editData.phone}
-                        onChange={(e: any) => setEditData({ ...editData, phone: e.target.value })}
-                      />
-                      <FormGroup
-                        label="Email"
-                        value={editData.email}
-                        onChange={(e: any) => setEditData({ ...editData, email: e.target.value })}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <DetailItem label="Họ tên" value={viewUser.fullName} />
-                      <DetailItem label="Vai trò" value={getRoleLabel(viewUser.role ?? viewUser.roleName)} isBadge />
-                      <DetailItem label="Giới tính" value={viewUser.gender === 'MALE' ? 'Nam' : viewUser.gender === 'FEMALE' ? 'Nữ' : 'Khác'} />
-                      <DetailItem label="Số điện thoại" value={viewUser.phone} />
-                      <DetailItem label="Email" value={viewUser.email} />
-                    </>
-                  )}
-                </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
-                {isEditing ? (
-                  <>
-                    <button
-                      onClick={() => setIsEditing(false)}
-                      style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600, cursor: 'pointer' }}
-                    >
-                      Hủy
-                    </button>
-                    <button
-                      onClick={handleSaveEdit}
-                      className="um-btn-primary"
-                    >
-                      Lưu thay đổi
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="um-btn-primary"
-                  >
-                    Chỉnh sửa thông tin
-                  </button>
-                )}
-              </div>
-            </SharedModal>
-          )}
-
           {deleteConfirm && (
             <SharedModal title="Xác nhận xóa" onClose={() => setDeleteConfirm(null)} width="400px">
               <div style={{ textAlign: 'center' }}>
@@ -526,6 +410,28 @@ const UserManagement: React.FC = () => {
                 </div>
               </div>
             </SharedModal>
+          )}
+
+          {/* GIAO DIỆN PROFILE MODAL MỚI CHO TẤT CẢ NGƯỜI DÙNG KHI BẤM VÀO MẮT */}
+          {showProfileModal && viewUser && (
+            <ProfileModal
+              isOpen={showProfileModal}
+              onClose={() => {
+                setShowProfileModal(false);
+                setViewUser(null);
+              }}
+              familyName={viewUser.familyName || "Hệ thống"}
+              isMe={Number(viewUser.id) === loggedInAdminId} // Trùng ID admin thì mở quyền sửa (true), người khác thì khóa chỉ cho xem (false)
+              memberData={{
+                id: viewUser.id,
+                fullName: viewUser.fullName,
+                roleName: viewUser.roleName || (typeof viewUser.role === 'object' ? viewUser.role?.name : viewUser.role) || "Thành viên",
+                email: viewUser.email,
+                phone: viewUser.phone || "Chưa cập nhật",
+                gender: viewUser.gender || "OTHER",
+                avatarUrl: viewUser.avatarUrl
+              }}
+            />
           )}
         </AnimatePresence>
       </div>
@@ -563,11 +469,9 @@ function SidebarLink({ icon, label, to, isExpanded, active, onClick }: any) {
       onClick={onClick}
       className={`um-nav-item ${active ? 'active' : ''} ${isExpanded ? 'expanded' : 'collapsed'}`}
     >
-
       <div className="um-nav-icon">
         {icon}
       </div>
-
       <AnimatePresence>
         {isExpanded && (
           <motion.span
@@ -593,13 +497,14 @@ function HeaderBtn({ icon, hasBadge }: any) {
   );
 }
 
-function ActionBtn({ icon, hoverColor, onClick }: any) {
+function ActionBtn({ icon, hoverColor, onClick, title }: any) {
   const [hover, setHover] = useState(false);
   return (
     <button
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onClick={onClick}
+      title={title}
       style={{ width: '32px', height: '32px', borderRadius: '50%', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', color: hover ? hoverColor : '#94a3b8', backgroundColor: hover ? 'white' : 'transparent', boxShadow: hover ? '0 4px 6px -1px rgba(0,0,0,0.1)' : 'none' }}
     >
       {icon}

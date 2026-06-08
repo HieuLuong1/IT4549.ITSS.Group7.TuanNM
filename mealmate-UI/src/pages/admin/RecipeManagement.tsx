@@ -28,12 +28,16 @@ export interface Recipe {
   id: number;
   name: string;
   instructions: string;
+  description?: string;
+  cookingTimeMinutes?: number;
+  servings?: number;
+  calories?: number;
+  difficulty?: 'EASY' | 'MEDIUM' | 'HARD' | string;
   referenceLink?: string;
   author?: string;
   preferredMealTime: 'BREAKFAST' | 'LUNCH' | 'DINNER';
   imageUrl?: string;
   ingredients: Ingredient[];
-  regionalNames?: string[];
 }
 
 const RecipeManagement: React.FC = () => {
@@ -66,11 +70,6 @@ const RecipeManagement: React.FC = () => {
   const [addImageUploaded, setAddImageUploaded] = useState('');
   const [addImageUploading, setAddImageUploading] = useState(false);
   const addImageInputRef = React.useRef<HTMLInputElement>(null);
-
-  // Regional names inline adding state
-  const [inlineAdding, setInlineAdding] = useState(false);
-  const [inlineValue, setInlineValue] = useState('');
-
 
   const fetchRecipes = async () => {
     setIsLoading(true);
@@ -145,38 +144,26 @@ const RecipeManagement: React.FC = () => {
     try {
       const response = await api.get(`/api/v1/catalogs/recipes/${recipe.id}/ingredients`);
       const backendIngredients = response.data?.data || response.data || [];
+      
       const mappedIngredients = backendIngredients.map((ri: any) => ({
-        name: ri.food?.name || '',
+        name: ri.foodName || '',
         amount: `${ri.quantity} ${ri.unit || ''}`.trim()
       }));
 
       const updatedRecipe = {
         ...recipe,
-        ingredients: mappedIngredients,
-        regionalNames: recipe.regionalNames || []
+        ingredients: mappedIngredients
       };
+      
       setViewRecipe(updatedRecipe);
       setEditData(JSON.parse(JSON.stringify(updatedRecipe)));
       setIsEditing(false);
 
     } catch (err) {
       console.error(err);
-      alert('Không thể tải danh sách nguyên liệu.');
+      alert('Không thể tải thông tin chi tiết món ăn.');
     }
   };
-
-  const handleAddInlineRegional = () => {
-    if (inlineValue.trim() && editData) {
-      const current = editData.regionalNames || [];
-      if (!current.includes(inlineValue.trim())) {
-        const updated = [...current, inlineValue.trim()];
-        setEditData({ ...editData, regionalNames: updated });
-      }
-      setInlineValue('');
-      setInlineAdding(false);
-    }
-  };
-
 
   const handleSaveEdit = async () => {
     if (!editData) return;
@@ -205,10 +192,14 @@ const RecipeManagement: React.FC = () => {
     }
 
     try {
-      // 1. Update recipe details
       const recipePayload = {
         name: editData.name,
         instructions: editData.instructions,
+        description: editData.description,
+        cookingTimeMinutes: editData.cookingTimeMinutes,
+        servings: editData.servings,
+        calories: editData.calories,
+        difficulty: editData.difficulty || 'MEDIUM',
         referenceLink: editData.referenceLink || '',
         author: editData.author || 'Admin',
         preferredMealTime: editData.preferredMealTime,
@@ -216,8 +207,6 @@ const RecipeManagement: React.FC = () => {
       };
 
       await api.put(`/api/v1/catalogs/recipes/${editData.id}`, recipePayload);
-
-      // 2. Update ingredients
       await api.post(`/api/v1/catalogs/recipes/${editData.id}/ingredients`, recipeIngredientsPayload);
 
       alert('Cập nhật món ăn thành công!');
@@ -277,20 +266,27 @@ const RecipeManagement: React.FC = () => {
     try {
       const defaultImage = 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500';
       const resolvedImageUrl = (addImageMode === 'upload' ? addImageUploaded : addImageUrl).trim() || defaultImage;
+      const cookingTimeMinutesValue = Number(formData.get('cookingTimeMinutes') || '');
+      const servingsValue = Number(formData.get('servings') || '');
+      const caloriesValue = Number(formData.get('calories') || '');
+      
       const recipePayload = {
         name: formData.get('name') as string,
         instructions: formData.get('instructions') as string,
+        description: formData.get('description') as string,
+        cookingTimeMinutes: Number.isNaN(cookingTimeMinutesValue) ? undefined : cookingTimeMinutesValue,
+        servings: Number.isNaN(servingsValue) ? undefined : servingsValue,
+        calories: Number.isNaN(caloriesValue) ? undefined : caloriesValue,
+        difficulty: formData.get('difficulty') as string,
         referenceLink: formData.get('referenceLink') as string,
         author: (formData.get('author') as string) || 'Admin',
         preferredMealTime: formData.get('preferredMealTime') as any,
         imageUrl: resolvedImageUrl
       };
 
-      // 1. Create Recipe
       const response = await api.post('/api/v1/catalogs/recipes', recipePayload);
       const newRecipe = response.data?.data || response.data;
 
-      // 2. Save ingredients
       if (recipeIngredientsPayload.length > 0) {
         await api.post(`/api/v1/catalogs/recipes/${newRecipe.id}/ingredients`, recipeIngredientsPayload);
       }
@@ -336,17 +332,25 @@ const RecipeManagement: React.FC = () => {
     }
   };
 
+  // Helper dịch nhãn mức độ khó chuẩn tiếng Việt 🎯
+  const getDifficultyLabel = (diff?: string) => {
+    if (!diff) return 'Chưa xác định';
+    switch (diff.toUpperCase()) {
+      case 'EASY': return 'Dễ làm';
+      case 'MEDIUM': return 'Vừa phải';
+      case 'HARD': return 'Phức tạp';
+      default: return diff;
+    }
+  };
+
   return (
     <div className="um-layout">
-      {/* Sidebar - Consistent with UserManagement */}
       <AdminSidebar />
 
-      {/* Main Content */}
       <div className="um-main unshifted">
         <header className="um-header">
           <div className="um-header-left">
             <h1 className="um-title">Quản lý món ăn</h1>
-            <p className="um-subtitle">Danh mục công thức nấu ăn của hệ thống</p>
           </div>
           <div className="um-header-right">
             <NotificationPanel variant="admin" />
@@ -461,11 +465,8 @@ const RecipeManagement: React.FC = () => {
             <SharedModal title="Thêm món ăn mới" onClose={() => setShowAddModal(false)} width="800px">
               <form onSubmit={handleAddRecipe} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-                {/* ── Hình ảnh món ăn (lên đầu) ── */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Hình ảnh món ăn</label>
-
-                  {/* Toggle URL / Upload */}
                   <div style={{ display: 'flex', gap: '8px' }}>
                     {(['url', 'upload'] as const).map((mode) => (
                       <button
@@ -475,7 +476,7 @@ const RecipeManagement: React.FC = () => {
                         style={{
                           padding: '6px 18px',
                           borderRadius: '9999px',
-                          border: '1.5px solid',
+                          border: '1px solid',
                           borderColor: addImageMode === mode ? '#006b55' : '#e2e8f0',
                           background: addImageMode === mode ? 'rgba(0,107,85,0.08)' : '#fff',
                           color: addImageMode === mode ? '#006b55' : '#64748b',
@@ -514,7 +515,7 @@ const RecipeManagement: React.FC = () => {
                         style={{
                           padding: '8px 20px',
                           borderRadius: '9999px',
-                          border: '1.5px solid #006b55',
+                          border: '1px solid #006b55',
                           background: addImageUploading ? '#f1f5f9' : '#fff',
                           color: '#006b55',
                           fontWeight: 700,
@@ -543,7 +544,6 @@ const RecipeManagement: React.FC = () => {
                   )}
                 </div>
 
-                {/* ── Các trường còn lại ── */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
                   <FormGroup label="Tên món ăn" name="name" placeholder="VD: Sườn xào chua ngọt" required />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -555,14 +555,25 @@ const RecipeManagement: React.FC = () => {
                     </select>
                   </div>
                   <FormGroup label="Tác giả" name="author" placeholder="Bỏ trống để mặc định là Admin" />
-                  <FormGroup label="Nguồn trích dẫn (Link)" name="referenceLink" placeholder="VD: https://food-source.com" />
                   <div style={{ gridColumn: 'span 2' }}>
-                    <FormGroup label="Tên gọi khác / Từ đồng nghĩa (phân cách bằng dấu phẩy)" name="regionalNames" placeholder="VD: Nem rán, Chả giò" />
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Mô tả ngắn gọn</label>
+                    <textarea name="description" className="um-textarea" style={{ height: '90px', resize: 'none' }} placeholder="Mô tả ngắn gọn về món ăn" />
+                  </div>
+                  <FormGroup label="Thời gian dự kiến (phút)" name="cookingTimeMinutes" type="number" placeholder="VD: 30" />
+                  <FormGroup label="Số người dự kiến" name="servings" type="number" placeholder="VD: 4" />
+                  <FormGroup label="Calories" name="calories" type="number" placeholder="VD: 450" />
+                  
+                  {/* 🎯 ĐÃ ĐỔI: Ô nhập tự do thành Dropdown select chọn mức độ ở Modal Thêm Mới */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Mức độ khó</label>
+                    <select name="difficulty" className="um-search-input" style={{ paddingLeft: '1rem' }}>
+                      <option value="EASY">Dễ làm</option>
+                      <option value="MEDIUM">Vừa phải</option>
+                      <option value="HARD">Phức tạp</option>
+                    </select>
                   </div>
                 </div>
 
-
-                {/* Ingredients Section */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Danh sách nguyên liệu</label>
@@ -613,6 +624,8 @@ const RecipeManagement: React.FC = () => {
                   <textarea name="instructions" className="um-textarea" style={{ height: '120px', resize: 'none' }} placeholder="Các bước thực hiện..." />
                 </div>
 
+                <FormGroup label="Nguồn trích dẫn (Link)" name="referenceLink" placeholder="VD: https://food-source.com" />
+
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
                   <button type="button" onClick={() => setShowAddModal(false)} style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600, cursor: 'pointer' }}>Hủy</button>
                   <button type="submit" className="um-btn-primary">Lưu món ăn</button>
@@ -655,57 +668,26 @@ const RecipeManagement: React.FC = () => {
                         </select>
                       </div>
                       <FormGroup label="Tác giả" value={editData.author} onChange={(e: any) => setEditData({ ...editData, author: e.target.value })} />
-                      <FormGroup label="Nguồn (Link)" value={editData.referenceLink} onChange={(e: any) => setEditData({ ...editData, referenceLink: e.target.value })} />
+                      
                       <div style={{ gridColumn: 'span 2' }}>
                         <FormGroup label="Hình ảnh món ăn (URL)" value={editData.imageUrl} onChange={(e: any) => setEditData({ ...editData, imageUrl: e.target.value })} />
                       </div>
                       <div style={{ gridColumn: 'span 2' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                          <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Tên gọi khác / Từ đồng nghĩa</label>
-                        </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem', background: '#f8fafc', padding: '1.25rem', borderRadius: '1.5rem', border: '1px solid #e2e8f0', alignItems: 'center' }}>
-                          {editData.regionalNames?.map((name, idx) => (
-                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.25rem 0.85rem', backgroundColor: '#E1F2EB', borderRadius: '9999px', border: '1px solid #6DD4B4' }}>
-                              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--fiza-primary)' }}>{name}</span>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = editData.regionalNames?.filter((_, i) => i !== idx) || [];
-                                  setEditData({ ...editData, regionalNames: updated });
-                                }}
-                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', padding: 0 }}
-                              >
-                                <X size={14} color="var(--fiza-primary)" />
-                              </button>
-                            </div>
-                          ))}
-                          {inlineAdding ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <input
-                                autoFocus
-                                value={inlineValue}
-                                onChange={(e) => setInlineValue(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleAddInlineRegional()}
-                                onBlur={() => {
-                                  if (!inlineValue.trim()) setInlineAdding(false);
-                                  else handleAddInlineRegional();
-                                }}
-                                placeholder="Nhập tên..."
-                                className="um-search-input"
-                                style={{ width: '130px', height: '28px', paddingLeft: '0.5rem', fontSize: '12px', background: 'white' }}
-                              />
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => { setInlineAdding(true); setInlineValue(''); }}
-                              className="um-btn-add"
-                              style={{ padding: '0.25rem 0.75rem', height: '28px', fontSize: '10px' }}
-                            >
-                              <Plus size={12} /> Thêm
-                            </button>
-                          )}
-                        </div>
+                        <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Mô tả ngắn gọn</label>
+                        <textarea value={editData.description || ''} onChange={(e) => setEditData({ ...editData, description: e.target.value })} className="um-textarea" style={{ height: '90px', resize: 'none' }} placeholder="Mô tả ngắn gọn về món ăn" />
+                      </div>
+                      <FormGroup label="Thời gian dự kiến (phút)" type="number" value={editData.cookingTimeMinutes ?? ''} onChange={(e: any) => setEditData({ ...editData, cookingTimeMinutes: e.target.value ? Number(e.target.value) : undefined })} />
+                      <FormGroup label="Số người dự kiến" type="number" value={editData.servings ?? ''} onChange={(e: any) => setEditData({ ...editData, servings: e.target.value ? Number(e.target.value) : undefined })} />
+                      <FormGroup label="Calories" type="number" value={editData.calories ?? ''} onChange={(e: any) => setEditData({ ...editData, calories: e.target.value ? Number(e.target.value) : undefined })} />
+                      
+                      {/* 🎯 ĐÃ ĐỔI: Ô nhập tự do thành Dropdown select chọn mức độ ở Modal Chỉnh Sửa */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Mức độ khó</label>
+                        <select className="um-search-input" value={editData.difficulty || 'MEDIUM'} onChange={(e: any) => setEditData({ ...editData, difficulty: e.target.value })} style={{ paddingLeft: '1rem' }}>
+                          <option value="EASY">Dễ làm</option>
+                          <option value="MEDIUM">Vừa phải</option>
+                          <option value="HARD">Phức tạp</option>
+                        </select>
                       </div>
 
                       <div style={{ gridColumn: 'span 2' }}>
@@ -751,9 +733,14 @@ const RecipeManagement: React.FC = () => {
                           </table>
                         </div>
                       </div>
+                      
                       <div style={{ gridColumn: 'span 2' }}>
                         <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Hướng dẫn nấu</label>
                         <textarea value={editData.instructions} onChange={(e) => setEditData({ ...editData, instructions: e.target.value })} className="um-textarea" style={{ height: '150px', resize: 'none' }} />
+                      </div>
+
+                      <div style={{ gridColumn: 'span 2' }}>
+                        <FormGroup label="Nguồn (Link)" value={editData.referenceLink} onChange={(e: any) => setEditData({ ...editData, referenceLink: e.target.value })} />
                       </div>
                     </div>
                   ) : (
@@ -761,10 +748,19 @@ const RecipeManagement: React.FC = () => {
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                         <DetailItem label="Tên món ăn" value={viewRecipe.name} />
                         <DetailItem label="Tác giả" value={viewRecipe.author || 'Admin'} />
-                        <DetailItem label="Nguồn" value={viewRecipe.referenceLink || 'Nội bộ'} />
-                        <DetailItem label="Tên gọi khác" value={viewRecipe.regionalNames?.join(', ') || 'Không có'} />
                       </div>
 
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <DetailItem label="Mô tả ngắn gọn" value={viewRecipe.description || 'Chưa có mô tả'} />
+                        </div>
+                        <DetailItem label="Thời gian dự kiến" value={viewRecipe.cookingTimeMinutes ? `${viewRecipe.cookingTimeMinutes} phút` : 'Chưa cập nhật'} />
+                        <DetailItem label="Số người dự kiến" value={viewRecipe.servings ? `${viewRecipe.servings} người` : 'Chưa cập nhật'} />
+                        <DetailItem label="Calories" value={viewRecipe.calories ? `${viewRecipe.calories} kcal` : 'Chưa cập nhật'} />
+                        
+                        {/* 🎯 ĐÃ ĐỔI: Nhãn hiển thị Tiếng Việt gọn gàng sạch sẽ */}
+                        <DetailItem label="Mức độ khó" value={getDifficultyLabel(viewRecipe.difficulty)} />
+                      </div>
 
                       <div>
                         <p style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '1rem' }}>Nguyên liệu & Định mức</p>
@@ -795,6 +791,10 @@ const RecipeManagement: React.FC = () => {
                         <div style={{ background: 'white', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #f1f5f9', whiteSpace: 'pre-line', color: '#475569', fontSize: '0.9375rem', lineHeight: 1.6 }}>
                           {viewRecipe.instructions || 'Chưa có hướng dẫn chi tiết.'}
                         </div>
+                      </div>
+
+                      <div>
+                        <DetailItem label="Nguồn tham khảo" value={viewRecipe.referenceLink || 'Nội bộ'} />
                       </div>
                     </>
                   )}
@@ -878,7 +878,6 @@ function SidebarLink({ icon, label, to, isExpanded, active, onClick }: any) {
     </NavLink>
   );
 }
-
 
 function HeaderBtn({ icon, hasBadge }: any) {
   return (
