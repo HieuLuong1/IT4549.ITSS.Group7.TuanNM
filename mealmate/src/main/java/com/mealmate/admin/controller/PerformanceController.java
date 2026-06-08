@@ -75,17 +75,16 @@ public class PerformanceController {
     }
 
     // =========================================================================
-    // 🎯 LUỒNG XỬ LÝ: LẤY DANH SÁCH THỰC PHẨM TỰ NHẬP ĐỂ ĐỊNH DANH (ĐÃ FIX ĐỒNG BỘ 100%)
+    // 🎯 LUỒNG XỬ LÝ: KHÔI PHỤC ĐỦ TRƯỜNG ACTUALNAME TRẢ VỀ CHO FRONT-END
     // =========================================================================
     @GetMapping("/unidentified-items")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getUnidentifiedItems() {
         try {
-            // Thực hiện JOIN an toàn từ fridge_items -> foods -> categories
             String sql = "SELECT fi.id AS id, " +
                          "       fi.family_id AS familyId, " +
                          "       fi.food_id AS foodId, " +
-                         "       c.name AS generalName, " +       // Lấy tên danh mục chuẩn (Hải sản, Rau củ...)
-                         "       fi.custom_name AS actualName, " +  // Tên cụ thể người dùng tự nhập
+                         "       c.name AS generalName, " +       
+                         "       fi.custom_name AS actualName, " +  
                          "       fi.quantity AS quantity, " +
                          "       fi.storage_location AS storageLocation, " +
                          "       fi.specific_location AS specificLocation, " +
@@ -107,7 +106,7 @@ public class PerformanceController {
                          "JOIN categories c ON f.category_id = c.id " + 
                          "LEFT JOIN users u ON f.created_by = u.id " +  
                          "WHERE fi.custom_name IS NOT NULL " +
-                         "ORDER BY fi.created_at DESC";
+                         "ORDER BY fi.created_at DESC, fi.id DESC";
 
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
             List<Map<String, Object>> formattedItems = new ArrayList<>();
@@ -115,8 +114,6 @@ public class PerformanceController {
             for (Map<String, Object> row : rows) {
                 Map<String, Object> finalMap = new HashMap<>();
                 
-                // Trả về đồng thời cả key viết thường (mặc định Postgres) và key camelCase (Front-end cần)
-                // Điều này triệt tiêu hoàn toàn rủi ro lệch cấu trúc dữ liệu!
                 finalMap.put("id", row.get("id"));
                 finalMap.put("familyid", row.get("familyid"));
                 finalMap.put("familyId", row.get("familyid"));
@@ -148,7 +145,11 @@ public class PerformanceController {
                 finalMap.put("updatedat", row.get("updatedat"));
                 finalMap.put("updatedAt", row.get("updatedat"));
                 
-                // Đồng bộ tên danh mục chuẩn hóa hiển thị và người gửi
+                // 🎯 ĐÃ VÁ LỖI KHÔNG ĐƯA CUSTOM_NAME VÀO MAP TRẢ VỀ:
+                String actualNameVal = (String) row.get("actualname");
+                finalMap.put("actualname", actualNameVal);
+                finalMap.put("actualName", actualNameVal);
+                
                 String gName = (String) row.get("generalname");
                 finalMap.put("generalname", gName);
                 finalMap.put("generalName", gName);
@@ -161,7 +162,6 @@ public class PerformanceController {
                 finalMap.put("submittedat", subAtStr);
                 finalMap.put("submittedAt", subAtStr);
 
-                // Gán mềm trường type phục vụ logic bộ lọc phụ nếu Front-end có gọi
                 if (gName != null && (gName.toLowerCase().contains("thịt") || gName.toLowerCase().contains("hải sản"))) {
                     finalMap.put("type", "meat");
                 } else {
@@ -181,17 +181,7 @@ public class PerformanceController {
 
     @DeleteMapping("/unidentified-items/{id}")
     public ResponseEntity<ApiResponse<String>> deleteUnidentifiedItem(@PathVariable Long id) {
-        try {
-            String sql = "UPDATE fridge_items SET custom_name = NULL, updated_at = NOW() WHERE id = ?";
-            int rows = jdbcTemplate.update(sql, id);
-            
-            if (rows > 0) {
-                return ResponseEntity.ok(new ApiResponse<>(true, "Đã chuẩn hóa và loại bỏ khỏi hàng chờ thành công!", null));
-            } else {
-                return ResponseEntity.status(404).body(new ApiResponse<>(false, "Không tìm thấy vật phẩm cần xử lý.", null));
-            }
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(new ApiResponse<>(false, "Lỗi hệ thống: " + e.getMessage(), null));
-        }
+        // Đảm bảo KỆ NÓ, giữ nguyên dữ liệu gốc không xóa theo ý bạn
+        return ResponseEntity.ok(new ApiResponse<>(true, "Đã ghi nhận xử lý (Dữ liệu tủ lạnh được giữ nguyên)!", null));
     }
 }

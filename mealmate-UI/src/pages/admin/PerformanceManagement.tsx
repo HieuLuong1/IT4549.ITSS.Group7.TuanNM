@@ -81,6 +81,10 @@ const PerformanceManagement: React.FC = () => {
   const [inlineValue, setInlineValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
+  // 🎯 TÍCH HỢP CHIA TRANG 5 DÒNG CỐ ĐỊNH
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [step, setStep] = useState(2); 
@@ -276,7 +280,6 @@ const PerformanceManagement: React.FC = () => {
     setItemSearch('');
   };
 
-  // 🎯 SỬA CHÍNH XÁC LOGIC MAP TỪ GENERALNAME SANG DROPDOWN VÀ HIỂN THỊ TỪ ĐỒNG NGHĨA
   const handleOpenApproveModal = (item: UnidentifiedItem) => {
     setApprovingItem(item);
     
@@ -285,15 +288,11 @@ const PerformanceManagement: React.FC = () => {
     
     setApproveName(actualName);
     
-    // Tìm ID danh mục trong mảng categories khớp với chuỗi tiếng Việt lấy lên từ DB
     const matchedCategory = categories.find(
       cat => cat.name?.toLowerCase() === generalName.toLowerCase()
     );
-    // Nếu tìm thấy thì tự chọn danh mục đó, nếu không thì fallback về giá trị mặc định đầu tiên
     setApproveCategory(matchedCategory ? matchedCategory.id : (categories[0]?.id || 1));
-    
     setApproveUnit('kg');
-    // Từ đồng nghĩa ban đầu mặc định gợi ý chính là tên người dùng gõ vào
     setApproveSynonyms(actualName);
   };
 
@@ -311,14 +310,14 @@ const PerformanceManagement: React.FC = () => {
       await api.post('/api/foods', payload);
       await api.delete(`/api/v1/admin/unidentified-items/${approvingItem.id}`);
       
-      alert(`Đã duyệt thực phẩm "${approveName}" vào hệ thống.`);
+      alert(`Đã thêm thực phẩm "${approveName}" vào thư viện hệ thống thành công.`);
       setApprovingItem(null);
       fetchUnidentifiedItems();
       fetchFoods();
       fetchStats();
     } catch (err) {
       console.error(err);
-      alert('Duyệt thực phẩm thất bại.');
+      alert('Duyệt thêm thực phẩm mới thất bại.');
     }
   };
 
@@ -328,8 +327,8 @@ const PerformanceManagement: React.FC = () => {
       setConfirmDeleteId(null);
       fetchUnidentifiedItems();
     } catch (err) {
-      console.error('Xóa hàng chờ lỗi:', err);
-      alert('Không thể xóa mục hàng chờ này.');
+      console.error('Xử lý lỗi:', err);
+      alert('Không thể hoàn tất thao tác.');
     }
   };
 
@@ -350,9 +349,9 @@ const PerformanceManagement: React.FC = () => {
         };
         await api.put(`/api/foods/${food.id}`, payload);
         await api.delete(`/api/v1/admin/unidentified-items/${viewingItem.id}`);
-        alert(`Đã liên kết thành công! Đã thêm "${viewingActualName}" làm từ đồng nghĩa của "${food.name}".`);
+        alert(`Đã liên kết từ đồng nghĩa mới vào món "${food.name}" hệ thống thành công.`);
       } else {
-        alert(`"${viewingActualName}" đã tồn tại trong từ đồng nghĩa của "${food.name}".`);
+        alert(`"${viewingActualName}" đã tồn tại sẵn trong thư viện của "${food.name}".`);
       }
       setViewingItem(null);
       setIsLinkingMode(false);
@@ -380,6 +379,22 @@ const PerformanceManagement: React.FC = () => {
     (!f.synonyms || f.synonyms.trim().length === 0) &&
     f.name.toLowerCase().includes(itemSearch.toLowerCase())
   );
+
+  // 🎯 PHÂN TÁCH MẢNG CHIA TRANG DỮ LIỆU ĐẦU VÀO
+  const filteredUnidentifiedItems = unidentifiedItems.filter(item => {
+    const actualNameStr = item?.actualName || (item as any)?.actualname || '';
+    const generalNameStr = item?.generalName || (item as any)?.generalname || '';
+    
+    return (
+      actualNameStr.toLowerCase().includes(uiSearchQuery.toLowerCase()) ||
+      generalNameStr.toLowerCase().includes(uiSearchQuery.toLowerCase())
+    );
+  });
+
+  const totalPages = Math.ceil(filteredUnidentifiedItems.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentDisplayedItems = filteredUnidentifiedItems.slice(indexOfFirstItem, indexOfLastItem);
 
   return (
     <div className="um-layout">
@@ -490,7 +505,7 @@ const PerformanceManagement: React.FC = () => {
                       placeholder="Tìm yêu cầu..." 
                       className="um-search-input"
                       value={uiSearchQuery}
-                      onChange={(e) => setUiSearchQuery(e.target.value)}
+                      onChange={(e) => { setUiSearchQuery(e.target.value); setCurrentPage(1); }}
                     />
                   </div>
                 </div>
@@ -509,15 +524,7 @@ const PerformanceManagement: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {unidentifiedItems.filter(item => {
-                      const actualNameStr = item?.actualName || (item as any)?.actualname || '';
-                      const generalNameStr = item?.generalName || (item as any)?.generalname || '';
-                      
-                      return (
-                        actualNameStr.toLowerCase().includes(uiSearchQuery.toLowerCase()) ||
-                        generalNameStr.toLowerCase().includes(uiSearchQuery.toLowerCase())
-                      );
-                    }).map(item => {
+                    {currentDisplayedItems.map(item => {
                       const id = item.id;
                       const actualName = item.actualName || (item as any).actualname || '-';
                       const status = item.status || '-';
@@ -552,7 +559,9 @@ const PerformanceManagement: React.FC = () => {
                             </span>
                           </td>
                           <td style={{ fontWeight: 800, color: 'var(--fiza-primary)' }}>{actualName}</td>
-                          <td style={{ fontSize: '0.875rem', color: '#64748b' }}>{status}</td>
+                          <td style={{ fontSize: '0.875rem', color: '#64748b' }}>
+                            {status === 'STORED' ? 'Đang lưu trữ' : status}
+                          </td>
                           <td style={{ fontSize: '0.875rem', color: '#64748b', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{note}</td>
                           <td style={{ fontSize: '0.875rem', color: '#64748b' }}>{submittedAt}</td>
                           <td>
@@ -564,16 +573,39 @@ const PerformanceManagement: React.FC = () => {
                         </tr>
                       );
                     })}
-                    {unidentifiedItems.length === 0 && (
+                    {filteredUnidentifiedItems.length === 0 && (
                       <tr>
                         <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
-                          Không có yêu cầu định danh thực phẩm nào cần xử lý.
+                          Không có yêu cầu định danh thực phẩm nào phù hợp.
                         </td>
                       </tr>
                     )}
                   </tbody>
                 </table>
               </div>
+
+              {/* THANH ĐIỀU HƯỚNG PHÂN TRANG */}
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '1rem', marginTop: '1.5rem', paddingRight: '0.5rem' }}>
+                  <button 
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: currentPage === 1 ? '#f8fafc' : 'white', color: currentPage === 1 ? '#cbd5e1' : '#475569', fontWeight: 600, cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '13px' }}
+                  >
+                    Trang trước
+                  </button>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748b' }}>
+                    Trang {currentPage} / {totalPages}
+                  </span>
+                  <button 
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: currentPage === totalPages ? '#f8fafc' : 'white', color: currentPage === totalPages ? '#cbd5e1' : '#475569', fontWeight: 600, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontSize: '13px' }}
+                  >
+                    Trang sau
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Synonym Management */}
@@ -767,7 +799,7 @@ const PerformanceManagement: React.FC = () => {
               )}
 
               {step === 3 && selectedItem && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div style={{ display: 'flex', gap: '1.25rem', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <div style={{ width: '48px', height: '48px', borderRadius: '12px', overflow: 'hidden' }}>
@@ -827,7 +859,6 @@ const PerformanceManagement: React.FC = () => {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Nhóm thực phẩm</label>
-                {/* 🎯 DROPDOWN ĐÃ ĐƯỢC CHỌN SẴN THEO GENERALNAME LẤY TỪ DATABASE */}
                 <select 
                   value={approveCategory} 
                   onChange={(e) => setApproveCategory(Number(e.target.value))} 
@@ -864,7 +895,6 @@ const PerformanceManagement: React.FC = () => {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Từ đồng nghĩa / Tên gọi khác (phân cách bằng dấu phẩy)</label>
-                {/* 🎯 ĐÃ ĐƯỢC ĐỔI THÀNH APPROVESYNONYMS ĐỂ HIỂN THỊ ĐÚNG MÓN NGƯỜI DÙNG TỰ GÕ */}
                 <input 
                   type="text" 
                   value={approveSynonyms} 
@@ -988,8 +1018,8 @@ const PerformanceManagement: React.FC = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1rem', borderTop: '1px dashed #e2e8f0', paddingTop: '1rem' }}>
                   <DetailItem label="Mã gia đình (Family ID)" value={viewingItem.familyId || (viewingItem as any).familyid ? `${viewingItem.familyId || (viewingItem as any).familyid}` : '—'} />
                   <DetailItem label="Mã thực phẩm (Food ID)" value={viewingItem.foodId || (viewingItem as any).foodid ? `${viewingItem.foodId || (viewingItem as any).foodid}` : '—'} />
-                  <DetailItem label="Thời điểm tạo bản ghi" value={viewingItem.createdAt || (viewingItem as any).createdat || '—'} />
-                  <DetailItem label="Thời điểm cập nhật" value={viewingItem.updatedAt || (viewingItem as any).updatedat || '—'} />
+                  <DetailItem label="Ngày tạo bản ghi" value={viewingItem.createdAt || (viewingItem as any).createdat || '—'} />
+                  <DetailItem label="Cập nhật gần nhất" value={viewingItem.updatedAt || (viewingItem as any).updatedat || '—'} />
                 </div>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.5rem' }}>
@@ -1035,7 +1065,7 @@ const PerformanceManagement: React.FC = () => {
 
         {confirmDeleteId && (
           <Modal title="Xác nhận xóa hàng chờ" onClose={() => setConfirmDeleteId(null)} width="400px">
-            <div style={{ textAlign: 'center' }}>
+            <div style={{ padding: '2rem', textAlign: 'center' }}>
               <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#FEF2F2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
                 <Trash2 size={32} />
               </div>
@@ -1091,7 +1121,28 @@ function HeaderBtn({ icon, hasBadge }: any) {
 function ActionBtn({ icon, hoverColor, onClick }: any) {
   const [hover, setHover] = useState(false);
   return (
-    <button onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} onClick={onClick} style={{ width: '32px', height: '32px', borderRadius: '50%', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', color: hover ? hoverColor : '#94a3b8', backgroundColor: hover ? 'white' : 'transparent', boxShadow: hover ? '0 4px 6px -1px rgba(0,0,0,0.1)' : 'none' }}>{icon}</button>
+    <button 
+      onMouseEnter={() => setHover(true)} 
+      onMouseLeave={() => setHover(false)} 
+      onClick={onClick} 
+      style={{ 
+        width: '32px', 
+        height: '32px', 
+        borderRadius: '50%', 
+        border: 'none', 
+        background: 'transparent', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        cursor: 'pointer', 
+        transition: 'all 0.2s', 
+        color: hover ? hoverColor : '#94a3b8', 
+        backgroundColor: hover ? 'white' : 'transparent', 
+        boxShadow: hover ? '0 4px 6px -1px rgba(0,0,0,0.1)' : 'none' 
+      }}
+    >
+      {icon}
+    </button>
   );
 }
 
