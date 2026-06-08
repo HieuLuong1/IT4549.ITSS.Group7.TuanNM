@@ -11,8 +11,9 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
-// 🎯 ĐỒNG BỘ: Thay đổi nhúng chân sang Sidebar hợp nhất nhận diện quyền hệ thống tự động
+// Chuyển đổi nhúng chân sang Sidebar hợp nhất nhận diện quyền hệ thống tự động
 import Sidebar from '../../components/layout/Sidebar';
 
 import SharedModal from '../../components/admin/Modal';
@@ -71,6 +72,11 @@ const RecipeManagement: React.FC = () => {
   const [addImageUploaded, setAddImageUploaded] = useState('');
   const [addImageUploading, setAddImageUploading] = useState(false);
   const addImageInputRef = React.useRef<HTMLInputElement>(null);
+
+  // 🎯 TRẠNG THÁI UPLOAD ẢNH MỚI BỔ SUNG CHO MODAL CHỈNH SỬA
+  const [editImageMode, setEditImageMode] = useState<'url' | 'upload'>('url');
+  const [editImageUploading, setEditImageUploading] = useState(false);
+  const editImageInputRef = React.useRef<HTMLInputElement>(null);
 
   const fetchRecipes = async () => {
     setIsLoading(true);
@@ -158,11 +164,35 @@ const RecipeManagement: React.FC = () => {
       
       setViewRecipe(updatedRecipe);
       setEditData(JSON.parse(JSON.stringify(updatedRecipe)));
+      setEditImageMode('url'); // Reset chế độ nhập ảnh mặc định khi xem chi tiết
       setIsEditing(false);
 
     } catch (err) {
       console.error(err);
       alert('Không thể tải thông tin chi tiết món ăn.');
+    }
+  };
+
+  // 🎯 LUỒNG XỬ LÝ UPLOAD ẢNH TỪ MÁY KHI CHỈNH SỬA MÓN ĂN
+  const handleEditRecipeImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { alert('Chỉ chấp nhận file ảnh!'); return; }
+    if (file.size > 8 * 1024 * 1024) { alert('Ảnh không được vượt quá 8 MB!'); return; }
+    
+    setEditImageUploading(true);
+    try {
+      const res = await uploadFile(file, 'mealmate/recipes');
+      if (editData) {
+        setEditData({ ...editData, imageUrl: res.url });
+        toast.success("Tải ảnh từ máy lên Cloudinary thành công!");
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Không tải được ảnh lên hệ thống Cloudinary. Vui lòng thử lại!');
+    } finally {
+      setEditImageUploading(false);
+      if (editImageInputRef.current) editImageInputRef.current.value = '';
     }
   };
 
@@ -179,6 +209,7 @@ const RecipeManagement: React.FC = () => {
         invalidIngredients.push(ing.name);
       } else {
         const parsed = parseAmount(ing.amount);
+        // Loại bỏ hoàn toàn trường ID của recipe_ingredient cũ để chống sập Duplicate Key ở Backend
         recipeIngredientsPayload.push({
           food: { id: food.id },
           quantity: parsed.quantity,
@@ -210,7 +241,7 @@ const RecipeManagement: React.FC = () => {
       await api.put(`/api/v1/catalogs/recipes/${editData.id}`, recipePayload);
       await api.post(`/api/v1/catalogs/recipes/${editData.id}/ingredients`, recipeIngredientsPayload);
 
-      alert('Cập nhật món ăn thành công!');
+      alert('Cập nhật món ăn và đồng bộ nguyên liệu thành công!');
       setViewRecipe(null);
       setIsEditing(false);
       fetchRecipes();
@@ -345,7 +376,6 @@ const RecipeManagement: React.FC = () => {
 
   return (
     <div className="um-layout">
-      {/* 🎯 SỬA ĐỔI: Nhúng chân trực tiếp vào Sidebar hợp nhất phân quyền */}
       <Sidebar />
 
       <div className="um-main unshifted">
@@ -639,7 +669,7 @@ const RecipeManagement: React.FC = () => {
               <div style={{ display: 'flex', gap: '2.5rem' }}>
                 <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   <div style={{ width: '220px', height: '220px', borderRadius: '32px', overflow: 'hidden', backgroundColor: '#F1FAF6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }}>
-                    <img src={viewRecipe.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={editData.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                   <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '1.5rem', border: '1px solid #e2e8f0' }}>
                     <p style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '1rem' }}>Thông tin chung</p>
@@ -669,9 +699,73 @@ const RecipeManagement: React.FC = () => {
                       </div>
                       <FormGroup label="Tác giả" value={editData.author} onChange={(e: any) => setEditData({ ...editData, author: e.target.value })} />
                       
-                      <div style={{ gridColumn: 'span 2' }}>
-                        <FormGroup label="Hình ảnh món ăn (URL)" value={editData.imageUrl} onChange={(e: any) => setEditData({ ...editData, imageUrl: e.target.value })} />
+                      {/* 🎯 TÍNH NĂNG MỚI NÂNG CẤP: BỘ CHUYỂN TAB CHỌN LINK HOẶC UP ẢNH TỪ MÁY CHO PHẦN CHỈNH SỬA */}
+                      <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Hình ảnh món ăn</label>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          {(['url', 'upload'] as const).map((mode) => (
+                            <button
+                              key={mode}
+                              type="button"
+                              onClick={() => setEditImageMode(mode)}
+                              style={{
+                                padding: '6px 18px',
+                                borderRadius: '9999px',
+                                border: '1px solid',
+                                borderColor: editImageMode === mode ? '#006b55' : '#e2e8f0',
+                                background: editImageMode === mode ? 'rgba(0,107,85,0.08)' : '#fff',
+                                color: editImageMode === mode ? '#006b55' : '#64748b',
+                                fontWeight: 700,
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {mode === 'url' ? '🔗 Sửa bằng link URL' : '📤 Tải ảnh mới lên'}
+                            </button>
+                          ))}
+                        </div>
+
+                        {editImageMode === 'url' ? (
+                          <input
+                            className="um-search-input"
+                            style={{ paddingLeft: '1rem' }}
+                            placeholder="Nhập đường link hình ảnh..."
+                            value={editData.imageUrl || ''}
+                            onChange={(e) => setEditData({ ...editData, imageUrl: e.target.value })}
+                          />
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <input
+                              ref={editImageInputRef}
+                              type="file"
+                              accept="image/*"
+                              style={{ display: 'none' }}
+                              onChange={handleEditRecipeImageUpload}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => editImageInputRef.current?.click()}
+                              disabled={editImageUploading}
+                              style={{
+                                padding: '8px 20px',
+                                borderRadius: '9999px',
+                                border: '1px solid #006b55',
+                                background: editImageUploading ? '#f1f5f9' : '#fff',
+                                color: '#006b55',
+                                fontWeight: 700,
+                                fontSize: '13px',
+                                cursor: editImageUploading ? 'wait' : 'pointer',
+                              }}
+                            >
+                              {editImageUploading ? '⏳ Đang đồng bộ ảnh...' : '📤 Chọn file từ thiết bị'}
+                            </button>
+                            {editData.imageUrl && editData.imageUrl.startsWith('http') && (
+                              <span style={{ fontSize: 12, color: '#006b55', fontWeight: 600 }}>✅ Ảnh mới sẵn sàng cập nhật</span>
+                            )}
+                          </div>
+                        )}
                       </div>
+
                       <div style={{ gridColumn: 'span 2' }}>
                         <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Mô tả ngắn gọn</label>
                         <textarea value={editData.description || ''} onChange={(e) => setEditData({ ...editData, description: e.target.value })} className="um-textarea" style={{ height: '90px', resize: 'none' }} placeholder="Mô tả ngắn gọn về món ăn" />

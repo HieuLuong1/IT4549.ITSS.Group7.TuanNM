@@ -14,7 +14,10 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NavLink } from 'react-router-dom';
-import AdminSidebar from '../../components/admin/AdminSidebar';
+
+// 🎯 ĐỒNG BỘ: Chuyển đổi sang Sidebar hợp nhất tự động phân quyền hệ thống
+import Sidebar from '../../components/layout/Sidebar';
+
 import NotificationPanel from '../../components/common/NotificationPanel';
 import { useAuth } from '../../context/AuthContext';
 
@@ -62,7 +65,6 @@ const COLORS = ['#6DD4B4', '#F99F1B', '#FF7E7E', '#64748b', '#0EA5E9', '#A855F7'
 
 const PerformanceManagement: React.FC = () => {
   const { logout } = useAuth();
-  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [foods, setFoods] = useState<any[]>([]);
   const [stats, setStats] = useState<any>({
     totalUsers: 0,
@@ -81,7 +83,7 @@ const PerformanceManagement: React.FC = () => {
   const [inlineValue, setInlineValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // 🎯 TÍCH HỢP CHIA TRANG 5 DÒNG CỐ ĐỊNH
+  // TÍCH HỢP CHIA TRANG 5 DÒNG CỐ ĐỊNH
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -380,7 +382,7 @@ const PerformanceManagement: React.FC = () => {
     f.name.toLowerCase().includes(itemSearch.toLowerCase())
   );
 
-  // 🎯 PHÂN TÁCH MẢNG CHIA TRANG DỮ LIỆU ĐẦU VÀO
+  // PHÂN TÁCH MẢNG CHIA TRANG DỮ LIỆU ĐẦU VÀO
   const filteredUnidentifiedItems = unidentifiedItems.filter(item => {
     const actualNameStr = item?.actualName || (item as any)?.actualname || '';
     const generalNameStr = item?.generalName || (item as any)?.generalname || '';
@@ -398,7 +400,8 @@ const PerformanceManagement: React.FC = () => {
 
   return (
     <div className="um-layout">
-      <AdminSidebar />
+      {/* Thay thế AdminSidebar cũ bằng Sidebar phân quyền hợp nhất */}
+      <Sidebar />
 
       <div className="um-main unshifted">
         <header className="um-header">
@@ -1093,21 +1096,6 @@ const PerformanceManagement: React.FC = () => {
     </div>
   );
 };
-
-function SidebarLink({ icon, label, to, isExpanded, active, onClick }: any) {
-  return (
-    <NavLink to={to} onClick={onClick} className={`um-nav-item ${active ? 'active' : ''} ${isExpanded ? 'expanded' : 'collapsed'}`} >
-      <div className="um-nav-icon">{icon}</div>
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="um-nav-label">
-            {label}
-          </motion.span>
-        )}
-      </AnimatePresence>
-    </NavLink>
-  );
-}
 
 function HeaderBtn({ icon, hasBadge }: any) {
   return (

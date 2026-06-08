@@ -2,9 +2,11 @@ package com.mealmate.catalog.repository;
 
 import com.mealmate.catalog.model.RecipeIngredient;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying; // Thêm import
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional; // Thêm import
 
 import java.util.List;
 
@@ -13,6 +15,9 @@ public interface RecipeIngredientRepository extends JpaRepository<RecipeIngredie
 
     List<RecipeIngredient> findByRecipeId(Long recipeId);
 
+    // 🎯 VÁ LỖI: Ép Spring Boot chạy câu lệnh DELETE trực diện xuống PostgreSQL ngay lập tức khi được gọi
+    @Modifying
+    @Transactional
     void deleteByRecipeId(Long recipeId);
 
     @Query("""

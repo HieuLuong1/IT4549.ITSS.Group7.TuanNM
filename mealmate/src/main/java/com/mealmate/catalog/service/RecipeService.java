@@ -85,11 +85,26 @@ public class RecipeService {
     @Transactional
     public List<RecipeIngredient> saveIngredients(Long recipeId, List<RecipeIngredient> ingredients) {
         Recipe recipe = findById(recipeId);
+        
+        // 1. Thực hiện xóa các nguyên liệu cũ (Đã có @Modifying ép xóa ngay)
         recipeIngredientRepository.deleteByRecipeId(recipeId);
+        
+        // 🎯 2. ĐỒNG BỘ CỨNG: Đẩy lệnh DELETE xuống PostgreSQL ngay lập tức
+        recipeIngredientRepository.flush(); 
+        
+        // 🎯 3. KHỞI TẠO SẠCH BỘ ĐỆM: Tạo mới thực thể phẳng hoàn toàn để Hibernate không bị lẫn ID cũ từ Front-end gửi lên
+        List<RecipeIngredient> cleanIngredients = new ArrayList<>();
         for (RecipeIngredient ingredient : ingredients) {
-            ingredient.setRecipe(recipe);
+            RecipeIngredient newIng = new RecipeIngredient();
+            newIng.setRecipe(recipe);
+            newIng.setFood(ingredient.getFood());
+            newIng.setQuantity(ingredient.getQuantity());
+            newIng.setUnit(ingredient.getUnit());
+            cleanIngredients.add(newIng);
         }
-        return recipeIngredientRepository.saveAll(ingredients);
+        
+        // 4. Lưu danh sách mới sạch sẽ vào bảng dữ liệu trống
+        return recipeIngredientRepository.saveAllAndFlush(cleanIngredients);
     }
 
     @Transactional(readOnly = true)
