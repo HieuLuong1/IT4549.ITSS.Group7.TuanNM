@@ -10,13 +10,14 @@
 
 .user-reports-page {
   flex: 1;
+  min-width: calc(100vw - 104px);
   margin-left: 104px;
   min-height: 100vh;
   background: var(--fiza-background);
 }
 
 .user-reports-layout .sidebar:hover ~ .user-reports-page {
-  margin-left: 284px;
+  margin-left: 104px;
 }
 
 .user-reports-page > .topbar {

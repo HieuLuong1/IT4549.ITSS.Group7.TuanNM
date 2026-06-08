@@ -32,7 +32,6 @@ export interface Food {
   name: string;
   unit: string;
   synonyms: string[]; // Frontend maps it as string[]
-  imageUrl?: string;
   isSystem: boolean;
 }
 
@@ -81,7 +80,6 @@ const FoodManagement: React.FC = () => {
         name: item.name,
         unit: item.unit || 'g',
         synonyms: item.synonyms ? item.synonyms.split(',').map((s: string) => s.trim()) : [],
-        imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500',
         isSystem: item.isSystem ?? true
       }));
       setFoods(mappedFoods);
@@ -123,7 +121,6 @@ const FoodManagement: React.FC = () => {
           categoryId: editData.categoryId,
           unit: editData.unit,
           synonyms: editData.synonyms.join(','),
-          imageUrl: editData.imageUrl
         };
         const response = await api.put(`/api/foods/${editData.id}`, payload);
         const updated = {
@@ -161,7 +158,6 @@ const FoodManagement: React.FC = () => {
       categoryId: catId,
       unit: formData.get('unit') as string,
       synonyms: formData.get('synonyms') as string,
-      imageUrl: 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'
     };
 
     try {
@@ -173,7 +169,6 @@ const FoodManagement: React.FC = () => {
         name: response.data.name,
         unit: response.data.unit,
         synonyms: response.data.synonyms ? response.data.synonyms.split(',').map((s: string) => s.trim()) : [],
-        imageUrl: response.data.imageUrl || payload.imageUrl,
         isSystem: response.data.isSystem ?? true
       };
       setFoods([newFood, ...foods]);
@@ -203,7 +198,6 @@ const FoodManagement: React.FC = () => {
         <header className="um-header">
           <div className="um-header-left">
             <h1 className="um-title">Quản lý thực phẩm</h1>
-            <p className="um-subtitle">Danh mục nguyên liệu và thực phẩm hệ thống</p>
           </div>
           <div className="um-header-right">
             <NotificationPanel variant="admin" />
@@ -233,34 +227,35 @@ const FoodManagement: React.FC = () => {
               </div>
 
               <div style={{ overflowX: 'auto' }}>
-                <table className="um-table">
+                <table className="um-table" style={{ width: '100%', tableLayout: 'fixed' }}>
                   <thead>
                     <tr>
                       <th style={{ width: '80px' }}>ID</th>
-                      <th>Thực phẩm</th>
-                      <th>Nhóm</th>
-                      <th>Đơn vị</th>
+                      <th style={{ width: '220px' }}>Thực phẩm</th>
+                      <th style={{ width: '180px' }}>Nhóm danh mục</th>
+                      <th style={{ width: '100px' }}>Đơn vị</th>
                       <th>Tên gọi khác</th>
-                      <th style={{ textAlign: 'center' }}>Thao tác</th>
+                      <th style={{ textAlign: 'center', width: '120px' }}>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
                     {currentFoods.map(food => (
                       <tr key={food.id}>
                         <td style={{ fontWeight: 700, color: '#94a3b8' }}>{food.id}</td>
-                        <td style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                          <div style={{ width: '40px', height: '40px', borderRadius: '10px', overflow: 'hidden' }}>
-                            <img src={food.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          </div>
-                          <span style={{ fontWeight: 700 }}>{food.name}</span>
-                        </td>
-                        <td><span className="um-role-badge">{food.categoryName}</span></td>
                         <td>
-                          <div style={{ display: 'flex', gap: '0.25rem' }}>
-                            <span style={{ fontSize: '12px', padding: '2px 8px', background: '#f1f5f9', borderRadius: '4px' }}>{food.unit}</span>
-                          </div>
+                          <span style={{ fontWeight: 700, color: '#1e293b' }}>{food.name}</span>
                         </td>
-                        <td style={{ color: '#64748b', fontSize: '0.875rem' }}>{food.synonyms.join(', ')}</td>
+                        <td>
+                          <span className="um-role-badge" style={{ display: 'inline-block' }}>{food.categoryName}</span>
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '12px', padding: '4px 10px', background: '#f1f5f9', borderRadius: '6px', color: '#475569', fontWeight: 600 }}>
+                            {food.unit}
+                          </span>
+                        </td>
+                        <td style={{ color: '#64748b', fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {food.synonyms.join(', ') || '—'}
+                        </td>
                         <td>
                           <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
                             <ActionBtn icon={<Eye size={18} />} hoverColor="var(--fiza-primary)" onClick={() => handleEditClick(food)} />
@@ -290,11 +285,8 @@ const FoodManagement: React.FC = () => {
         <AnimatePresence>
           {(viewFood && editData) && (
             <SharedModal title={isEditing ? "Cập nhật thực phẩm" : "Thông tin thực phẩm"} onClose={() => setViewFood(null)}>
-              <div style={{ display: 'flex', gap: '2.5rem' }}>
-                <div style={{ width: '150px', height: '150px', borderRadius: '32px', overflow: 'hidden', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }}>
-                  <img src={viewFood.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
-                <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
                   <DetailItem label="Mã thực phẩm" value={viewFood.id} />
                   {isEditing ? (
                     <>
@@ -365,6 +357,7 @@ const FoodManagement: React.FC = () => {
                   ) : (
                     <>
                       <DetailItem label="Tên thực phẩm" value={viewFood.name} />
+                      <DetailItem label="Nhóm phân loại" value={viewFood.categoryName} />
                       <DetailItem label="Đơn vị đo" value={viewFood.unit} />
                       <div style={{ gridColumn: 'span 2' }}>
                         <DetailItem label="Tên gọi khác" value={viewFood.synonyms.join(', ') || 'Chưa có'} />
@@ -436,7 +429,6 @@ function SidebarLink({ icon, label, to, isExpanded, active, onClick }: any) {
     </NavLink>
   );
 }
-
 
 function FormGroup({ label, ...props }: any) {
   return (
