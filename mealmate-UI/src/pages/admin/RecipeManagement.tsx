@@ -18,6 +18,8 @@ import { useAuth } from '../../context/AuthContext';
 import { uploadFile } from '../../features/uploads/uploadApi';
 import api from '../../services/api';
 
+const placeholderImage =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" rx="18" fill="%23f1f5f9"/><path d="M49 102h62L94 79 80 95 69 84z" fill="%23cbd5e1"/><circle cx="63" cy="62" r="10" fill="%23cbd5e1"/></svg>';
 
 export interface Ingredient {
   name: string;
@@ -264,8 +266,7 @@ const RecipeManagement: React.FC = () => {
     }
 
     try {
-      const defaultImage = 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500';
-      const resolvedImageUrl = (addImageMode === 'upload' ? addImageUploaded : addImageUrl).trim() || defaultImage;
+      const resolvedImageUrl = (addImageMode === 'upload' ? addImageUploaded : addImageUrl).trim();
       const cookingTimeMinutesValue = Number(formData.get('cookingTimeMinutes') || '');
       const servingsValue = Number(formData.get('servings') || '');
       const caloriesValue = Number(formData.get('calories') || '');
@@ -413,7 +414,7 @@ const RecipeManagement: React.FC = () => {
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                               <div style={{ width: '48px', height: '48px', borderRadius: '12px', overflow: 'hidden' }}>
-                                <img src={recipe.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={recipe.imageUrl || placeholderImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                               </div>
                               <span style={{ fontWeight: 700, color: '#1e293b' }}>{recipe.name}</span>
                             </div>
@@ -495,7 +496,7 @@ const RecipeManagement: React.FC = () => {
                     <input
                       className="um-search-input"
                       style={{ paddingLeft: '1rem' }}
-                      placeholder="VD: https://images.unsplash.com/photo-..."
+                      placeholder="VD: https://..."
                       value={addImageUrl}
                       onChange={(e) => setAddImageUrl(e.target.value)}
                     />
@@ -639,7 +640,7 @@ const RecipeManagement: React.FC = () => {
               <div style={{ display: 'flex', gap: '2.5rem' }}>
                 <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   <div style={{ width: '220px', height: '220px', borderRadius: '32px', overflow: 'hidden', backgroundColor: '#F1FAF6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }}>
-                    <img src={viewRecipe.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={viewRecipe.imageUrl || placeholderImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
                   <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '1.5rem', border: '1px solid #e2e8f0' }}>
                     <p style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '1rem' }}>Thông tin chung</p>

@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import '@/components/layout/Sidebar.css';
 import iconLogo from '@/assets/icon/Icon-logo.svg';
+import defaultAvatar from '@/assets/avatar/26.svg';
 
 // Import ProfileModal từ thư mục layout (đi ra ngoài 1 cấp)
 import ProfileModal from '../layout/ProfileModal';
@@ -73,7 +74,7 @@ const AdminSidebar: React.FC = () => {
         email: foundFullProfile.email,
         phone: foundFullProfile.phone,
         gender: foundFullProfile.gender,
-        avatarUrl: foundFullProfile.avatarUrl
+        avatarUrl: foundFullProfile.avatarUrl || baseAuthUser.avatarUrl || baseAuthUser.avatar_url
       };
     } else {
       refinedUserData = {
@@ -83,7 +84,7 @@ const AdminSidebar: React.FC = () => {
         email: baseAuthUser.email || "Chưa cập nhật",
         phone: baseAuthUser.phone || "Chưa cập nhật",
         gender: baseAuthUser.gender || "OTHER",
-        avatarUrl: baseAuthUser.avatarUrl || undefined
+        avatarUrl: baseAuthUser.avatarUrl || baseAuthUser.avatar_url || undefined
       };
     }
   }
@@ -139,10 +140,10 @@ const AdminSidebar: React.FC = () => {
             <div className="sidebar-avatar">
               <div className="sidebar-avatar-line" />
               <img
-                src={baseAuthUser?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(baseAuthUser?.email || 'Admin')}`}
+                src={baseAuthUser?.avatarUrl || baseAuthUser?.avatar_url || defaultAvatar}
                 alt="Admin"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent('Admin')}`;
+                  (e.target as HTMLImageElement).src = defaultAvatar;
                 }}
               />
             </div>

@@ -32,7 +32,15 @@ export interface Food {
   name: string;
   unit: string;
   synonyms: string[]; // Frontend maps it as string[]
+  imageUrl?: string;
   isSystem: boolean;
+}
+
+interface PreservationMethod {
+  id: number;
+  foodId?: number;
+  content: string;
+  referenceSource?: string;
 }
 
 const FoodManagement: React.FC = () => {
@@ -55,6 +63,8 @@ const FoodManagement: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Food | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [preservationMethods, setPreservationMethods] = useState<PreservationMethod[]>([]);
+  const [isLoadingPreservation, setIsLoadingPreservation] = useState(false);
 
   // Inline synonyms state
   const [inlineAdding, setInlineAdding] = useState(false);
@@ -80,6 +90,7 @@ const FoodManagement: React.FC = () => {
         name: item.name,
         unit: item.unit || 'g',
         synonyms: item.synonyms ? item.synonyms.split(',').map((s: string) => s.trim()) : [],
+        imageUrl: item.imageUrl || '',
         isSystem: item.isSystem ?? true
       }));
       setFoods(mappedFoods);
@@ -106,11 +117,28 @@ const FoodManagement: React.FC = () => {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentFoods = filteredFoods.slice(startIndex, startIndex + itemsPerPage);
+  const visiblePages = getVisiblePages(currentPage, totalPages);
+
+  const fetchPreservationMethods = async (foodId: number) => {
+    setIsLoadingPreservation(true);
+    try {
+      const response = await api.get(`/api/v1/catalogs/preservationmethods/food/${foodId}`);
+      const data = response.data?.data || response.data || [];
+      setPreservationMethods(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Lỗi khi tải hướng dẫn bảo quản:', err);
+      setPreservationMethods([]);
+    } finally {
+      setIsLoadingPreservation(false);
+    }
+  };
 
   const handleEditClick = (food: Food) => {
     setViewFood(food);
     setEditData({ ...food });
+    setPreservationMethods([]);
     setIsEditing(false);
+    fetchPreservationMethods(food.id);
   };
 
   const handleSaveEdit = async () => {
@@ -121,6 +149,7 @@ const FoodManagement: React.FC = () => {
           categoryId: editData.categoryId,
           unit: editData.unit,
           synonyms: editData.synonyms.join(','),
+          imageUrl: editData.imageUrl || ''
         };
         const response = await api.put(`/api/foods/${editData.id}`, payload);
         const updated = {
@@ -129,7 +158,8 @@ const FoodManagement: React.FC = () => {
           categoryId: response.data.categoryId,
           categoryName: categories.find(c => c.id === response.data.categoryId)?.name || editData.categoryName,
           unit: response.data.unit,
-          synonyms: response.data.synonyms ? response.data.synonyms.split(',').map((s: string) => s.trim()) : []
+          synonyms: response.data.synonyms ? response.data.synonyms.split(',').map((s: string) => s.trim()) : [],
+          imageUrl: response.data.imageUrl || ''
         };
         setFoods(foods.map(f => f.id === editData.id ? updated : f));
         setViewFood(updated);
@@ -158,6 +188,7 @@ const FoodManagement: React.FC = () => {
       categoryId: catId,
       unit: formData.get('unit') as string,
       synonyms: formData.get('synonyms') as string,
+      imageUrl: formData.get('imageUrl') as string
     };
 
     try {
@@ -169,6 +200,7 @@ const FoodManagement: React.FC = () => {
         name: response.data.name,
         unit: response.data.unit,
         synonyms: response.data.synonyms ? response.data.synonyms.split(',').map((s: string) => s.trim()) : [],
+        imageUrl: response.data.imageUrl || '',
         isSystem: response.data.isSystem ?? true
       };
       setFoods([newFood, ...foods]);
@@ -273,7 +305,7 @@ const FoodManagement: React.FC = () => {
                 <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8' }}>Hiển thị {startIndex + 1}-{Math.min(startIndex + itemsPerPage, totalItems)} / {totalItems}</p>
                 <div style={{ display: 'flex', gap: '0.25rem' }}>
                   <PageArrow icon={<ChevronLeft size={18} />} disabled={currentPage === 1} onClick={() => setCurrentPage(c => c - 1)} />
-                  {[...Array(totalPages)].map((_, i) => <PageNum key={i + 1} active={currentPage === i + 1} onClick={() => setCurrentPage(i + 1)}>{i + 1}</PageNum>)}
+                  {visiblePages.map((page) => <PageNum key={page} active={currentPage === page} onClick={() => setCurrentPage(page)}>{page}</PageNum>)}
                   <PageArrow icon={<ChevronRight size={18} />} disabled={currentPage === totalPages} onClick={() => setCurrentPage(c => c + 1)} />
                 </div>
               </div>
@@ -304,6 +336,9 @@ const FoodManagement: React.FC = () => {
                       </div>
                       <div style={{ gridColumn: 'span 2' }}>
                         <FormGroup label="Đơn vị" value={editData.unit} onChange={(e: any) => setEditData({ ...editData, unit: e.target.value })} />
+                      </div>
+                      <div style={{ gridColumn: 'span 2' }}>
+                        <FormGroup label="Ảnh thực phẩm (URL)" value={editData.imageUrl || ''} onChange={(e: any) => setEditData({ ...editData, imageUrl: e.target.value })} />
                       </div>
                       <div style={{ gridColumn: 'span 2' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
@@ -362,6 +397,9 @@ const FoodManagement: React.FC = () => {
                       <div style={{ gridColumn: 'span 2' }}>
                         <DetailItem label="Tên gọi khác" value={viewFood.synonyms.join(', ') || 'Chưa có'} />
                       </div>
+                      <div style={{ gridColumn: 'span 2' }}>
+                        <PreservationMethodsPanel isLoading={isLoadingPreservation} methods={preservationMethods} />
+                      </div>
                     </>
                   )}
                 </div>
@@ -391,6 +429,9 @@ const FoodManagement: React.FC = () => {
                 </div>
                 <FormGroup label="Đơn vị (kg, g, cái...)" name="unit" required />
                 <FormGroup label="Tên gọi khác" name="synonyms" />
+                <div style={{ gridColumn: 'span 2' }}>
+                  <FormGroup label="Ảnh thực phẩm (URL)" name="imageUrl" placeholder="VD: https://..." />
+                </div>
                 <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
                   <button type="button" onClick={() => setShowAddModal(false)} style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 600 }}>Hủy</button>
                   <button type="submit" className="um-btn-primary">Tạo mới</button>
@@ -448,6 +489,46 @@ function DetailItem({ label, value }: any) {
   );
 }
 
+function PreservationMethodsPanel({ isLoading, methods }: { isLoading: boolean; methods: PreservationMethod[] }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Hướng dẫn bảo quản</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {isLoading ? (
+          <div style={{ padding: '1rem', borderRadius: '1rem', background: '#f8fafc', color: '#64748b', fontWeight: 600 }}>
+            Đang tải hướng dẫn bảo quản...
+          </div>
+        ) : methods.length > 0 ? (
+          methods.map((method) => (
+            <div
+              key={method.id}
+              style={{
+                padding: '1rem 1.25rem',
+                borderRadius: '1rem',
+                background: '#ecfdf5',
+                border: '1px solid #bbf7d0',
+                color: '#1f2937',
+                lineHeight: 1.6
+              }}
+            >
+              <div style={{ fontWeight: 700, overflowWrap: 'anywhere' }}>{method.content}</div>
+              {method.referenceSource && (
+                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>
+                  Nguồn: {method.referenceSource}
+                </div>
+              )}
+            </div>
+          ))
+        ) : (
+          <div style={{ padding: '1rem', borderRadius: '1rem', background: '#f8fafc', color: '#64748b', fontWeight: 600 }}>
+            Chưa có hướng dẫn bảo quản.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function HeaderBtn({ icon, hasBadge }: any) {
   return (
     <button style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
@@ -468,6 +549,15 @@ function PageNum({ children, active, onClick }: any) {
 
 function PageArrow({ icon, disabled, onClick }: any) {
   return <button disabled={disabled} onClick={onClick} style={{ border: 'none', background: 'transparent', opacity: disabled ? 0.3 : 1 }}>{icon}</button>;
+}
+
+function getVisiblePages(currentPage: number, totalPages: number) {
+  if (totalPages <= 3) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+  if (currentPage <= 2) return [1, 2, 3];
+  if (currentPage >= totalPages - 1) return [totalPages - 2, totalPages - 1, totalPages];
+  return [currentPage - 1, currentPage, currentPage + 1];
 }
 
 export default FoodManagement;

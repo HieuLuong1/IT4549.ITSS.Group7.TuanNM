@@ -68,8 +68,8 @@ const Login: React.FC = () => {
       const currentToken = response.accessToken ?? '';
 
       // Đặt các biến cục bộ bọc lót dữ liệu chi tiết
-      let detailedPhone = "Chưa cập nhật";
-      let detailedGender = "OTHER";
+      let detailedPhone = response.phone || "Chưa cập nhật";
+      let detailedGender = response.gender || "OTHER";
       let detailedRoleName = response.role;
       let detailedFamilyId: number | undefined = response.familyId;
       let detailedFamilyName: string | undefined = response.familyName;
@@ -80,7 +80,7 @@ const Login: React.FC = () => {
 
       // 🎯 Ép kiểu trung gian sang 'any' để bypass qua bộ lọc TypeScript của AuthResponse gốc
       const rawResponse = response as any;
-      let detailedAvatar = rawResponse.avatarUrl || rawResponse.avatar_url || undefined;
+      let detailedAvatar = response.avatarUrl || rawResponse.avatar_url || undefined;
 
       // 2. KỸ THUẬT NẠP TRƯỚC (PRE-FETCH): Gọi ngay các API phụ để kéo thông tin chi tiết
       if (currentToken) {

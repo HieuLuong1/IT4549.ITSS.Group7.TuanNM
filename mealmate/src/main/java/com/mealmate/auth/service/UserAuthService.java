@@ -102,6 +102,8 @@ public class UserAuthService {
                 .tokenType("Bearer")
                 .email(savedUser.getEmail())
                 .fullName(savedUser.getFullName())
+                .phone(savedUser.getPhone())
+                .avatarUrl(savedUser.getAvatarUrl())
                 .role(savedUser.getRole() != null ? savedUser.getRole().getName() : "HOUSEKEEPER")
                 .gender(savedUser.getGender() != null ? savedUser.getGender() : "OTHER") // 🎯 BỔ SUNG: Trả về cho Front-end khi Đăng ký
                 .familyId(newFamily.getId())
@@ -137,6 +139,8 @@ public class UserAuthService {
                 .tokenType("Bearer")
                 .email(user.getEmail())
                 .fullName(user.getFullName())
+                .phone(user.getPhone())
+                .avatarUrl(user.getAvatarUrl())
                 .role(user.getRole() != null ? user.getRole().getName() : "CUSTOMER")
                 .gender(user.getGender() != null ? user.getGender() : "OTHER") // 🎯 BỔ SUNG: Trả về cho Front-end khi Đăng nhập
                 .familyId(user.getFamilyId())

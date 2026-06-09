@@ -33,6 +33,9 @@ import {
 import Modal from '../../components/admin/Modal';
 import api from '../../services/api';
 
+const placeholderImage =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" rx="18" fill="%23f1f5f9"/><path d="M49 102h62L94 79 80 95 69 84z" fill="%23cbd5e1"/><circle cx="63" cy="62" r="10" fill="%23cbd5e1"/></svg>';
+
 export interface UnidentifiedItem {
   id: number; 
   type: 'meat' | 'ingredient';
@@ -304,7 +307,7 @@ const PerformanceManagement: React.FC = () => {
         categoryId: approveCategory,
         unit: approveUnit,
         synonyms: approveSynonyms,
-        imageUrl: 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'
+        imageUrl: ''
       };
       
       await api.post('/api/foods', payload);
@@ -782,7 +785,7 @@ const PerformanceManagement: React.FC = () => {
                         onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                       >
                         <div style={{ width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#f1f5f9' }}>
-                          <img src={item.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={item.imageUrl || placeholderImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
                         <div style={{ flex: 1 }}>
                           <p style={{ fontWeight: 700, color: 'var(--fiza-primary)', fontSize: '0.9375rem' }}>{item.name}</p>
@@ -803,7 +806,7 @@ const PerformanceManagement: React.FC = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <div style={{ width: '48px', height: '48px', borderRadius: '12px', overflow: 'hidden' }}>
-                        <img src={selectedItem.imageUrl || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=500'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src={selectedItem.imageUrl || placeholderImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
                       <div>
                         <p style={{ fontWeight: 800, color: 'var(--fiza-primary)' }}>{selectedItem.name}</p>

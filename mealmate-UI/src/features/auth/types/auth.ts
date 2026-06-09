@@ -17,6 +17,8 @@ export interface AuthResponse {
   tokenType?: string;
   email: string;
   fullName: string;
+  phone?: string;
+  avatarUrl?: string;
   role?: string;
   gender?: string;
   familyId?: number;
@@ -29,6 +31,8 @@ export interface AuthSession {
   tokenType?: string;
   email: string;
   fullName: string;
+  phone?: string;
+  avatarUrl?: string;
   familyId?: number;
   familyName?: string;
   role?: string;

@@ -18,6 +18,7 @@ import NotificationPanel from '../../components/common/NotificationPanel';
 import { useAuth } from '../../context/AuthContext';
 import { AUTH_ROLES, getAuthRoleName, getRoleId, getRoleLabel } from '../../features/auth/role';
 import api from '../../services/api';
+import defaultAvatar from '../../assets/avatar/26.svg';
 
 
 interface Role {
@@ -33,7 +34,6 @@ export interface User {
   phone?: string;
   gender?: 'MALE' | 'FEMALE' | 'OTHER';
   avatarUrl?: string;
-  emailVerified?: boolean;
   familyId?: number;
   familyName?: string;
   role?: Role;
@@ -130,6 +130,7 @@ const UserManagement: React.FC = () => {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+  const visiblePages = getVisiblePages(currentPage, totalPages);
 
   const handleDelete = async (id: number) => {
     const targetUser = users.find((user) => user.id === id);
@@ -163,7 +164,8 @@ const UserManagement: React.FC = () => {
       email: formData.get('email') as string,
       phone: formData.get('phone') as string,
       gender: formData.get('gender') as string,
-      passwordHash: 'dummy_hash', // Mật khẩu tạm thời cho admin tạo
+      avatarUrl: formData.get('avatarUrl') as string,
+      passwordHash: formData.get('password') as string,
       role: {
         id: getRoleId(roleName),
         name: roleName
@@ -279,8 +281,9 @@ const UserManagement: React.FC = () => {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden' }}>
                               <img
-                                src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.fullName}`}
+                                src={user.avatarUrl || defaultAvatar}
                                 alt=""
+                                onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar; }}
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                               />
                             </div>
@@ -337,13 +340,13 @@ const UserManagement: React.FC = () => {
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   />
-                  {[...Array(totalPages)].map((_, i) => (
+                  {visiblePages.map((page) => (
                     <PageNum
-                      key={i + 1}
-                      active={currentPage === i + 1}
-                      onClick={() => setCurrentPage(i + 1)}
+                      key={page}
+                      active={currentPage === page}
+                      onClick={() => setCurrentPage(page)}
                     >
-                      {i + 1}
+                      {page}
                     </PageNum>
                   ))}
                   <PageArrow
@@ -383,9 +386,8 @@ const UserManagement: React.FC = () => {
                       <option value="OTHER">Khác</option>
                     </select>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>Ảnh đại diện</label>
-                    <input type="file" name="avatar" className="um-search-input" style={{ paddingLeft: '1rem', paddingTop: '0.5rem' }} accept="image/*" />
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <FormGroup label="Ảnh đại diện (URL)" name="avatarUrl" placeholder="VD: https://..." />
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
@@ -534,3 +536,12 @@ function PageArrow({ icon, disabled, onClick }: any) {
 }
 
 export default UserManagement;
+
+function getVisiblePages(currentPage: number, totalPages: number) {
+  if (totalPages <= 3) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+  if (currentPage <= 2) return [1, 2, 3];
+  if (currentPage >= totalPages - 1) return [totalPages - 2, totalPages - 1, totalPages];
+  return [currentPage - 1, currentPage, currentPage + 1];
+}

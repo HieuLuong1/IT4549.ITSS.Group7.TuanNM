@@ -1,6 +1,7 @@
 package com.mealmate.catalog.controller;
 
 import com.mealmate.catalog.model.PreservationMethod;
+import com.mealmate.catalog.model.dto.PreservationMethodResponse;
 import com.mealmate.catalog.service.PreservationMethodService;
 import com.mealmate.common.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,11 @@ public class PreservationMethodController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<PreservationMethod>>> getAll() {
         return ResponseEntity.ok(new ApiResponse<>(true, "Success", service.findAll()));
+    }
+
+    @GetMapping("/food/{foodId}")
+    public ResponseEntity<ApiResponse<List<PreservationMethodResponse>>> getByFoodId(@PathVariable Long foodId) {
+        return ResponseEntity.ok(new ApiResponse<>(true, "Success", service.findByFoodId(foodId)));
     }
 
     @PostMapping

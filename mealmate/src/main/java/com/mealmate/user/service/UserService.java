@@ -3,6 +3,7 @@ package com.mealmate.user.service;
 import com.mealmate.user.model.User;
 import com.mealmate.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -11,6 +12,7 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository repository;
+    private final PasswordEncoder passwordEncoder;
 
     public List<User> findAll() {
         return repository.findAll();
@@ -19,6 +21,13 @@ public class UserService {
     public User save(User entity) {
         if (entity == null) {
             throw new IllegalArgumentException("User entity must not be null");
+        }
+        String password = entity.getPasswordHash();
+        if (password == null || password.isBlank() || "dummy_hash".equals(password)) {
+            throw new IllegalArgumentException("Mật khẩu người dùng không hợp lệ");
+        }
+        if (!password.startsWith("$2")) {
+            entity.setPasswordHash(passwordEncoder.encode(password));
         }
         return repository.save(entity);
     }
