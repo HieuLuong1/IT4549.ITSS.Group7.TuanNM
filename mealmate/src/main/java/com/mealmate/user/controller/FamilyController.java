@@ -48,7 +48,7 @@ public class FamilyController {
             return ResponseEntity.status(401).body(new ApiResponse<>(false, "Chưa đăng nhập", null));
         }
         
-        // 🎯 GIẢI PHÁP: Tìm đối tượng sạch thông qua Email từ Token để tránh lỗi Lazy Loading Proxy
+        // GIẢI PHÁP: Tìm đối tượng sạch thông qua Email từ Token để tránh lỗi Lazy Loading Proxy
         String currentEmail = authentication.getName();
         User currentUser = userRepository.findByEmail(currentEmail).orElse(null);
         
@@ -94,7 +94,9 @@ public class FamilyController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Cập nhật thành công!", response));
     }
 
-    // 🎯 GIỮ NGUYÊN VẸN 100%: Hàm invite cũ xử lý bọc dữ liệu an toàn của bạn
+    // =========================================================================
+    // 🎯 BƯỚC CẬP NHẬT: Sửa lại thông điệp phản hồi lỗi thông minh ra Front-end
+    // =========================================================================
     @PostMapping("/{id}/invite")
     public ResponseEntity<ApiResponse<Void>> inviteMember(
             @PathVariable("id") Long familyId, 
@@ -106,6 +108,7 @@ public class FamilyController {
         
         Object rawUserId = requestBody.get("userId") != null ? requestBody.get("userId") : requestBody.get("userid");
         if (rawUserId == null) {
+            
             return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Thiếu tham số userId", null));
         }
         
@@ -113,7 +116,7 @@ public class FamilyController {
         boolean isSuccess = service.inviteMemberToFamily(familyId, userId);
 
         if (isSuccess) {
-            // Thông báo cho người được mời
+            // Thông báo cho người được mời (Chỉ chạy khi tạo được bản ghi PENDING chính thức)
             try {
                 Family family = service.findByFamilyId(familyId);
                 String familyName = family != null ? family.getName() : "một gia đình";
@@ -123,7 +126,10 @@ public class FamilyController {
             } catch (Exception ignored) {}
             return ResponseEntity.ok(new ApiResponse<>(true, "Gửi lời mời thành công!", null));
         }
-        return ResponseEntity.status(500).body(new ApiResponse<>(false, "Không thể thêm thành viên này!", null));
+        
+        // 🎯 ĐÃ THAY ĐỔI: Phản hồi lỗi 400 kèm thông báo trực quan thay vì lỗi 500 sập hệ thống
+        return ResponseEntity.badRequest().body(new ApiResponse<>(false, 
+                "Người dùng này hiện đã có nhóm gia đình cố định. Hệ thống đã chặn gửi lời mời và bắn thông báo lưu vết hụt đến hòm thư của họ.", null));
     }
 
     @GetMapping("/search-user")

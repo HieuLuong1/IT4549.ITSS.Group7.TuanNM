@@ -6,6 +6,9 @@ import com.mealmate.user.model.Invitation;
 import com.mealmate.user.repository.FamilyRepository;
 import com.mealmate.user.repository.UserRepository;
 import com.mealmate.user.repository.InvitationRepository;
+import com.mealmate.notification.service.NotificationService;
+import com.mealmate.notification.model.NotificationCategory;
+import com.mealmate.notification.model.NotificationSeverity;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +23,7 @@ public class FamilyService {
     private final FamilyRepository repository;
     private final UserRepository userRepository;
     private final InvitationRepository invitationRepository;
+    private final NotificationService notificationService;
 
     public List<Family> findAll() {
         return repository.findAll();
@@ -38,7 +42,7 @@ public class FamilyService {
     }
 
     // =========================================================================
-    // 🎯 SỬA FULL: Thay .save() bằng .saveAndFlush() để ép nổ ngay lệnh INSERT dưới DB
+    // 🎯 THỐNG NHẤT NÂNG CẤP: Bắn thông báo song song cho CẢ HAI PHÍA khi bị chặn
     // =========================================================================
     @Transactional
     public boolean inviteMemberToFamily(Long familyId, Long userId) {
@@ -50,26 +54,96 @@ public class FamilyService {
             return false;
         }
 
-        // Kiểm tra xem đã có lời mời PENDING trùng lặp nào tồn tại chưa
-        Optional<Invitation> existingInvite = invitationRepository
-                .findByFamilyIdAndReceiverIdAndStatus(familyId, userId, "PENDING");
-        
-        if (existingInvite.isPresent()) {
-            System.out.println("⚠️ Thông báo: Đã tồn tại sẵn một lời mời PENDING giữa hai bên. Bỏ qua ghi đè!");
-            return true; 
+        // 1. Lấy thông tin nhà đi mời và ID của chủ nhà đi mời (Housekeeper)
+        Family currentFamily = repository.findById(familyId).orElse(null);
+        String inviterFamilyName = currentFamily != null ? currentFamily.getName() : "Một gia đình";
+        Long inviterHousekeeperId = currentFamily != null ? currentFamily.getHousekeeperId() : null;
+
+        Long roleId = user.getRole() != null ? user.getRole().getId() : null;
+        Long invitedUserFamilyId = user.getFamilyId();
+
+        String finalStatus = "PENDING";
+        boolean isBlocked = false;
+
+        // ── KIỂM TRA ĐIỀU KIỆN CHẶN VÀ BẮN THÔNG BÁO CHO CẢ 2 BÊN ─────────────────
+        if (invitedUserFamilyId != null) {
+            
+            // TRƯỜNG HỢP 1: Người được mời đang là Thành viên thường (role_id = 2)
+            if (roleId != null && roleId == 2L) {
+                // 🔔 Bên 1: Bắn thông báo cho người được mời (Người nhận)
+                notificationService.push(
+                        userId,
+                        NotificationCategory.GROUP,
+                        NotificationSeverity.MEDIUM,
+                        "🏠 Lời mời gia đình bị từ chối tự động",
+                        "Gia đình \"" + inviterFamilyName + "\" đã gửi lời mời gia nhập nhóm đến bạn. Tuy nhiên, vì bạn đang thuộc một nhóm gia đình khác, hệ thống đã tự động từ chối để bảo toàn dữ liệu."
+                );
+                
+                // 🔔 Bên 2: Bắn thông báo cho chủ nhà đi mời (Người gửi)
+                if (inviterHousekeeperId != null) {
+                    notificationService.push(
+                            inviterHousekeeperId,
+                            NotificationCategory.GROUP,
+                            NotificationSeverity.MEDIUM,
+                            "❌ Gửi lời mời thất bại",
+                            "Lời mời gửi đến \"" + user.getFullName() + "\" không thành công vì tài khoản này hiện đang là thành viên chính thức của một nhóm gia đình khác."
+                    );
+                }
+                
+                System.out.println("⚠️ Chặn lời mời: Đối phương đang là thành viên của nhà khác. Đã báo cho cả 2 phía.");
+                finalStatus = "DECLINED";
+                isBlocked = true;
+            }
+
+            // TRƯỜNG HỢP 2: Người được mời đang là Chủ nhà (role_id = 3) và nhà đông con (> 1 người)
+            if (roleId != null && roleId == 3L) {
+                long memberCount = userRepository.countByFamilyIdNative(invitedUserFamilyId);
+                
+                if (memberCount > 1) {
+                    // 🔔 Bên 1: Bắn thông báo cho chủ nhà đối phương (Người nhận)
+                    notificationService.push(
+                            userId,
+                            NotificationCategory.GROUP,
+                            NotificationSeverity.HIGH,
+                            "⚠️ Yêu cầu ghép nhóm bị chặn",
+                            "Gia đình \"" + inviterFamilyName + "\" đã gửi lời mời ghép nhóm với bạn. Do bạn đang quản lý một gia đình gồm " + memberCount + " thành viên khác, hệ thống đã chặn yêu cầu để tránh bỏ rơi thành viên nhà bạn."
+                    );
+                    
+                    // 🔔 Bên 2: Bắn thông báo cho chủ nhà bên mình (Người gửi)
+                    if (inviterHousekeeperId != null) {
+                        notificationService.push(
+                                inviterHousekeeperId,
+                                NotificationCategory.GROUP,
+                                NotificationSeverity.MEDIUM,
+                                "❌ Không thể mời gộp nhóm gia đình",
+                                "Không thể gửi lời mời ghép nhóm đến chủ nhà \"" + user.getFullName() + "\" vì tài khoản này đang quản lý một gia đình có nhiều thành viên khác."
+                        );
+                    }
+                    
+                    System.out.println("⚠️ Chặn lời mời: Đối phương là chủ nhà đông người. Đã báo cho cả 2 phía.");
+                    finalStatus = "DECLINED";
+                    isBlocked = true;
+                }
+            }
         }
 
-        // 🎯 ĐÃ THAY ĐỔI: Sử dụng khởi tạo 'new' truyền thống thay thế hoàn toàn cho Builder 
-        // Điều này đảm bảo các trường của lớp cha BaseEntity (created_at, updated_at) không bị gán null ngầm
+        // ── LƯU BẢN GHI VỚI TRẠNG THÁI CUỐI CÙNG ─────────────────────────────────
+        Optional<Invitation> existingInvite = invitationRepository
+                .findByFamilyIdAndReceiverIdAndStatus(familyId, userId, finalStatus);
+        
+        if (existingInvite.isPresent()) {
+            System.out.println("⚠️ Thông báo: Đã tồn tại sẵn một lời mời với trạng thái " + finalStatus + ". Bỏ qua!");
+            return !isBlocked; 
+        }
+
         Invitation invitation = new Invitation();
         invitation.setFamilyId(familyId);
         invitation.setReceiverId(userId);
-        invitation.setStatus("PENDING"); // Ép cứng chuỗi trạng thái
+        invitation.setStatus(finalStatus); 
 
-        // 🎯 ÉP BUỘC ĐỒNG BỘ: Sử dụng saveAndFlush để bắt Hibernate bắn lệnh SQL ngay lập tức, không đợi kết thúc hàm
-        Invitation savedInvite = invitationRepository.saveAndFlush(invitation);
+        invitationRepository.saveAndFlush(invitation);
         
-        System.out.println("🔥 [HOÀN THÀNH SERVICE] Đã ép lưu thành công! Bản ghi ID vừa sinh ra: " + savedInvite.getId());
-        return true;
+        System.out.println("🔥 [HOÀN THÀNH SERVICE] Đã lưu bản ghi với trạng thái: " + finalStatus);
+        return !isBlocked; 
     }
 }

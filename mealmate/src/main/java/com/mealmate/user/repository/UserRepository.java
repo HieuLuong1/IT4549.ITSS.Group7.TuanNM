@@ -12,6 +12,10 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    // 🎯 VÁ LỖI KHỞI ĐỘNG: Ép câu lệnh SQL thuần native để Hibernate không tự phân tích cú pháp gây sập hệ thống
+    @Query(value = "SELECT COUNT(*) FROM users WHERE family_id = :familyId", nativeQuery = true)
+    long countByFamilyIdNative(@Param("familyId") Long familyId);
+
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.family LEFT JOIN FETCH u.role WHERE u.email = :email")
     Optional<User> findByEmail(@Param("email") String email);
 

@@ -249,7 +249,7 @@ const FamilyGroup: React.FC = () => {
     .then(() => {
       setFamilyName(cleanedName);
       setEditName(cleanedName);
-      localStorage.setItem("currentFamilyName", cleanedName); // Cập nhật tên gia đình đổi mới
+      localStorage.setItem("currentFamilyName", cleanedName); 
       toast.success("Đã cập nhật tên nhóm thành công!");
     })
     .catch(error => {
