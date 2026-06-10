@@ -161,14 +161,16 @@ const Topbar: React.FC<TopbarProps> = ({
         console.log("-> Đã cập nhật tên nhà mới lên bộ nhớ tạm:", inviteInfo.familyName.trim());
       }
 
-      // Ép cục authUser lưu ở trình duyệt đổi hẳn sang ID nhà mới
+      // Ép cục authUser lưu ở trình duyệt đổi hẳn sang ID nhà mới và cập nhật vai trò sang CUSTOMER
       const authUserString = localStorage.getItem("authUser");
       if (authUserString) {
         try {
           const authUser = JSON.parse(authUserString);
           authUser.familyId = inviteInfo.familyId; // Đổi nhà cho User trong phiên làm việc hiện tại
+          authUser.role = "CUSTOMER"; // Cập nhật vai trò thành CUSTOMER vì gia nhập nhà người khác
+          authUser.roleName = "Thành viên";
           localStorage.setItem("authUser", JSON.stringify(authUser));
-          console.log("-> Đã đồng bộ thông tin authUser cục bộ sang familyId mới:", inviteInfo.familyId);
+          console.log("-> Đã đồng bộ thông tin authUser cục bộ sang familyId mới và vai trò CUSTOMER:", inviteInfo.familyId);
         } catch (e) {
           console.error("❌ Lỗi cấu trúc JSON khi đồng bộ authUser:", e);
         }

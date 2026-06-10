@@ -332,6 +332,20 @@ const FamilyGroup: React.FC = () => {
           localStorage.removeItem("currentFamilyName");
           localStorage.removeItem("familyMembersCache");
           
+          // Cập nhật lại vai trò thành HOUSEKEEPER (Người nội trợ) trong localStorage
+          const authUserString = localStorage.getItem("authUser");
+          if (authUserString) {
+            try {
+              const authUser = JSON.parse(authUserString);
+              authUser.role = "HOUSEKEEPER";
+              authUser.roleName = "Chủ nhà";
+              localStorage.setItem("authUser", JSON.stringify(authUser));
+              console.log("-> Đã đồng bộ vai trò HOUSEKEEPER khi tự rời nhóm.");
+            } catch (e) {
+              console.error("❌ Lỗi cấu trúc JSON khi cập nhật role lúc rời nhóm:", e);
+            }
+          }
+          
           // Tự động load lại trang ngay lập tức cho bạn, không bắt người dùng tự tay bấm F5 nữa
           window.location.reload();
         } else {
