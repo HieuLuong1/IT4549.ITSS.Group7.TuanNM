@@ -1,0 +1,71 @@
+server:
+  port: ${SERVER_PORT:8080}
+spring:
+  application:
+    name: mealmate
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/mealmate}
+    username: postgres
+    password: 123456
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+logging:
+  level:
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.results: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    org.springframework.web: INFO
+    com.mealmate: INFO
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: duongducduy825@gmail.com
+    password: twdn oduj mvwq gkeu
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+jwt:
+  secret: ${JWT_SECRET:dGhpcy1pcy1hLXNlY3VyZS1rZXktZm9yLW1lYWxtYXRlLWp3dC0yNTY=}
+  expiration: 3600000 # 1 hour in milliseconds
+
+app:
+  cloudinary:
+    cloud-name: ${CLOUDINARY_CLOUD_NAME:dcpfuezuz}
+    api-key: ${CLOUDINARY_API_KEY:283424587871336}
+    api-secret: ${CLOUDINARY_API_SECRET:_3eASMMa55IXWjyWbdfaCk8hrqg}
+    recipe-folder: ${CLOUDINARY_RECIPE_FOLDER:mealmate/recipes}
+    upload-folder: ${CLOUDINARY_UPLOAD_FOLDER:mealmate/uploads}
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  recommendation:
+    scoring:
+      ingredient-match-max-score: 40
+      missing-penalty-per-ingredient: 10
+      missing-penalty-max-score: 30
+      expiry-score-within-1-day: 25
+      expiry-score-within-2-days: 20
+      expiry-score-within-3-days: 15
+      expiry-score-within-5-days: 10
+      expiry-max-score: 25
+      meal-type-match-score: 20
+      meal-type-null-score: 5
+      meal-type-mismatch-score: -10
+      favorite-score-per-member: 15
+      recent-penalty-yesterday: 20
+      recent-penalty-within-3-days: 15
+      recent-penalty-within-7-days: 10
+      draft-random-pool-size: 4
+      draft-random-rank1-weight: 50
+      draft-random-rank2-weight: 25
+      draft-random-rank3-weight: 15
+      draft-random-rank4-weight: 10
+  seed-dashboard:
+    enabled: ${SEED_DASHBOARD_ENABLED:false}
+    days: ${SEED_DASHBOARD_DAYS:90}
