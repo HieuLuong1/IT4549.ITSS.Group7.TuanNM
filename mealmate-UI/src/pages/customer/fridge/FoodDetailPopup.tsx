@@ -758,6 +758,14 @@ const FoodDetailPopup: React.FC<FoodDetailPopupProps> = ({
                   ))}
                 </div>
               </section>
+
+              <section className="food-detail-section">
+                <h3>Ghi chú</h3>
+
+                <div className="food-detail-note-box">
+                  <span>{food.note?.trim() || "Chưa có ghi chú cho thực phẩm này."}</span>
+                </div>
+              </section>
             </>
           )}
 

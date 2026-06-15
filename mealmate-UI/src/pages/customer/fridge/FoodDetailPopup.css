@@ -416,6 +416,23 @@
   gap: 12px;
 }
 
+.food-detail-note-box {
+  padding: 16px 17.6px;
+  background: #fffbeb;
+  border: 1.4px solid #f7e7a6;
+  border-radius: 16px;
+}
+
+.food-detail-note-box span {
+  display: block;
+  color: #6b5f33;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .food-detail-tip {
   display: flex;
   align-items: center;
