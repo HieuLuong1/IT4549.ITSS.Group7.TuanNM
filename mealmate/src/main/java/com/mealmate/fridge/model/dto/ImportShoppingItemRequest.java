@@ -35,4 +35,6 @@ public class ImportShoppingItemRequest {
     private LocalDate expiryDate;
 
     private String note;
+
+    private String unit;
 }

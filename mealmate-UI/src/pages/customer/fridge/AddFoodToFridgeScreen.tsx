@@ -354,6 +354,7 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
         addedDate: manualForm.addedDate || null,
         expiryDate: manualForm.expiryDate,
         note: manualForm.note.trim() || null,
+        unit: selectedManualFood.unit || null,
       });
 
       onAdded?.();
@@ -388,6 +389,7 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
           addedDate: getTodayInputValue(),
           expiryDate: draft.expiryDate,
           note: draft.note.trim() || null,
+          unit: candidate.unit || null,
         };
       });
 

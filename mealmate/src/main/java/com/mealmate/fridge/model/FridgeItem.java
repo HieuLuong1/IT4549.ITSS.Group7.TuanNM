@@ -28,6 +28,9 @@ public class FridgeItem extends BaseEntity {
     @Column(name = "quantity", nullable = false)
     private BigDecimal quantity = BigDecimal.ZERO;
 
+    @Column(name = "unit")
+    private String unit;
+
     @Column(name = "storage_location")
     private String storageLocation;
 

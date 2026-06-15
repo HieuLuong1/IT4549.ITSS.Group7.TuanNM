@@ -142,7 +142,8 @@ const ShoppingModal = ({ isOpen, mode, data, onModeChange, onClose, familyId, on
                 specificLocation: draft.specificLocation || null,
                 addedDate: new Date().toISOString().slice(0, 10),
                 expiryDate: draft.expiryDate,
-                note: draft.note.trim() || null
+                note: draft.note.trim() || null,
+                unit: item.unit || null
             };
         });
 

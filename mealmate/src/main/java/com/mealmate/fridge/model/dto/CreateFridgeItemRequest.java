@@ -32,4 +32,6 @@ public class CreateFridgeItemRequest {
     private String imageUrl;
 
     private String note;
+
+    private String unit;
 }

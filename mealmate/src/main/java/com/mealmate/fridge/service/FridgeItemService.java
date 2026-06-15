@@ -182,6 +182,9 @@ public class FridgeItemService {
         if (request.getNote() != null) {
             item.setNote(normalizeBlank(request.getNote()));
         }
+        if (request.getUnit() != null) {
+            item.setUnit(normalizeBlank(request.getUnit()));
+        }
 
         FridgeItem saved = fridgeItemRepository.save(item);
         return toDetailedResponse(saved);
@@ -387,6 +390,7 @@ public class FridgeItemService {
         fridgeItem.setExpiryDate(request.getExpiryDate());
         fridgeItem.setStatus(FridgeItemStatus.STORED);
         fridgeItem.setNote(normalizeBlank(request.getNote()));
+        fridgeItem.setUnit(normalizeBlank(request.getUnit() != null ? request.getUnit() : shoppingItem.getUnit()));
 
         FridgeItem savedFridgeItem = fridgeItemRepository.save(fridgeItem);
 
