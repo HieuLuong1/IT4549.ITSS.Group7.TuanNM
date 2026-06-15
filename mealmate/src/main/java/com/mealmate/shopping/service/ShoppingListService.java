@@ -324,6 +324,7 @@ public class ShoppingListService {
             fridgeItem.setCustomName(item.getCustomName() != null ? item.getCustomName() : item.getFood().getName());
             fridgeItem.setStatus(FridgeItemStatus.STORED);
             fridgeItem.setAddedDate(LocalDate.now());
+            fridgeItem.setUnit(item.getUnit());
 
             FridgeItem savedFridgeItem = fridgeItemRepository.save(fridgeItem);
 
