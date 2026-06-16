@@ -140,6 +140,7 @@ CREATE TABLE fridge_items (
     food_id INT NOT NULL,                    -- Thực phẩm gì
     custom_name VARCHAR(255),                -- Tên tùy chỉnh nếu người dùng tự nhập thực phẩm
     quantity NUMERIC(10, 2) NOT NULL DEFAULT 0, -- Số lượng
+    unit VARCHAR(50),                        -- Đơn vị tính
     storage_location VARCHAR(100),           -- Vị trí lưu trữ chính: COOL (ngăn mát), FREEZER (ngăn đông), DRY (tủ đồ khô)
     specific_location VARCHAR(100),          -- Vị trí cụ thể trong khu vực lưu trữ: VEGETABLE_DRAWER (ngăn rau), DOOR_SHELF (cánh tủ), TOP_SHELF (kệ trên)...
     added_date DATE DEFAULT CURRENT_DATE,    -- Ngày nhập vào tủ

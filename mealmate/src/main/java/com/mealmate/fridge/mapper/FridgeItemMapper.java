@@ -25,6 +25,7 @@ public class FridgeItemMapper {
         item.setExpiryDate(request.getExpiryDate());
         item.setImageUrl(normalizeBlank(request.getImageUrl()));
         item.setNote(normalizeBlank(request.getNote()));
+        item.setUnit(normalizeBlank(request.getUnit()));
 
         return item;
     }
@@ -35,7 +36,9 @@ public class FridgeItemMapper {
         response.setId(item.getId());
         response.setFamilyId(item.getFamilyId());
         response.setFoodId(item.getFoodId());
+        response.setCustomName(item.getCustomName());
         response.setDisplayName(item.getCustomName());
+        response.setUnit(item.getUnit());
         response.setPreservationMethods(List.of());
         response.setQuantity(item.getQuantity());
         response.setStorageLocation(item.getStorageLocation());
@@ -62,6 +65,7 @@ public class FridgeItemMapper {
         response.setFamilyId(projection.getFamilyId());
         response.setFoodId(projection.getFoodId());
         response.setStandardFoodName(projection.getStandardFoodName());
+        response.setCustomName(projection.getCustomName());
         response.setDisplayName(projection.getDisplayName());
         response.setUnit(projection.getUnit());
         response.setCategoryId(projection.getCategoryId());

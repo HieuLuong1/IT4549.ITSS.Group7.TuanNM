@@ -182,6 +182,9 @@ public class FridgeItemService {
         if (request.getNote() != null) {
             item.setNote(normalizeBlank(request.getNote()));
         }
+        if (request.getUnit() != null) {
+            item.setUnit(normalizeBlank(request.getUnit()));
+        }
 
         FridgeItem saved = fridgeItemRepository.save(item);
         return toDetailedResponse(saved);
@@ -260,6 +263,29 @@ public class FridgeItemService {
                 .stream()
                 .map(this::toShoppingImportCandidateResponse)
                 .toList();
+    }
+
+    @Transactional
+    public void skipShoppingImportCandidate(Long shoppingListItemId) {
+        Long familyId = getCurrentFamilyIdOrThrow();
+
+        ShoppingListItem shoppingItem = shoppingListItemRepository.findImportableByIdAndFamilyId(
+                        shoppingListItemId,
+                        familyId
+                )
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Shopping list item not found"));
+
+        if (!Boolean.TRUE.equals(shoppingItem.getIsPurchased())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Shopping list item is not purchased");
+        }
+
+        if (shoppingItem.getImportedToFridgeAt() != null) {
+            return;
+        }
+
+        shoppingItem.setImportedToFridgeAt(LocalDateTime.now());
+        shoppingItem.setFridgeItem(null);
+        shoppingListItemRepository.save(shoppingItem);
     }
 
     public List<RecipeSuggestionResponse> getRecipeSuggestions(int limit) {
@@ -387,6 +413,7 @@ public class FridgeItemService {
         fridgeItem.setExpiryDate(request.getExpiryDate());
         fridgeItem.setStatus(FridgeItemStatus.STORED);
         fridgeItem.setNote(normalizeBlank(request.getNote()));
+        fridgeItem.setUnit(normalizeBlank(request.getUnit() != null ? request.getUnit() : shoppingItem.getUnit()));
 
         FridgeItem savedFridgeItem = fridgeItemRepository.save(fridgeItem);
 
@@ -429,6 +456,7 @@ public class FridgeItemService {
         response.setQuantity(projection.getQuantity());
         response.setUnit(projection.getUnit());
         response.setNote(projection.getNote());
+        response.setImportedToFridgeAt(projection.getImportedToFridgeAt());
 
         return response;
     }

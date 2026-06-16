@@ -34,6 +34,7 @@ export interface ShoppingListItem {
   shoppingListId: number;
   foodId: number;
   custom_name?: string;
+  customName?: string;
   food?: Food;
   foodName?: string;
   categoryName?: string;
@@ -114,4 +115,3 @@ export interface WeeklyShoppingAggregate {
   isPurchased: boolean;
   itemIds: number[];
 }
-
