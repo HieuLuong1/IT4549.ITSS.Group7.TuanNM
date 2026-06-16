@@ -641,7 +641,6 @@ const PerformanceManagement: React.FC = () => {
                   <thead>
                     <tr>
                       <th>Tên chuẩn</th>
-                      <th style={{ width: '120px' }}>Loại</th>
                       <th>Các biến thể / Tên gọi khác</th>
                       <th style={{ textAlign: 'center', width: '120px' }}>Hành động</th>
                     </tr>
@@ -650,19 +649,6 @@ const PerformanceManagement: React.FC = () => {
                     {filteredSynonyms.map(item => (
                       <tr key={item.id}>
                         <td style={{ fontWeight: 800, color: 'var(--fiza-primary)' }}>{item.originalName}</td>
-                        <td>
-                          <span style={{ 
-                            padding: '0.25rem 0.75rem', 
-                            borderRadius: '9999px', 
-                            fontSize: '10px', 
-                            fontWeight: 800, 
-                            textTransform: 'uppercase',
-                            backgroundColor: '#E1F2EB',
-                            color: 'var(--mint-green)'
-                          }}>
-                            Thực phẩm
-                          </span>
-                        </td>
                         <td>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem', alignItems: 'center' }}>
                             {item.variants.map((v, idx) => (
@@ -734,7 +720,7 @@ const PerformanceManagement: React.FC = () => {
                     ))}
                     {filteredSynonyms.length === 0 && (
                       <tr>
-                        <td colSpan={4} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                        <td colSpan={3} style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
                           Không tìm thấy tên gọi địa phương nào.
                         </td>
                       </tr>
