@@ -35,6 +35,7 @@ type ShoppingImportCandidateFromApi = {
 type ShoppingDraft = {
   status: ItemStatus;
   quantity: string;
+  unit: string;
   storageLocation: StorageLocation | "";
   specificLocation: string;
   expiryDate: string;
@@ -51,6 +52,7 @@ type ManualFormState = {
   selectedFood: FoodFromApi | null;
   customName: string;
   quantity: string;
+  unit: string;
   storageLocation: StorageLocation | "";
   specificLocation: string;
   addedDate: string;
@@ -92,6 +94,27 @@ const categoryIconMap: Record<string, string> = {
 
 const getTodayInputValue = () => new Date().toISOString().slice(0, 10);
 
+const parseUnitOptions = (rawValue?: string) => {
+  if (!rawValue) return [];
+
+  const normalized = rawValue
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (normalized.length === 0) {
+    return [];
+  }
+
+  const unique = Array.from(new Set(normalized));
+  return unique;
+};
+
+const getDefaultUnit = (rawValue?: string, fallback = "kg") => {
+  const options = parseUnitOptions(rawValue);
+  return options[0] || fallback;
+};
+
 const normalizeSearchText = (value: string) =>
   value
     .toLowerCase()
@@ -116,6 +139,7 @@ const getCandidateIcon = (candidate: ShoppingImportCandidateFromApi) =>
 const createDraft = (candidate: ShoppingImportCandidateFromApi): ShoppingDraft => ({
   status: "idle",
   quantity: String(candidate.quantity ?? ""),
+  unit: getDefaultUnit(candidate.unit, "kg"),
   storageLocation: "COOL",
   specificLocation: "",
   expiryDate: "",
@@ -140,6 +164,7 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
     selectedFood: null,
     customName: "",
     quantity: "",
+    unit: "kg",
     storageLocation: "COOL",
     specificLocation: "",
     addedDate: getTodayInputValue(),
@@ -305,6 +330,7 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
       foodName: food.name,
       selectedFood: food,
       customName: isOtherFood(food) ? manualForm.foodName.trim() : "",
+      unit: getDefaultUnit(food.unit, "kg"),
     });
     setFoodSuggestions([]);
   };
@@ -383,7 +409,7 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
         addedDate: manualForm.addedDate || null,
         expiryDate: manualForm.expiryDate,
         note: manualForm.note.trim() || null,
-        unit: selectedManualFood.unit || null,
+        unit: manualForm.unit || getDefaultUnit(selectedManualFood.unit, "kg"),
       });
 
       onAdded?.();
@@ -545,7 +571,15 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
                                   type="number"
                                   onChange={(value) => updateShoppingDraft(item.shoppingListItemId, { quantity: value })}
                                 />
-                                <Field label="Đơn vị" value={item.unit || ""} disabled />
+                                <Field
+                                  label="Đơn vị"
+                                  required
+                                  as="select"
+                                  options={parseUnitOptions(item.unit)}
+                                  value={draft.unit}
+                                  onChange={(value) => updateShoppingDraft(item.shoppingListItemId, { unit: value })}
+                                  placeholder="Chọn đơn vị"
+                                />
                                 <Field
                                   label="Hạn sử dụng"
                                   required
@@ -696,7 +730,16 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
               placeholder="Nhập số lượng"
               type="number"
             />
-            <Field label="Đơn vị" required value={selectedManualFood?.unit || ""} placeholder="Chọn thực phẩm trước" disabled />
+            <Field
+              label="Đơn vị"
+              required
+              as="select"
+              options={parseUnitOptions(selectedManualFood?.unit)}
+              value={manualForm.unit}
+              onChange={(value) => updateManualForm({ unit: value })}
+              placeholder="Chọn thực phẩm trước"
+              disabled={!selectedManualFood}
+            />
             <Field
               label="Ngày nhập"
               type="date"

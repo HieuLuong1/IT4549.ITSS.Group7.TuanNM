@@ -6,11 +6,21 @@ import './AddItemPopover.css';
 interface AddItemPopoverProps {
     foodName: string;
     foodIcon?: string;
-    unit: string;
+    unit: string; // Nhận vào chuỗi đơn vị (Có thể là "kg" hoặc chuỗi admin "hộp,kg,g")
     onConfirm: (data: { quantity: number; assignedTo: number | null; note: string; customName?: string; unit?: string }) => void;
     onCancel: () => void;
     members?: any[];
 }
+
+// Hàm bổ trợ cắt chuỗi đơn vị bằng dấu phẩy
+const parseUnitOptions = (rawValue?: string) => {
+    if (!rawValue) return ['kg'];
+    const normalized = rawValue
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+    return normalized.length > 0 ? Array.from(new Set(normalized)) : ['kg'];
+};
 
 const AddItemPopover: React.FC<AddItemPopoverProps> = ({
     foodName,
@@ -24,7 +34,10 @@ const AddItemPopover: React.FC<AddItemPopoverProps> = ({
     const [assigneeId, setAssigneeId] = useState<number | ''>('');
     const [note, setNote] = useState('');
     const [customName, setCustomName] = useState('');
-    const [selectedUnit, setSelectedUnit] = useState(unit);
+    
+    // Băm chuỗi từ DB ra mảng, lấy phần tử đầu tiên làm đơn vị mặc định
+    const unitOptions = parseUnitOptions(unit);
+    const [selectedUnit, setSelectedUnit] = useState(unitOptions[0] || 'kg');
 
     const isOther = foodName.toLowerCase().includes("khác");
 
@@ -44,20 +57,19 @@ const AddItemPopover: React.FC<AddItemPopoverProps> = ({
             assignedTo: assigneeId === '' ? null : assigneeId,
             note,
             customName: isOther ? customName.trim() : undefined,
-            unit: selectedUnit
+            unit: selectedUnit // Gửi lên duy nhất 1 đơn vị được chọn từ dropdown
         });
     };
 
+    // Cập nhật lại đơn vị được chọn nếu prop `unit` từ ngoài thay đổi
     React.useEffect(() => {
-        setSelectedUnit(unit);
+        const options = parseUnitOptions(unit);
+        setSelectedUnit(options[0] || 'kg');
     }, [unit]);
-
-    const commonUnits = ["kg", "g", "quả", "hộp", "bó", "chai", "túi", "lít", "ml", "phần"];
-    const unitOptions = commonUnits.includes(unit.toLowerCase()) ? commonUnits : [unit, ...commonUnits];
 
     return (
         <div className="add-item-popover">
-            {/*Tên thực phẩm */}
+            {/* Tên thực phẩm */}
             <div className="popover-food-header">
                 <span className="popover-food-icon">{foodIcon}</span>
                 <span className="popover-food-name">{foodName}</span>
@@ -77,7 +89,7 @@ const AddItemPopover: React.FC<AddItemPopoverProps> = ({
 
             <div className="popover-divider"></div>
 
-            {/* Assignee Section */}
+            {/* Người phụ trách */}
             <div className="popover-row">
                 <label>GIAO CHO</label>
                 <div className="custom-select">
@@ -99,7 +111,7 @@ const AddItemPopover: React.FC<AddItemPopoverProps> = ({
                 </div>
             </div>
 
-            {/* Quantity Section */}
+            {/* Số lượng & Đơn vị dạng Dropdown (Áp dụng cho TẤT CẢ thực phẩm) */}
             <div className="popover-row-vertical">
                 <label>SỐ LƯỢNG</label>
                 <div className="quantity-controls">
@@ -112,23 +124,21 @@ const AddItemPopover: React.FC<AddItemPopoverProps> = ({
                         />
                         <button onClick={() => setQuantity(q => q + 0.5)}><Plus size={14} /></button>
                     </div>
-                    {isOther ? (
-                        <select
-                            className="popover-unit-select"
-                            value={selectedUnit}
-                            onChange={(e) => setSelectedUnit(e.target.value)}
-                        >
-                            {unitOptions.map(u => (
-                                <option key={u} value={u}>{u.toUpperCase()}</option>
-                            ))}
-                        </select>
-                    ) : (
-                        <span className="unit-text">{selectedUnit.toUpperCase()}</span>
-                    )}
+
+                    {/* Đã sửa: Chuyển hoàn toàn thành select dropdown băm từ chuỗi admin */}
+                    <select
+                        className="popover-unit-select"
+                        value={selectedUnit}
+                        onChange={(e) => setSelectedUnit(e.target.value)}
+                    >
+                        {unitOptions.map(u => (
+                            <option key={u} value={u}>{u.toUpperCase()}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
-            {/* Note Section */}
+            {/* Ghi chú nhanh */}
             <div className="popover-row-vertical">
                 <input
                     className="note-input"
@@ -138,7 +148,7 @@ const AddItemPopover: React.FC<AddItemPopoverProps> = ({
                 />
             </div>
 
-            {/* Actions */}
+            {/* Footer nút hành động */}
             <div className="popover-footer">
                 <button className="popover-btn-cancel" onClick={onCancel}>Hủy</button>
                 <button className="popover-btn-confirm" onClick={handleConfirm}>
@@ -146,7 +156,6 @@ const AddItemPopover: React.FC<AddItemPopoverProps> = ({
                 </button>
             </div>
 
-            {/* Mũi tên trỏ của Popover */}
             <div className="popover-arrow"></div>
         </div>
     );
