@@ -293,6 +293,10 @@ public class UserController {
         if (currentUser == null) {
             return ResponseEntity.status(404).body(new ApiResponse<>(false, "Không tìm thấy người dùng", null));
         }
+        if (isAdminRole(currentUser)) {
+            return ResponseEntity.status(403).body(new ApiResponse<>(false,
+                    "Tài khoản quản trị viên không thể phản hồi lời mời gia đình", null));
+        }
 
         Optional<Invitation> inviteOpt = invitationRepository
                 .findFirstByReceiverIdAndStatusOrderByIdDesc(currentUser.getId(), "PENDING");
@@ -347,8 +351,10 @@ public class UserController {
 
             Long restoredFamilyId = userRepository.findActualFamilyIdByHousekeeperId(targetUserId);
             if (restoredFamilyId == null || restoredFamilyId.equals(currentFamilyId)) {
-                return ResponseEntity.status(400).body(new ApiResponse<>(false,
-                        "Không tìm thấy gia đình gốc để khôi phục cho người dùng này", null));
+                Family personalFamily = new Family();
+                personalFamily.setName("Gia đình " + targetUser.getFullName());
+                personalFamily.setHousekeeperId(targetUserId);
+                restoredFamilyId = familyService.save(personalFamily).getId();
             }
 
             userRepository.updateFamilyAndRoleDirectlyNative(targetUserId, restoredFamilyId, 3L);
