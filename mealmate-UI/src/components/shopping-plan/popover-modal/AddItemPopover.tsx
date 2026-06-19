@@ -6,19 +6,32 @@ import './AddItemPopover.css';
 interface AddItemPopoverProps {
     foodName: string;
     foodIcon?: string;
-    unit: string; // Nhận vào chuỗi đơn vị (Có thể là "kg" hoặc chuỗi admin "hộp,kg,g")
+    unit?: string; // Đã chuyển thành optional (?) để an toàn tuyệt đối với TypeScript
     onConfirm: (data: { quantity: number; assignedTo: number | null; note: string; customName?: string; unit?: string }) => void;
     onCancel: () => void;
     members?: any[];
 }
 
-// Hàm bổ trợ cắt chuỗi đơn vị bằng dấu phẩy
-const parseUnitOptions = (rawValue?: string) => {
-    if (!rawValue) return ['kg'];
+// Mảng đơn vị thông dụng hệ thống khi chọn thực phẩm nhóm "khác"
+const COMMON_UNITS = ["kg", "g", "quả", "hộp", "bó", "chai", "túi", "lít", "ml", "phần"];
+
+// Hàm bổ trợ cắt chuỗi đơn vị bằng dấu phẩy có xử lý an toàn cho undefined và nhóm "khác"
+const parseUnitOptions = (rawValue?: string, isGenericFood = false) => {
+    if (!rawValue) {
+        return isGenericFood ? COMMON_UNITS : ['kg'];
+    }
+
     const normalized = rawValue
         .split(',')
         .map((item) => item.trim())
         .filter(Boolean);
+
+    // Nếu thuộc nhóm "khác", trộn mảng đơn vị hiện tại với mảng đơn vị thông dụng hệ thống
+    if (isGenericFood) {
+        const combined = [...normalized, ...COMMON_UNITS];
+        return Array.from(new Set(combined));
+    }
+
     return normalized.length > 0 ? Array.from(new Set(normalized)) : ['kg'];
 };
 
@@ -35,11 +48,11 @@ const AddItemPopover: React.FC<AddItemPopoverProps> = ({
     const [note, setNote] = useState('');
     const [customName, setCustomName] = useState('');
     
-    // Băm chuỗi từ DB ra mảng, lấy phần tử đầu tiên làm đơn vị mặc định
-    const unitOptions = parseUnitOptions(unit);
-    const [selectedUnit, setSelectedUnit] = useState(unitOptions[0] || 'kg');
-
     const isOther = foodName.toLowerCase().includes("khác");
+
+    // Băm chuỗi từ DB ra mảng dựa vào cờ kiểm tra nhóm thực phẩm "khác"
+    const unitOptions = parseUnitOptions(unit, isOther);
+    const [selectedUnit, setSelectedUnit] = useState(unitOptions[0] || 'kg');
 
     const getAssigneeName = () => {
         if (assigneeId === '') return 'Chọn người phụ trách';
@@ -61,11 +74,11 @@ const AddItemPopover: React.FC<AddItemPopoverProps> = ({
         });
     };
 
-    // Cập nhật lại đơn vị được chọn nếu prop `unit` từ ngoài thay đổi
+    // Cập nhật lại đơn vị nếu prop `unit` hoặc tên món ăn từ ngoài thay đổi
     React.useEffect(() => {
-        const options = parseUnitOptions(unit);
+        const options = parseUnitOptions(unit, foodName.toLowerCase().includes("khác"));
         setSelectedUnit(options[0] || 'kg');
-    }, [unit]);
+    }, [unit, foodName]);
 
     return (
         <div className="add-item-popover">
@@ -111,21 +124,20 @@ const AddItemPopover: React.FC<AddItemPopoverProps> = ({
                 </div>
             </div>
 
-            {/* Số lượng & Đơn vị dạng Dropdown (Áp dụng cho TẤT CẢ thực phẩm) */}
+            {/* Số lượng & Đơn vị dạng Dropdown */}
             <div className="popover-row-vertical">
                 <label>SỐ LƯỢNG</label>
                 <div className="quantity-controls">
                     <div className="quantity-input-box">
-                        <button onClick={() => setQuantity(q => Math.max(0.5, q - 0.5))}><Minus size={14} /></button>
+                        <button type="button" onClick={() => setQuantity(q => Math.max(0.5, q - 0.5))}><Minus size={14} /></button>
                         <input
                             type="number"
                             value={quantity}
                             onChange={(e) => setQuantity(Number(e.target.value))}
                         />
-                        <button onClick={() => setQuantity(q => q + 0.5)}><Plus size={14} /></button>
+                        <button type="button" onClick={() => setQuantity(q => q + 0.5)}><Plus size={14} /></button>
                     </div>
 
-                    {/* Đã sửa: Chuyển hoàn toàn thành select dropdown băm từ chuỗi admin */}
                     <select
                         className="popover-unit-select"
                         value={selectedUnit}
@@ -150,8 +162,8 @@ const AddItemPopover: React.FC<AddItemPopoverProps> = ({
 
             {/* Footer nút hành động */}
             <div className="popover-footer">
-                <button className="popover-btn-cancel" onClick={onCancel}>Hủy</button>
-                <button className="popover-btn-confirm" onClick={handleConfirm}>
+                <button type="button" className="popover-btn-cancel" onClick={onCancel}>Hủy</button>
+                <button type="button" className="popover-btn-confirm" onClick={handleConfirm}>
                     <Check size={18} /> Xác nhận
                 </button>
             </div>
