@@ -164,7 +164,7 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
     selectedFood: null,
     customName: "",
     quantity: "",
-    unit: "kg",
+    unit: "",
     storageLocation: "COOL",
     specificLocation: "",
     addedDate: getTodayInputValue(),
@@ -206,6 +206,18 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
 
     return Array.from(grouped.entries());
   }, [allFoods]);
+
+  const unitOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          allFoods
+            .map((food) => food.unit?.trim())
+            .filter((unit): unit is string => Boolean(unit))
+        )
+      ).sort((first, second) => first.localeCompare(second, "vi")),
+    [allFoods]
+  );
 
   useEffect(() => {
     const loadFoods = async () => {
@@ -322,6 +334,7 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
       foodName: value,
       selectedFood: null,
       customName: "",
+      unit: "",
     });
   };
 
@@ -330,7 +343,7 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
       foodName: food.name,
       selectedFood: food,
       customName: isOtherFood(food) ? manualForm.foodName.trim() : "",
-      unit: getDefaultUnit(food.unit, "kg"),
+      unit: food.unit || "",
     });
     setFoodSuggestions([]);
   };
@@ -342,6 +355,10 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
 
     if (shouldShowCustomName && !manualForm.customName.trim()) {
       return "Vui lòng nhập tên thực phẩm cụ thể.";
+    }
+
+    if (!manualForm.unit.trim()) {
+      return "Vui lòng chọn đơn vị.";
     }
 
     const quantity = Number(manualForm.quantity);
@@ -409,7 +426,7 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
         addedDate: manualForm.addedDate || null,
         expiryDate: manualForm.expiryDate,
         note: manualForm.note.trim() || null,
-        unit: manualForm.unit || getDefaultUnit(selectedManualFood.unit, "kg"),
+        unit: manualForm.unit || null,
       });
 
       onAdded?.();
@@ -734,10 +751,10 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
               label="Đơn vị"
               required
               as="select"
-              options={parseUnitOptions(selectedManualFood?.unit)}
+              options={unitOptions}
               value={manualForm.unit}
               onChange={(value) => updateManualForm({ unit: value })}
-              placeholder="Chọn thực phẩm trước"
+              placeholder={selectedManualFood ? "Chọn đơn vị" : "Chọn thực phẩm trước"}
               disabled={!selectedManualFood}
             />
             <Field
