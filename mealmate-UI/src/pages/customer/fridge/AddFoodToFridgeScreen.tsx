@@ -92,28 +92,10 @@ const categoryIconMap: Record<string, string> = {
   default_food: "🍽️",
 };
 
+// Mảng đơn vị thông dụng dùng làm cấu hình dropdown cho nhóm thực phẩm "khác"
+const COMMON_UNITS = ["kg", "g", "quả", "hộp", "bó", "chai", "túi", "lít", "ml", "phần"];
+
 const getTodayInputValue = () => new Date().toISOString().slice(0, 10);
-
-const parseUnitOptions = (rawValue?: string) => {
-  if (!rawValue) return [];
-
-  const normalized = rawValue
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  if (normalized.length === 0) {
-    return [];
-  }
-
-  const unique = Array.from(new Set(normalized));
-  return unique;
-};
-
-const getDefaultUnit = (rawValue?: string, fallback = "kg") => {
-  const options = parseUnitOptions(rawValue);
-  return options[0] || fallback;
-};
 
 const normalizeSearchText = (value: string) =>
   value
@@ -130,21 +112,44 @@ const isOtherFood = (food: FoodFromApi) => {
 
 const isOtherSelection = (food: FoodFromApi | null) => Boolean(food && isOtherFood(food));
 
+// Logic băm chuỗi dấu phẩy linh hoạt có kiểm tra điều kiện thực phẩm "khác"
+const parseUnitOptions = (rawValue?: string, isGenericFood = false) => {
+  const normalized = rawValue
+    ? rawValue.split(",").map((item) => item.trim()).filter(Boolean)
+    : [];
+
+  // Nếu thuộc nhóm "khác", trộn mảng đơn vị hiện tại với mảng đơn vị thông dụng hệ thống
+  if (isGenericFood) {
+    const combined = [...normalized, ...COMMON_UNITS];
+    return Array.from(new Set(combined));
+  }
+
+  return Array.from(new Set(normalized));
+};
+
+const getDefaultUnit = (rawValue?: string, fallback = "kg", isGenericFood = false) => {
+  const options = parseUnitOptions(rawValue, isGenericFood);
+  return options[0] || fallback;
+};
+
 const getCandidateDisplayName = (candidate: ShoppingImportCandidateFromApi) =>
   candidate.customName || candidate.foodName || "Thực phẩm";
 
 const getCandidateIcon = (candidate: ShoppingImportCandidateFromApi) =>
   categoryIconMap[candidate.categoryIconKey || "default_food"] || categoryIconMap.default_food;
 
-const createDraft = (candidate: ShoppingImportCandidateFromApi): ShoppingDraft => ({
-  status: "idle",
-  quantity: String(candidate.quantity ?? ""),
-  unit: getDefaultUnit(candidate.unit, "kg"),
-  storageLocation: "COOL",
-  specificLocation: "",
-  expiryDate: "",
-  note: candidate.note || "",
-});
+const createDraft = (candidate: ShoppingImportCandidateFromApi): ShoppingDraft => {
+  const isGeneric = candidate.foodName?.toLowerCase().includes("khác") || candidate.customName?.toLowerCase().includes("khác");
+  return {
+    status: "idle",
+    quantity: String(candidate.quantity ?? ""),
+    unit: getDefaultUnit(candidate.unit, "kg", isGeneric),
+    storageLocation: "COOL",
+    specificLocation: "",
+    expiryDate: "",
+    note: candidate.note || "",
+  };
+};
 
 const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel, onAdded }) => {
   const [mode, setMode] = useState<AddFoodMode>("SHOPPING_PLAN");
@@ -206,18 +211,6 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
 
     return Array.from(grouped.entries());
   }, [allFoods]);
-
-  const unitOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          allFoods
-            .map((food) => food.unit?.trim())
-            .filter((unit): unit is string => Boolean(unit))
-        )
-      ).sort((first, second) => first.localeCompare(second, "vi")),
-    [allFoods]
-  );
 
   useEffect(() => {
     const loadFoods = async () => {
@@ -339,11 +332,12 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
   };
 
   const handleSelectFood = (food: FoodFromApi) => {
+    const isGeneric = isOtherFood(food);
     updateManualForm({
       foodName: food.name,
       selectedFood: food,
-      customName: isOtherFood(food) ? manualForm.foodName.trim() : "",
-      unit: food.unit || "",
+      customName: isGeneric ? manualForm.foodName.trim() : "",
+      unit: getDefaultUnit(food.unit, "kg", isGeneric),
     });
     setFoodSuggestions([]);
   };
@@ -461,7 +455,7 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
           addedDate: getTodayInputValue(),
           expiryDate: draft.expiryDate,
           note: draft.note.trim() || null,
-          unit: candidate.unit || null,
+          unit: draft.unit || null,
         };
       });
 
@@ -542,6 +536,7 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
                         const draft = shoppingDrafts[item.shoppingListItemId] || createDraft(item);
                         const status = draft.status;
                         const isSkipping = skippingItemIds.has(item.shoppingListItemId);
+                        const isGeneric = item.foodName?.toLowerCase().includes("khác") || item.customName?.toLowerCase().includes("khác");
 
                         return (
                           <article className={`shopping-item ${status === "selected" ? "selected" : ""}`} key={item.shoppingListItemId}>
@@ -552,6 +547,7 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
                                 onClick={() =>
                                   updateShoppingDraft(item.shoppingListItemId, {
                                     status: status === "selected" ? "idle" : "selected",
+                                    unit: draft.unit || getDefaultUnit(item.unit, "kg", isGeneric)
                                   })
                                 }
                                 disabled={isSkipping}
@@ -575,7 +571,7 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
                                   </div>
                                 </div>
                                 <p>
-                                  Đã mua: {item.quantity} {item.unit || ""}
+                                  Đã mua: {item.quantity} {getDefaultUnit(item.unit, "", isGeneric)}
                                 </p>
                               </div>
                             </div>
@@ -592,7 +588,7 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
                                   label="Đơn vị"
                                   required
                                   as="select"
-                                  options={parseUnitOptions(item.unit)}
+                                  options={parseUnitOptions(item.unit, isGeneric)}
                                   value={draft.unit}
                                   onChange={(value) => updateShoppingDraft(item.shoppingListItemId, { unit: value })}
                                   placeholder="Chọn đơn vị"
@@ -696,15 +692,18 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
                   {isSearchingFoods && <p className="manual-suggestion-state">Đang tìm thực phẩm...</p>}
 
                   {!isSearchingFoods &&
-                    foodSuggestions.map((food) => (
-                      <button type="button" key={food.id} onClick={() => handleSelectFood(food)}>
-                        <strong>{food.name}</strong>
-                        <span>
-                          {food.categoryName || "Chưa có danh mục"}
-                          {food.unit ? ` · ${food.unit}` : ""}
-                        </span>
-                      </button>
-                    ))}
+                    foodSuggestions.map((food) => {
+                      const isGeneric = isOtherFood(food);
+                      return (
+                        <button type="button" key={food.id} onClick={() => handleSelectFood(food)}>
+                          <strong>{food.name}</strong>
+                          <span>
+                            {food.categoryName || "Chưa có danh mục"}
+                            {food.unit ? ` · ${getDefaultUnit(food.unit, "kg", isGeneric)}` : ""}
+                          </span>
+                        </button>
+                      );
+                    })}
 
                   {showOtherFoodChoices && (
                     <div className="manual-other-foods">
@@ -751,7 +750,7 @@ const AddFoodToFridgeScreen: React.FC<AddFoodToFridgeScreenProps> = ({ onCancel,
               label="Đơn vị"
               required
               as="select"
-              options={unitOptions}
+              options={parseUnitOptions(selectedManualFood?.unit, shouldShowCustomName)}
               value={manualForm.unit}
               onChange={(value) => updateManualForm({ unit: value })}
               placeholder={selectedManualFood ? "Chọn đơn vị" : "Chọn thực phẩm trước"}
