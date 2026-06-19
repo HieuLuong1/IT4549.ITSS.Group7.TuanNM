@@ -234,6 +234,7 @@ const ShoppingPlanPage: React.FC = () => {
                                     familyId={familyId}
                                     plans={plans}
                                     onAddSuccess={fetchSummary}
+                                    canCreatePlan={canCreatePlan}
                                 />
 
                             </div>
